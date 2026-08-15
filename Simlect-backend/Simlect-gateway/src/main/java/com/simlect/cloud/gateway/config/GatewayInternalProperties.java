@@ -5,7 +5,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "simlect.internal")
 public class GatewayInternalProperties {
 
-    private String token = "your-token";
+    /** 内部调用令牌；空值表示未配置，此时 /internal/** 一律 401（禁止以空令牌放行） */
+    private String token = "";
 
     private boolean authEnabled = true;
 

@@ -26,6 +26,7 @@ import com.simlect.mappers.DiscountCouponMapper;
 import com.simlect.mappers.UserCouponMapper;
 import com.simlect.utils.DateUtil;
 import com.simlect.utils.StringTools;
+import jakarta.annotation.PreDestroy;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -373,21 +374,50 @@ public class DiscountCouponServiceImpl implements DiscountCouponService {
 		throw new BusinessException("不支持的优惠券类型");
 	}
 
+	private static final java.util.concurrent.ExecutorService NOTIFY_POOL =
+			java.util.concurrent.Executors.newFixedThreadPool(8);
+
+	@PreDestroy  // 应用关闭时优雅回收广播线程池
+	void shutdownNotifyPool() {
+		NOTIFY_POOL.shutdown();
+	}
+
 	private void broadcastRushCouponNotification(DiscountCoupon coupon) {
 		try {
-			List<String> userIds = userFeignSupport.listAllUserIds();
-			if (userIds == null || userIds.isEmpty()) {
-				return;
-			}
 			String title = "秒杀券上线";
 			String content = coupon.getCouponName() + " 已上线，快去抢购！";
 			String bizType = "rush_coupon";
 			String bizId = coupon.getCouponId();
-
-			for (String userId : userIds) {
-				userFeignSupport.sendNotifyAsync(userId, title, content, bizType, bizId);
+			int notified = 0;
+			int pageNo = 1;
+			int pageSize = 500;
+			// 分页广播：避免全量用户一次性加载阻塞单请求；页内并行发送（8 线程），页间串行推进
+			while (true) {
+				List<String> userIds = userFeignSupport.listUserIdsByPage(pageNo, pageSize);
+				if (userIds == null || userIds.isEmpty()) {
+					break;
+				}
+				// 固定线程池并行发送本页通知（单用户失败不中断整页，只记日志）
+				java.util.List<java.util.concurrent.CompletableFuture<Void>> futures =
+						new java.util.ArrayList<>();
+				for (String userId : userIds) {
+					futures.add(java.util.concurrent.CompletableFuture.runAsync(() -> {
+						try {
+							userFeignSupport.sendNotifyAsync(userId, title, content, bizType, bizId);
+						} catch (Exception e) {
+							log.warn("秒杀券通知发送失败 couponId={} userId={}", coupon.getCouponId(), userId, e);
+						}
+					}, NOTIFY_POOL));
+				}
+				java.util.concurrent.CompletableFuture.allOf(
+						futures.toArray(new java.util.concurrent.CompletableFuture[0])).join();
+				notified += userIds.size();
+				if (userIds.size() < pageSize) {
+					break;
+				}
+				pageNo++;
 			}
-			log.info("秒杀券 {} 已通过 RabbitMQ 通知 {} 个用户", coupon.getCouponId(), userIds.size());
+			log.info("秒杀券 {} 已通过 RabbitMQ 通知 {} 个用户", coupon.getCouponId(), notified);
 		} catch (Exception e) {
 			log.error("秒杀券通知广播失败: {}", coupon.getCouponId(), e);
 		}

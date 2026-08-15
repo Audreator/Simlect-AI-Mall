@@ -1,7 +1,6 @@
 package com.simlect.entity.query;
 import com.simlect.entity.enums.PageSize;
 
-
 public class SimplePage {
 	private int pageNo;
 	private int countTotal;
@@ -31,6 +30,10 @@ public class SimplePage {
 	public void action() {
 		if (this.pageSize <= 0) {
 			this.pageSize = PageSize.SIZE20.getSize();
+		}
+		// 单页上限 100：防恶意全表拉取
+		if (this.pageSize > 100) {
+			this.pageSize = 100;
 		}
 		if (this.countTotal > 0) {
 			this.pageTotal = this.countTotal % this.pageSize == 0 ? this.countTotal / this.pageSize

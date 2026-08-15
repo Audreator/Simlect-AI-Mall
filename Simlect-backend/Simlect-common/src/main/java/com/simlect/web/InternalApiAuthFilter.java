@@ -21,7 +21,7 @@ import java.nio.charset.StandardCharsets;
 @Order(Ordered.HIGHEST_PRECEDENCE + 20)
 public class InternalApiAuthFilter extends OncePerRequestFilter {
 
-    @Value("${simlect.internal.token:your-token}")
+    @Value("${simlect.internal.token:}")
     private String expectedToken;
 
     @Value("${simlect.internal.auth-enabled:true}")
@@ -40,15 +40,16 @@ public class InternalApiAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         String token = request.getHeader(InternalApiHeaders.INTERNAL_TOKEN);
-        if (StringTools.isEmpty(expectedToken) || expectedToken.equals(token)) {
-            filterChain.doFilter(request, response);
+        // 未配置令牌（空）或令牌不匹配：一律 401（与网关同构，防服务侧 /internal 裸奔）
+        if (StringTools.isEmpty(expectedToken) || !expectedToken.equals(token)) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            response.getWriter().write("{\"status\":\"error\",\"code\":"
+                    + ResponseCodeEnum.CODE_901.getCode()
+                    + ",\"info\":\"非法内部调用\",\"data\":null}");
             return;
         }
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        response.getWriter().write("{\"status\":\"error\",\"code\":"
-                + ResponseCodeEnum.CODE_901.getCode()
-                + ",\"info\":\"非法内部调用\",\"data\":null}");
+        filterChain.doFilter(request, response);
     }
 }

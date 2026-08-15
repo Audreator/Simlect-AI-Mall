@@ -20,7 +20,25 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Validates X-Internal-Token for /internal/** before routing to microservices.
+ * 这个类干什么？
+ * Gateway 上校验「是不是内部服务在调」：只处理 /internal/**。
+ * 请求头必须带 X-Internal-Token，且和配置里的 simlect.internal.token 一致，否则 401。
+ * <p>
+ * 出现在什么功能里？角色是什么？
+ * - 功能：Feign 跨服务、Agent/MCP 调 Java 内部接口（读订单、锁库存、提案数据等）
+ * - 角色：东西向（服务→服务）门卫。order=-200，比用户登录 Filter 更早执行。
+ *   和用户 Cookie 是两套体系：内部调用不查 mall:token:web:。
+ * <p>
+ * 调用链（每一步的作用）：
+ * <pre>
+ * 1. FeignInternalAuthInterceptor / JavaInternalClient 自动加 X-Internal-Token
+ *    → 作用：标明「我是内部调用方」
+ * 2. 本 Filter 比对配置中的 token
+ *    → 作用：挡住公网乱扫 /internal、假冒内部调用
+ * 3. 通过后路由到 lb://simlect-* 的 InternalController
+ *    → 作用：真正执行库存/订单等内部 API
+ * </pre>
+ * 现状是共享对称令牌（演示够用）；上线应升级 mTLS 或 OAuth2 client credentials。
  */
 @Component
 public class InternalTokenGlobalFilter implements GlobalFilter, Ordered {
@@ -51,6 +69,7 @@ public class InternalTokenGlobalFilter implements GlobalFilter, Ordered {
         }
         String expected = internalProperties.getToken();
         String actual = exchange.getRequest().getHeaders().getFirst(INTERNAL_TOKEN_HEADER);
+        // 未配置令牌（空值）一律 401：禁止空令牌放行内部接口
         if (StringUtils.hasText(expected) && expected.equals(actual)) {
             return chain.filter(exchange);
         }

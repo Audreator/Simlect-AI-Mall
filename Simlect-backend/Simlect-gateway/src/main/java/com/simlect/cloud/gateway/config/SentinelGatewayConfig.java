@@ -22,6 +22,14 @@ import java.util.Map;
 import java.util.Set;
 
 @Configuration
+/**
+ * 【功能】Gateway 侧 Sentinel 限流规则与阻塞响应。
+ * <p>
+ * 【角色】南北向过载保护：登录等 auth-sensitive 更严；web/admin 与按 routeId 限 QPS，超限 429。
+ * <p>
+ * 【调用链】启动 init → 注册 API 分组与 GatewayRule → 被限流时 BlockHandler 返回 JSON。
+ * 与业务侧 CouponRushRateLimit（Redis Lua）互补。
+ */
 public class SentinelGatewayConfig {
 
     private final GatewayRateLimitProperties rateLimitProperties;

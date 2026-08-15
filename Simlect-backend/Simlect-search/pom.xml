@@ -35,7 +35,7 @@
       <groupId>org.springframework.cloud</groupId>
       <artifactId>spring-cloud-starter-loadbalancer</artifactId>
     </dependency>
-    <!-- RAG / Embedding：仅 search 需要，勿放 common（否则 product 等无 key 无法启动） -->
+    <!-- RAG / Embedding锛氫粎 search 闇€瑕侊紝鍕挎斁 common锛堝惁鍒?product 绛夋棤 key 鏃犳硶鍚姩锛?-->
     <dependency>
       <groupId>org.springframework.ai</groupId>
       <artifactId>spring-ai-starter-model-openai</artifactId>
@@ -44,6 +44,18 @@
       <groupId>org.springframework.ai</groupId>
       <artifactId>spring-ai-starter-vector-store-elasticsearch</artifactId>
     </dependency>
+  
+    <!-- ==================== 测试 ==================== -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
   <build>
     <plugins>
@@ -51,6 +63,34 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
       </plugin>
-    </plugins>
+    
+    <plugin>
+      <groupId>org.jacoco</groupId>
+      <artifactId>jacoco-maven-plugin</artifactId>
+      <executions>
+        <execution>
+          <id>coverage-check</id>
+          <phase>verify</phase>
+          <goals>
+            <goal>check</goal>
+          </goals>
+          <configuration>
+            <skip></skip>
+            <rules>
+              <rule>
+                <element>BUNDLE</element>
+                <limits>
+                  <limit>
+                    <counter>LINE</counter>
+                    <value>COVEREDRATIO</value>
+                    <minimum>0.55</minimum>
+                  </limit>
+                </limits>
+              </rule>
+            </rules>
+          </configuration>
+        </execution>
+      </executions>
+    </plugin></plugins>
   </build>
 </project>

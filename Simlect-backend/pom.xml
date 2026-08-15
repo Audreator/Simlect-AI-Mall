@@ -37,7 +37,9 @@
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.test.skip>true</maven.test.skip>
+    <maven.test.skip>false</maven.test.skip>
+    <testcontainers.version>1.21.4</testcontainers.version>
+    <jacoco.version>0.8.12</jacoco.version>
     <spring-cloud.version>2025.0.0</spring-cloud.version>
     <spring-cloud-alibaba.version>2025.0.0.0</spring-cloud-alibaba.version>
     <spring.ai.version>1.1.2</spring.ai.version>
@@ -80,6 +82,15 @@
         <groupId>org.springframework.ai</groupId>
         <artifactId>spring-ai-bom</artifactId>
         <version>${spring.ai.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- Testcontainers -->
+      <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>testcontainers-bom</artifactId>
+        <version>${testcontainers.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -234,13 +245,89 @@
   </dependencyManagement>
 
   <build>
+    <plugins>
+      <!-- 代码覆盖率：mvn test 后自动生成 target/site/jacoco/ -->
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>${jacoco.version}</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>report</id>
+            <phase>test</phase>
+            <goals>
+              <goal>report</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
     <pluginManagement>
       <plugins>
         <plugin>
           <groupId>org.springframework.boot</groupId>
           <artifactId>spring-boot-maven-plugin</artifactId>
         </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>3.2.5</version>
+          <configuration>
+            <!-- 单元测试：*Test.java；跳过依赖外部中间件的 *IT.java -->
+            <includes>
+              <include>**/*Test.java</include>
+            </includes>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-failsafe-plugin</artifactId>
+          <version>3.2.5</version>
+          <configuration>
+            <!-- 集成测试：*IT.java（Testcontainers 起中间件） -->
+            <includes>
+              <include>**/*IT.java</include>
+            </includes>
+            <skipITs>true</skipITs>
+          </configuration>
+          <executions>
+            <execution>
+              <goals>
+                <goal>integration-test</goal>
+                <goal>verify</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
+          <groupId>org.jacoco</groupId>
+          <artifactId>jacoco-maven-plugin</artifactId>
+          <version>${jacoco.version}</version>
+        </plugin>
       </plugins>
     </pluginManagement>
   </build>
+
+  <profiles>
+    <!-- 集成测试：mvn verify -Pit（仅跑 *IT.java） -->
+    <profile>
+      <id>it</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <configuration>
+              <skipITs>false</skipITs>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>

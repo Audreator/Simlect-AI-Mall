@@ -1,10 +1,15 @@
 package com.simlect.api.dto;
 
+import java.math.BigDecimal;
+
 public class PayOrderNotifyDTO {
 
     private String payOrderId;
 
     private String channelOrderId;
+
+    /** 支付渠道回调的实付金额（支付宝 total_amount），用于回调金额校验 */
+    private BigDecimal totalAmount;
 
     private PayOrderNotifyDTO() {
     }
@@ -28,5 +33,13 @@ public class PayOrderNotifyDTO {
 
     public void setChannelOrderId(String channelOrderId) {
         this.channelOrderId = channelOrderId;
+    }
+
+    public BigDecimal getTotalAmount() {
+        return totalAmount;
+    }
+
+    public void setTotalAmount(BigDecimal totalAmount) {
+        this.totalAmount = totalAmount;
     }
 }

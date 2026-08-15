@@ -2,6 +2,7 @@ package com.simlect.controller.admin;
 
 import java.util.List;
 
+import com.simlect.annotation.AdminSensitiveConfirm;
 import com.simlect.entity.query.ProductPropertyValueQuery;
 import com.simlect.entity.po.ProductPropertyValue;
 import com.simlect.entity.vo.ResponseVO;
@@ -39,7 +40,7 @@ public class ProductPropertyValueController extends com.simlect.controller.admin
 
 	@PostMapping("/addOrUpdateBatch")
 	public ResponseVO addOrUpdateBatch(@RequestBody List<ProductPropertyValue> listBean) {
-		productPropertyValueService.addBatch(listBean);
+		productPropertyValueService.addOrUpdateBatch(listBean);
 		return getSuccessResponseVO(null);
 	}
 
@@ -54,7 +55,8 @@ public class ProductPropertyValueController extends com.simlect.controller.admin
 		return getSuccessResponseVO(null);
 	}
 
-	@PostMapping("/deleteProductPropertyValueByProductIdAndPropertyValueId")
+@AdminSensitiveConfirm
+    	@PostMapping("/deleteProductPropertyValueByProductIdAndPropertyValueId")
 	public ResponseVO deleteProductPropertyValueByProductIdAndPropertyValueId(String productId,String propertyValueId) {
 		productPropertyValueService.deleteProductPropertyValueByProductIdAndPropertyValueId(productId,propertyValueId);
 		return getSuccessResponseVO(null);

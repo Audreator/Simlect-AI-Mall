@@ -35,6 +35,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.concurrent.TimeUnit;
 import java.util.Map;
 
 @Service("payChannel4Alipay")
@@ -165,7 +166,17 @@ public class PayChannel4AliPay implements PayChannel {
             log.info("支付宝回调地址状态不为success，不做处理，订单号：{}", payOrderId);
             return null;
         }
-        return new PayOrderNotifyDTO(payOrderId, channelOrderId);
+        PayOrderNotifyDTO notifyDTO = new PayOrderNotifyDTO(payOrderId, channelOrderId);
+        // 回调实付金额（供支付成功金额校验，防金额篡改回调）
+        String totalAmountText = requestParams.get("total_amount");
+        if (totalAmountText != null && !totalAmountText.isEmpty()) {
+            try {
+                notifyDTO.setTotalAmount(new BigDecimal(totalAmountText));
+            } catch (NumberFormatException e) {
+                log.warn("支付宝回调 total_amount 非法 payOrderId={}, value={}", payOrderId, totalAmountText);
+            }
+        }
+        return notifyDTO;
     }
 
     @Override
@@ -204,6 +215,15 @@ public class PayChannel4AliPay implements PayChannel {
 
     @Override
     public void refund(String sourcePayOrderId, String payOrderId, BigDecimal refundAmount) {
+        // 退款幂等闸：以 out_request_no（order 侧稳定的 refundOrderId）为幂等键；
+        // 成功保留（防重放二次退款），失败清理（允许重试）
+        String refundIdempotencyKey = "mall:pay:refund:req:" + payOrderId;
+        if (!redisComponent.setIfAbsent(
+                refundIdempotencyKey, "1",
+                7 * 24 * 3600L, TimeUnit.SECONDS)) {
+            log.info("退款请求已处理过（幂等跳过） refundOrderId={}", payOrderId);
+            return;
+        }
         try {
             // 初始化SDK
             AlipayClient alipayClient = new DefaultAlipayClient(getAlipayConfig());
@@ -220,9 +240,12 @@ public class PayChannel4AliPay implements PayChannel {
                 throw new BusinessException("退款失败");
             }
         } catch (BusinessException e) {
+            // 退款失败：清理幂等闸，允许同一退款单号重试
+            redisComponent.deleteCacheKey(refundIdempotencyKey);
             throw e;
         } catch (Exception e) {
             log.error("支付宝退款失败", e);
+            redisComponent.deleteCacheKey(refundIdempotencyKey);
             throw new BusinessException("支付宝退款失败");
         }
     }

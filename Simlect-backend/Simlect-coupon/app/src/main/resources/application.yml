@@ -45,7 +45,7 @@ spring:
   datasource:
     url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:3306/simlect_coupon?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&allowMultiQueries=true&useSSL=false
     username: ${MYSQL_USER:root}
-    password: ${MYSQL_PASSWORD:your-password}
+    password: ${MYSQL_PASSWORD:root}
     driver-class-name: com.mysql.cj.jdbc.Driver
   data:
     redis:
@@ -54,8 +54,8 @@ spring:
   rabbitmq:
     host: ${RABBIT_HOST:127.0.0.1}
     port: ${RABBIT_PORT:5672}
-    username: ${RABBIT_USER:guest}
-    password: ${RABBIT_PASSWORD:guest}
+    username: ${RABBIT_USER:simlect}
+    password: ${RABBIT_PASSWORD:simlect}
     virtual-host: ${RABBIT_VHOST:/}
     publisher-confirm-type: correlated
     publisher-returns: true
@@ -81,7 +81,7 @@ management:
 
 simlect:
   internal:
-    token: ${SIMLECT_INTERNAL_TOKEN:your-token}
+    token: ${SIMLECT_INTERNAL_TOKEN:}
     auth-enabled: true
   feign:
     connect-timeout-ms: 3000

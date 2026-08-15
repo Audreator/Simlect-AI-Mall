@@ -130,9 +130,8 @@ public class RabbitMQNotifyListenerComponent {
             log.info("批量写入通知完成，数量: {}", toSave.size());
         } catch (Exception e) {
             log.error("批量写入通知失败", e);
-            synchronized (batchList) {
-                batchList.addAll(toSave);
-            }
+            // 失败路径：requeue 重投（MQ 层保证重试）+ 释放幂等键允许再次消费；
+            // 不回批（避免跨线程/失效 deliveryTag 重复 ACK 与重复通知）
             for (PendingNotify pending : toSave) {
                 mqListenerHelper.releaseConsume(pending.mqMessage);
                 try {

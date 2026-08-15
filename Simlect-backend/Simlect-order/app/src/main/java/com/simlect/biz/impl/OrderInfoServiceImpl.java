@@ -40,6 +40,28 @@ import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * 这个类干什么？
+ * 订单域的总编排：普通下单、优惠券秒杀建单、支付成功入账、用户/超时关单、退款与物流相关状态变更。
+ * 本服务只写 order_* 表；库存/券/用户/支付都通过 Feign 调别的微服务（一域一库）。
+ * <p>
+ * 出现在什么功能里？角色是什么？
+ * - 功能：交易主链路（下单→支付→关单）
+ * - 角色：交易编排中心。强一致用 Seata；延迟关单用 Outbox+MQ；支付与关单并发用 Redis 生命周期锁+状态机。
+ * <p>
+ * 主调用链（每一步的作用）：
+ * <pre>
+ * 普通下单：Controller → postOrder
+ *   → Feign 校验地址/快照/锁库存/锁券 → 写订单 → 拉支付 → Outbox 发 15 分钟超时关单消息
+ *   → 作用：跨库要么一起成功，要么 Seata 回滚；超时未付自动关
+ * 秒杀券：coupon → prepareCouponRush → Redis Lua 预占 → DB 扣券 → 建待支付单
+ *   → 作用：热路径挡在 Redis，避免把秒杀打进长事务
+ * 支付回调：PayNotifyController → paySuccess（生命周期锁内条件更新待支付→已支付）
+ *   → 作用：与关单并发时只成功一次
+ * 超时关单：MQ → cancelUnpaidOrderForPayTimeout → cancelOrder
+ *   → 作用：回补库存/释券，幂等可重复消费
+ * </pre>
+ */
 @Service("orderInfoService")
 @Slf4j
 public class OrderInfoServiceImpl implements OrderInfoService {
@@ -164,6 +186,15 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 		return this.orderInfoMapper.deleteByOrderId(orderId);
 	}
 
+	/**
+	 * 【功能】普通商品下单（非秒杀券热路径）。
+	 * <p>
+	 * 【角色】跨库强一致入口：Seata AT 全局事务 + 本地事务；成功后 afterCommit 投递支付超时延迟消息（Outbox）。
+	 * <p>
+	 * 【调用链】校验地址(user) → 商品快照(product) → 锁/扣库存(stock) → 锁券(coupon) → 写 order_info/item
+	 * → 清购物车(cart) → 创建待支付(pay) → {@code transactionalMqSender.sendAfterCommit} 延迟关单。
+	 * TC 不可达且 SEATA_ENABLED=true 时直接失败，不静默降级。
+	 */
 	@Override
 	@GlobalTransactional(name = "simlect-post-order", rollbackFor = Exception.class)
 	@Transactional(rollbackFor = Exception.class)
@@ -563,6 +594,15 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 
 	@Override
 	@Transactional(rollbackFor = Exception.class)
+	/**
+	 * 【功能】优惠券秒杀：Redis Lua 预占 + DB 扣券 + 建待支付订单。
+	 * <p>
+	 * 【角色】大促热路径闸门。不把秒杀热点压在长 Seata 上；Lua 返回 0成功/1无库存/2已抢。
+	 * DB 扣减失败必须 Lua 回滚预占；关单回补用 DB remain SET 对齐 Redis，禁止盲目 INCR。
+	 * <p>
+	 * 【调用链】CouponService.rushCoupon → Feign → 本方法 → {@code redisComponent.rushingCoupon}
+	 * → couponFeign.deductStock → createCouponRushOrder → Outbox 超时关单。
+	 */
 	public CouponRushPrepareDTO prepareCouponRush(String userId, String couponId) {
 		DiscountCouponVO discountCoupon = validateCouponRush(couponId);
 		String userCouponId = StringTools.createUserCouponId();
@@ -572,6 +612,29 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 		if (rushCode == 1) {
 			couponFeignSupport.syncRushStockFromDbIfRedisZero(couponId);
 			throw new BusinessException("库存不足！");
+		}
+		if (rushCode == 2) {
+			// 已存在有效预占（Feign 超时重试/重复点击）：复用已建订单，避免卡在等预占过期
+			String existedUserCouponId = redisComponent.getRushUserCouponId(userId, couponId);
+			OrderInfo existed = StringTools.isEmpty(existedUserCouponId)
+					? null
+					: findCouponRushOrderByUserCoupon(existedUserCouponId);
+			if (existed != null
+					&& OrderStatusEnum.WAIT_PAYMENT.getStatus().equals(existed.getOrderStatus())) {
+				CouponRushPrepareDTO reuse = new CouponRushPrepareDTO();
+				reuse.setCouponId(couponId);
+				reuse.setUserCouponId(existedUserCouponId);
+				reuse.setCouponName(discountCoupon.getCouponName());
+				reuse.setPayAmount(payAmount);
+				reuse.setOrderId(existed.getOrderId());
+				reuse.setPayOrderId(existed.getPayOrderId());
+				long payExpireAt = existed.getOrderTime().getTime()
+						+ appConfig.getOrderExpireMinute() * 60 * 1000L;
+				reuse.setPayExpireAt(payExpireAt);
+				log.info("秒杀预占已存在，复用已建订单 couponId={}, orderId={}", couponId, existed.getOrderId());
+				return reuse;
+			}
+			throw new BusinessException("不能重复下单！");
 		}
 		assertRushCode(rushCode);
 
@@ -595,6 +658,8 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 			try {
 				orderInfo = createCouponRushOrder(userId, couponId, userCouponId, discountCoupon);
 			} catch (Exception e) {
+				// 先直接回滚 Redis 预占（不依赖跨服务 afterCommit，防 Feign 补偿失败导致库存泄漏）
+				redisComponent.rollbackRushRedisReserve(couponId, userId);
 				couponFeignSupport.releaseRushCouponReserve(couponId, userId);
 				if (e instanceof BusinessException) {
 					throw (BusinessException) e;
@@ -733,6 +798,12 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 	// 从orderStatusEnum状态取消
 	@Override
 	@Transactional(rollbackFor = Exception.class)
+	/**
+	 * 【功能】关单（用户取消或系统超时），回补库存/释券并关闭支付单。
+	 * <p>
+	 * 【角色】与 {@link #paySuccess} 对称的「关单侧」：同一生命周期锁串行，状态机保证只成功一次。
+	 * MQ 至少一次投递下本方法必须幂等（已关/已付直接返回）。
+	 */
 	public void cancelOrder(String userId, String orderId, OrderStatusEnum orderStatusEnum) {
 		OrderInfo orderInfo = orderInfoMapper.selectByOrderId(orderId);
 		if (orderInfo == null) {
@@ -880,6 +951,15 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 		// 支付成功信息
 	@Override
 	@Transactional(rollbackFor = Exception.class)
+	/**
+	 * 【功能】支付成功入账（支付宝异步回调经 pay 服务 Feign 转入）。
+	 * <p>
+	 * 【角色】与超时关单竞态的「支付侧」：必须先拿支付生命周期锁，再用条件更新（仅 WAIT_PAYMENT→PAID）。
+	 * 迟到支付（已关闭）走退款/补偿，不复活订单。秒杀券订单走专用分支核销用户券。
+	 * <p>
+	 * 【调用链】PayNotifyController.alipayNotify → orderFeignSupport.paySuccess → 本方法
+	 * → {@code redisComponent.runWithPayOrderLifecycleLock} → paySuccessInLock。
+	 */
 	public void paySuccess(PayOrderNotifyDTO payOrderNotifyDTO) {
 		if (payOrderNotifyDTO == null || StringTools.isEmpty(payOrderNotifyDTO.getPayOrderId())) {
 			throw new BusinessException("支付订单号无效");
@@ -895,6 +975,8 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 		if (orderInfoList.isEmpty()) {
 			throw new BusinessException("订单不存在");
 		}
+		// 回调金额校验：渠道实付不得低于订单合计实付（容 0.01 分差）；校验失败拒绝入账
+		assertCallbackAmountMatches(payOrderNotifyDTO, orderInfoList);
 		if (orderInfoList.stream().anyMatch(this::isCouponRushOrder)) {
 			paySuccessForCouponRush(orderInfoList, payOrderNotifyDTO);
 			return;
@@ -908,7 +990,7 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 			return;
 		}
 		// 获取同一payOrderId下的订单中不为null的收货信息
-		OrderLogisticsInfo logisticsInfo = new OrderLogisticsInfo();
+		OrderLogisticsInfo logisticsInfo = null;
 		// 根据orderId查询不为null的收货信息
 		for (OrderInfo orderInfo : orderInfoList) {
 			if (orderInfo == null ) {
@@ -916,11 +998,14 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 			}
 			String orderId = orderInfo.getOrderId();
 			logisticsInfo = orderLogisticsInfoMapper.selectByOrderId(orderId);
-			if (logisticsInfo == null) {
-				continue;
+			if (logisticsInfo != null) {
+				break;
 			}
-            break;
-        }
+		}
+		// 收货信息全缺失：明确业务异常而非 NPE
+		if (logisticsInfo == null) {
+			throw new BusinessException("订单缺少收货信息，请联系客服");
+		}
 		// 从redis中获得默认发货信息
 		LogisticsSendDTO sendLogisticsSendDTO = redisComponent.getLogisticsInfo();
 		// 把所有同一payOrderId下的订单都设置同样的收货信息
@@ -984,7 +1069,12 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 			return;
 		}
 		if (updatedCount < orderInfoList.size()) {
-			throw new BusinessException("支付成功处理失败，部分订单状态异常");
+			// 部分子单更新失败（如被并行关单/取消）：不回滚整体，避免回调无限重试；
+			// 对失败子单按冲突处理（其内部幂等：已支付跳过 / 已关单走退款）
+			log.warn("支付成功部分子单状态异常 payOrderId={}, 成功={}/{}",
+					payOrderId, updatedCount, orderInfoList.size());
+			handlePaySuccessConflict(payOrderId, payOrderNotifyDTO);
+			return;
 		}
 
 		useCouponIfNeeded(orderInfoList);
@@ -1124,7 +1214,11 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 			return;
 		}
 		if (updatedCount < orderInfoList.size()) {
-			throw new BusinessException("支付成功处理失败，部分订单状态异常");
+			// 部分子单更新失败：不回滚整体，按冲突处理（幂等/退款），避免回调无限重试
+			log.warn("秒杀支付成功部分子单状态异常 payOrderId={}, 成功={}/{}",
+					payOrderId, updatedCount, orderInfoList.size());
+			handlePaySuccessConflict(payOrderId, payOrderNotifyDTO);
+			return;
 		}
 		payFeignSupport.markSuccess(payOrderId, payOrderNotifyDTO.getChannelOrderId());
 		log.info("优惠券秒杀支付成功 payOrderId={}, 券数量={}", payOrderId, orderInfoList.size());
@@ -1134,6 +1228,28 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 		OrderInfoQuery query = new OrderInfoQuery();
 		query.setPayOrderId(payOrderId);
 		return orderInfoMapper.selectList(query);
+	}
+
+	/**
+	 * 支付回调金额校验：渠道实付金额不得低于订单合计实付（允许 0.01 分差）。
+	 * 回调未携带金额（totalAmount 为 null）时不阻塞（兼容轮询查单等场景），
+	 * 但携带时校验失败必须拒绝入账。
+	 */
+	private void assertCallbackAmountMatches(PayOrderNotifyDTO notifyDTO, List<OrderInfo> orderInfoList) {
+		BigDecimal callbackAmount = notifyDTO.getTotalAmount();
+		if (callbackAmount == null) {
+			log.info("支付回调未携带金额，跳过金额校验 payOrderId={}", notifyDTO.getPayOrderId());
+			return;
+		}
+		BigDecimal expected = orderInfoList.stream()
+				.map(o -> o.getAmount() == null ? BigDecimal.ZERO : o.getAmount())
+				.reduce(BigDecimal.ZERO, BigDecimal::add);
+		// 实付不低于应支付金额（允许向上浮动或 0.01 分差）
+		if (callbackAmount.add(new BigDecimal("0.01")).compareTo(expected) < 0) {
+			log.error("支付回调金额与订单不符 payOrderId={}, 回调金额={}, 订单实付={}",
+					notifyDTO.getPayOrderId(), callbackAmount, expected);
+			throw new BusinessException("支付金额与订单不符");
+		}
 	}
 
 	private boolean isClosedOrCancelled(Integer status) {
@@ -1263,12 +1379,32 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 		}
 	}
 
+	/**
+	 * 用户退款：纳入支付生命周期锁（与支付回调/关单串行），防并发重复退款与重复回补库存。
+	 * 退款金额按实付金额比例分摊（券后），防止用券订单按原价超退。
+	 */
 	@Override
 	@Transactional(rollbackFor = Exception.class)
 	public void refund(OrderItem orderItem, String userId) {
-		if (orderItem == null){
+		if (orderItem == null) {
 			throw new BusinessException("订单项不存在");
 		}
+		String orderId = orderItem.getOrderId();
+		OrderInfoQuery query = new OrderInfoQuery();
+		query.setOrderId(orderId);
+		List<OrderInfo> orderInfoList = orderInfoMapper.selectList(query);
+		if (orderInfoList == null || orderInfoList.isEmpty()) {
+			throw new BusinessException("订单不存在");
+		}
+		OrderInfo orderInfo = orderInfoList.get(0);
+		if (!orderInfo.getUserId().equals(userId)) {
+			throw new BusinessException("订单不存在");
+		}
+		redisComponent.runWithPayOrderLifecycleLock(orderInfo.getPayOrderId(),
+				() -> refundInLock(orderItem, userId));
+	}
+
+	private void refundInLock(OrderItem orderItem, String userId) {
 		String orderId = orderItem.getOrderId();
 		OrderInfoQuery query = new OrderInfoQuery();
 		query.setOrderId(orderId);
@@ -1278,7 +1414,7 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 			throw new BusinessException("订单不存在");
 		}
 		OrderInfo orderInfo = orderInfoList.get(0);
-		if (orderItem == null || !orderInfo.getUserId().equals(userId)){
+		if (orderItem == null || !orderInfo.getUserId().equals(userId)) {
 			throw new BusinessException("订单不存在");
 		}
 		// 只有订单状态为1:已付款,待发货，2:已发货，7:部分退款才可申请退款
@@ -1292,58 +1428,159 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 		if (orderItem.getOrderItemStatus() != OrderItemStatusEnum.NORMAL.getStatus()) {
 			throw new BusinessException("当前订单项状态不能申请退款");
 		}
-		// 退款金额
-		 BigDecimal refundAmount = orderItem.getItemAmount();
-		 if (refundAmount.compareTo(BigDecimal.ZERO) <= 0) {
-			 throw new BusinessException("退款金额不能小于0");
-		 }
-		 // 判断当前退款项是不是该订单的全部商品
-		// 若是则将订单状态改为已退款，否则改为部分退款
-		// 获取当前的orderInfo下的orderItem有几个是正常的状态的
-		int count = 0;
+		// 退款幂等闸：同一订单项仅执行一次退款（防止并发/重复提交重复退款）
+		if (!redisComponent.tryMarkOrderRefundOnce(orderItem.getOrderItemId())) {
+			throw new BusinessException("退款处理中，请勿重复提交");
+		}
+		final String refundItemId = orderItem.getOrderItemId();
+		// 事务回滚时（无论异常发生在哪一步，含 commit 阶段失败）清幂等标记，
+		// 允许用户重试；配合 pay 侧 refundOrderId 幂等，保证不会二次退款
+		if (org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
+			org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+					new org.springframework.transaction.support.TransactionSynchronization() {
+						@Override
+						public void afterCompletion(int status) {
+							if (status == org.springframework.transaction.support.TransactionSynchronization.STATUS_ROLLED_BACK) {
+								redisComponent.clearOrderRefundMark(refundItemId);
+							}
+						}
+					});
+		}
+		doRefund(orderInfo, orderItem);
+	}
+
+	private void doRefund(OrderInfo orderInfo, OrderItem orderItem) {
+		// 判断当前退款项是不是该订单的全部商品；获取当前订单下状态正常的订单项数量
+		int normalCount = 0;
 		List<OrderItem> orderItemList = orderInfo.getOrderItemList();
 		if (orderItemList != null) {
 			for (OrderItem orderItem1 : orderItemList) {
 				if (orderItem1.getOrderItemStatus() == OrderItemStatusEnum.NORMAL.getStatus()) {
-					count++;
+					normalCount++;
 				}
 			}
 		}
-		 // 将orderItem的状态改为已退款
-		 orderItem.setOrderItemStatus(OrderItemStatusEnum.REFUND.getStatus());
-		 // 计算要退的金额
-		 BigDecimal amount4Refund = orderItem.getItemAmount();
-		 // 生成30位的随机长度的refundOrderId
-		 String refundOrderId = StringTools.getRandomNumber(Constants.LENGTH_30);
-		 orderItem.setRefundOrderId(refundOrderId);
-		 // 退还库存（simlect_stock）
-		List<ProductItem> newList = new ArrayList<>();
-		ProductItem productItem = new ProductItem();
-		productItem.setProductId(orderItem.getProductId());
-		productItem.setPropertyValueIdHash(orderItem.getPropertyValueIdHash());
-		productItem.setBuyCount(orderItem.getBuyCount());
-		newList.add(productItem);
-		try {
-			stockFeignSupport.changeStockBatch(newList);
-		} catch (BusinessException e) {
-			throw new BusinessException("库存回滚失败，无法完成退款，请稍后重试");
+		// 退款金额：按实付金额分摊（券后），整单退款退实付全额
+		BigDecimal amount4Refund = calcRefundAmount(orderInfo, orderItem, normalCount);
+		if (amount4Refund.compareTo(BigDecimal.ZERO) <= 0) {
+			throw new BusinessException("退款金额不能小于0");
 		}
-		OrderItemQuery updateQuery = new OrderItemQuery();
-		updateQuery.setOrderItemId(orderItem.getOrderItemId());
-		if (count == 1) {
-			orderInfo.setOrderStatus(OrderStatusEnum.REFUNDED.getStatus());
+		// 退款单号：复用已绑定的锚点（重试场景防二次退款），否则新生成并绑定（Redis 不随事务回滚）
+		String refundOrderId = redisComponent.getRefundOrderIdAnchor(orderItem.getOrderItemId());
+		if (StringTools.isEmpty(refundOrderId)) {
+			refundOrderId = StringTools.getRandomNumber(Constants.LENGTH_30);
+			redisComponent.bindRefundOrderIdAnchor(orderItem.getOrderItemId(), refundOrderId);
+		}
+		OrderItem updateItem = new OrderItem();
+		updateItem.setOrderItemId(orderItem.getOrderItemId());
+		updateItem.setOrderItemStatus(OrderItemStatusEnum.REFUND.getStatus());
+		updateItem.setRefundOrderId(refundOrderId);
+		updateItem.setRefundAmount(amount4Refund);
+		// 乐观锁：仅当订单项仍为 NORMAL 时才可置为已退款
+		OrderItemQuery itemQuery = new OrderItemQuery();
+		itemQuery.setOrderItemId(orderItem.getOrderItemId());
+		itemQuery.setOrderItemStatus(OrderItemStatusEnum.NORMAL.getStatus());
+		Integer itemRows = orderItemMapper.updateByParam(updateItem, itemQuery);
+		if (itemRows == null || itemRows == 0) {
+			throw new BusinessException("当前订单项状态不能申请退款");
+		}
+		// 订单状态：全部退则已退款，否则部分退款（乐观锁：仅当订单仍处于原状态）
+		OrderInfo updateOrder = new OrderInfo();
+		if (normalCount == 1) {
+			updateOrder.setOrderStatus(OrderStatusEnum.REFUNDED.getStatus());
 		} else {
-			orderInfo.setOrderStatus(OrderStatusEnum.PARTIALLY_REFUNDED.getStatus());
+			updateOrder.setOrderStatus(OrderStatusEnum.PARTIALLY_REFUNDED.getStatus());
 		}
-		orderItemMapper.updateByParam(orderItem, updateQuery);
-		orderInfoMapper.updateByParam(orderInfo, query);
-
-		// 操作支付宝退款
-		// public void refund(String sourcePayOrderId, String refundOrderId, BigDecimal refundAmount)
+		OrderInfoQuery orderStatusQuery = new OrderInfoQuery();
+		orderStatusQuery.setOrderId(orderInfo.getOrderId());
+		orderStatusQuery.setOrderStatus(orderInfo.getOrderStatus());
+		Integer orderRows = orderInfoMapper.updateByParam(updateOrder, orderStatusQuery);
+		if (orderRows == null || orderRows == 0) {
+			throw new BusinessException("订单状态已变更，请刷新后重试");
+		}
+		// 操作支付宝退款（远程支付服务，成功后本地事务提交，再回补库存）
 		String sourcePayOrderId = orderInfo.getPayOrderId();
 		PayChannelEnum refundChannel = PayChannelEnum.resolve(orderInfo.getPayChannel());
 		payFeignSupport.refund(sourcePayOrderId, refundOrderId, amount4Refund,
 				refundChannel == null ? null : refundChannel.getPayScene());
+		// 退款成功后回补库存：移入事务提交后（afterCommit）执行——
+		// 防「远端回补成功但本地事务回滚 → 用户重试 → 重复回补库存虚增」；
+		// 失败仍记远程补偿，不影响已提交的退款
+		final List<ProductItem> restockList = new ArrayList<>();
+		ProductItem productItem = new ProductItem();
+		productItem.setProductId(orderItem.getProductId());
+		productItem.setPropertyValueIdHash(orderItem.getPropertyValueIdHash());
+		productItem.setBuyCount(orderItem.getBuyCount());
+		restockList.add(productItem);
+		final String restockPayOrderId = sourcePayOrderId + ":" + refundOrderId;
+		if (org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
+			org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+					new org.springframework.transaction.support.TransactionSynchronization() {
+						@Override
+						public void afterCommit() {
+							try {
+								stockFeignSupport.changeStockBatch(restockList);
+							} catch (Exception e) {
+								log.error("退款成功但库存回补失败 orderId={}, productId={}",
+										orderInfo.getOrderId(), orderItem.getProductId(), e);
+								remoteCompensateRecorder.recordStockChangeBatch(
+										restockPayOrderId, restockList, e);
+							}
+						}
+					});
+		} else {
+			try {
+				stockFeignSupport.changeStockBatch(restockList);
+			} catch (Exception e) {
+				log.error("退款成功但库存回补失败 orderId={}, productId={}",
+						orderInfo.getOrderId(), orderItem.getProductId(), e);
+				remoteCompensateRecorder.recordStockChangeBatch(restockPayOrderId, restockList, e);
+			}
+		}
+	}
+
+	/**
+	 * 计算退款金额：按实付金额比例分摊优惠券。
+	 * - 整单退款（最后一个正常项）：退实付全额 orderInfo.amount
+	 * - 部分退款：itemAmount×buyCount 占商品总额比例 × 实付，向下取整两位小数，确保累计退款不超过实付
+	 */
+	private BigDecimal calcRefundAmount(OrderInfo orderInfo, OrderItem orderItem, int normalCount) {
+		BigDecimal paid = orderInfo.getAmount();
+		if (paid == null || paid.compareTo(BigDecimal.ZERO) <= 0) {
+			throw new BusinessException("订单实付金额异常，无法退款");
+		}
+		// 已退累计（此前已退款项的实际退款金额，order_item.refund_amount）
+		BigDecimal refundedTotal = BigDecimal.ZERO;
+		List<OrderItem> items = orderInfo.getOrderItemList();
+		if (items == null || items.isEmpty()) {
+			throw new BusinessException("订单商品明细不存在");
+		}
+		for (OrderItem item : items) {
+			if (item.getOrderItemStatus() != null
+					&& OrderItemStatusEnum.REFUND.getStatus().equals(item.getOrderItemStatus())
+					&& item.getRefundAmount() != null) {
+				refundedTotal = refundedTotal.add(item.getRefundAmount());
+			}
+		}
+		BigDecimal remain = paid.subtract(refundedTotal).max(BigDecimal.ZERO);
+		if (normalCount == 1) {
+			// 最后一个正常项：退剩余未退金额（paid - 已退累计），防累计超退
+			return remain.setScale(2, BigDecimal.ROUND_HALF_UP);
+		}
+		BigDecimal goodsTotal = BigDecimal.ZERO;
+		for (OrderItem item : items) {
+			BigDecimal unitPrice = item.getItemAmount() == null ? BigDecimal.ZERO : item.getItemAmount();
+			BigDecimal count = BigDecimal.valueOf(item.getBuyCount() == null ? 0 : item.getBuyCount());
+			goodsTotal = goodsTotal.add(unitPrice.multiply(count));
+		}
+		if (goodsTotal.compareTo(BigDecimal.ZERO) <= 0) {
+			throw new BusinessException("订单商品金额异常，无法退款");
+		}
+		BigDecimal itemTotal = orderItem.getItemAmount() == null ? BigDecimal.ZERO : orderItem.getItemAmount();
+		itemTotal = itemTotal.multiply(BigDecimal.valueOf(orderItem.getBuyCount() == null ? 0 : orderItem.getBuyCount()));
+		BigDecimal share = paid.multiply(itemTotal).divide(goodsTotal, 2, BigDecimal.ROUND_HALF_DOWN);
+		// 部分退款分摊不得超过剩余可退金额（防累计超退）
+		return share.min(remain).max(BigDecimal.ZERO).setScale(2, BigDecimal.ROUND_HALF_UP);
 	}
 
 	@Override
@@ -1591,6 +1828,11 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 	}
 
 	@Override
+	/**
+	 * 【功能】支付超时 MQ 消费入口：系统关单，userId 传 null。
+	 * <p>
+	 * 【调用链】TTL 延迟队列 → DLX → 消费者 → 本方法 → {@link #cancelOrder}。
+	 */
 	public boolean cancelUnpaidOrderForPayTimeout(String orderId) {
 		OrderInfo orderInfo = orderInfoMapper.selectByOrderId(orderId);
 		if (orderInfo == null) {

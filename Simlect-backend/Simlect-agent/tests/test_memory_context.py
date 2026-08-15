@@ -130,7 +130,6 @@ def test_format_search_tool_message_alternative():
     assert "下方卡片" in msg
     assert "项链" not in msg
 
-
 def test_format_search_tool_message_keyword_hot_sale_fallback():
     products = [{"product_name": "公仔"}, {"product_name": "点卡"}]
     msg = format_search_tool_message("我要吃零食", None, products, "hot_sale")
@@ -139,7 +138,6 @@ def test_format_search_tool_message_keyword_hot_sale_fallback():
     assert "另荐热销" in msg
     assert "找到 2 个商品" not in msg
     assert "公仔" not in msg
-
 
 def test_format_search_tool_message_no_product_names_in_hint():
     consult = {"productName": "雅马哈FG800"}

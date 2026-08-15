@@ -2,9 +2,13 @@ package com.simlect.controller.admin;
 
 import java.util.List;
 
+import com.simlect.annotation.AdminSensitiveConfirm;
 import com.simlect.entity.query.OrderInfoQuery;
+import com.simlect.annotation.AdminSensitiveConfirm;
 import com.simlect.entity.po.OrderInfo;
+import com.simlect.annotation.AdminSensitiveConfirm;
 import com.simlect.entity.vo.ResponseVO;
+import com.simlect.annotation.AdminSensitiveConfirm;
 import com.simlect.biz.OrderInfoService;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -39,7 +43,7 @@ public class OrderInfoController extends com.simlect.controller.admin.ABaseContr
 
 	@PostMapping("/addOrUpdateBatch")
 	public ResponseVO addOrUpdateBatch(@RequestBody List<OrderInfo> listBean) {
-		orderInfoService.addBatch(listBean);
+		orderInfoService.addOrUpdateBatch(listBean);
 		return getSuccessResponseVO(null);
 	}
 
@@ -48,13 +52,15 @@ public class OrderInfoController extends com.simlect.controller.admin.ABaseContr
 		return getSuccessResponseVO(orderInfoService.getOrderInfoByOrderId(orderId));
 	}
 
-	@PostMapping("/updateOrderInfoByOrderId")
+	@AdminSensitiveConfirm
+    @PostMapping("/updateOrderInfoByOrderId")
 	public ResponseVO updateOrderInfoByOrderId(OrderInfo bean,String orderId) {
 		orderInfoService.updateOrderInfoByOrderId(bean,orderId);
 		return getSuccessResponseVO(null);
 	}
 
-	@PostMapping("/deleteOrderInfoByOrderId")
+@AdminSensitiveConfirm
+    	@PostMapping("/deleteOrderInfoByOrderId")
 	public ResponseVO deleteOrderInfoByOrderId(String orderId) {
 		orderInfoService.deleteOrderInfoByOrderId(orderId);
 		return getSuccessResponseVO(null);

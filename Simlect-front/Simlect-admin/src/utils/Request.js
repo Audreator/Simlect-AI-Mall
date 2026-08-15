@@ -70,7 +70,7 @@ instance.interceptors.response.use(
 );
 
 const request = (config) => {
-    const { url, params, dataType, showLoading = true, responseType = responseTypeJson, showError = true, sensitiveConfirmPwd } = config;
+    const { url, params, dataType, showLoading = true, responseType = responseTypeJson, showError = true, sensitiveConfirmToken } = config;
     let contentType = contentTypeForm;
     if (dataType != null && dataType == 'json') {
         contentType = contentTypeJson;
@@ -85,8 +85,9 @@ const request = (config) => {
     let headers = {
         'X-Requested-With': 'XMLHttpRequest',
     }
-    if (typeof sensitiveConfirmPwd === 'string' && sensitiveConfirmPwd) {
-        headers['X-Admin-Confirm-Pwd'] = sensitiveConfirmPwd
+    // 一次性确认票据（敏感操作二次确认，防明文密码入请求头）
+    if (typeof sensitiveConfirmToken === 'string' && sensitiveConfirmToken) {
+        headers['X-Admin-Confirm-Token'] = sensitiveConfirmToken
     }
 
     if (contentType === contentTypeJson) {

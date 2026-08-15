@@ -191,4 +191,11 @@
 		 where user_id=#{userId}
 	</update>
 
+	<!-- 成长值原子自增（防并发丢失更新） -->
+	<update id="addGrowthValue">
+		UPDATE user_member_profile
+		SET growth_value = growth_value + #{points}
+		WHERE user_id = #{userId}
+	</update>
+
 </mapper>

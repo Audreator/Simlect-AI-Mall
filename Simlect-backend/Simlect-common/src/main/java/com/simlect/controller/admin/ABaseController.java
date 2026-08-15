@@ -3,7 +3,6 @@ import com.simlect.entity.enums.ResponseCodeEnum;
 import com.simlect.entity.vo.ResponseVO;
 import com.simlect.exception.BusinessException;
 
-
 public class ABaseController {
 
     protected static final String STATUC_SUCCESS = "success";

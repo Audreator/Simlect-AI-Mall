@@ -1,11 +1,11 @@
-"""Normalize conversational search queries and filter irrelevant hybrid hits."""
+"""商品搜索查询模块：规范化口语化搜索词、扩展主题同义词，并过滤混合检索中的无关商品。"""
 
-from __future__ import annotations
+from __future__ import annotations  # import statement — 延迟类型注解
 
-import re
+import re  # import statement — 正则表达式，类似 Java Pattern
 
 # Longest-first topic hints extracted from user chatter.
-_TOPIC_HINTS = (
+_TOPIC_HINTS = (  # 主题提示词元组 — 按长度优先匹配
     "台式机",
     "笔记本",
     "尤克里里",
@@ -47,7 +47,7 @@ _TOPIC_HINTS = (
 )
 
 # When user asks for a topic, accept related tokens in product titles.
-_TOPIC_EXPAND: dict[str, tuple[str, ...]] = {
+_TOPIC_EXPAND: dict[str, tuple[str, ...]] = {  # dict 类似 Map<String, List<String>> — 主题扩展同义词
     "零食": (
         "零食",
         "小吃",
@@ -88,56 +88,53 @@ _TOPIC_EXPAND: dict[str, tuple[str, ...]] = {
     "吉他": ("吉他", "尤克里里", "乐器", "民谣", "电吉他"),
 }
 
-_FILLERS = re.compile(
+_FILLERS = re.compile(  # 口语填充词正则 — 如「我要」「帮我」
     r"(我想要|我要|想要|想买|帮我|给我|麻烦|请你|请|"
     r"有没有|能不能|可以吗|可以|推荐一下|推荐|"
     r"看看|买点|来点|吃点|搜一下|搜索一下|搜索|"
     r"找找|找|买|要|吃)"
 )
-_PUNCT = re.compile(r"[的了吗呢啊哦呀呗嘛～~，。！？、；：""''\s]+")
+_PUNCT = re.compile(r"[的了吗呢啊哦呀呗嘛～~，。！？、；：""''\s]+")  # 标点与语气词
 
-
-def normalize_product_search_query(text: str | None) -> str:
+def normalize_product_search_query(text: str | None) -> str:  # 规范化搜索词 — 「我要吃零食」→「零食」
     """Turn「我要吃零食」into「零食」; keep concrete keywords otherwise."""
-    t = (text or "").strip()
+    t = (text or "").strip()  # null 安全去空白
     if not t:
         return ""
-    lower = t.lower()
-    for hint in sorted(_TOPIC_HINTS, key=len, reverse=True):
+    lower = t.lower()  # 转小写便于匹配
+    for hint in sorted(_TOPIC_HINTS, key=len, reverse=True):  # 最长优先匹配主题
         if hint.lower() in lower:
-            return hint
-    cleaned = _FILLERS.sub("", t)
-    cleaned = _PUNCT.sub("", cleaned).strip()
-    return cleaned or t
+            return hint  # 命中主题词直接返回
+    cleaned = _FILLERS.sub("", t)  # 去除填充词
+    cleaned = _PUNCT.sub("", cleaned).strip()  # 去除标点
+    return cleaned or t  # 清洗后为空则保留原文
 
-
-def match_terms_for_query(query: str | None) -> list[str]:
+def match_terms_for_query(query: str | None) -> list[str]:  # 生成匹配词列表 — 含扩展同义词
     q = (query or "").strip()
     if not q:
         return []
-    terms: list[str] = []
-    seen: set[str] = set()
+    terms: list[str] = []  # List<String> 输出
+    seen: set[str] = set()  # set 类似 HashSet — 去重
 
-    def _add(term: str) -> None:
+    def _add(term: str) -> None:  # 内部方法 — 添加不重复 term
         t = (term or "").strip().lower()
-        if len(t) < 2 or t in seen:
+        if len(t) < 2 or t in seen:  # 过短或已存在则跳过
             return
         seen.add(t)
         terms.append(t)
 
-    topic = normalize_product_search_query(q)
+    topic = normalize_product_search_query(q)  # 规范化主题
     _add(topic)
     _add(q)
-    for key, expand in _TOPIC_EXPAND.items():
-        if key in q or key in topic or key.lower() in q.lower():
+    for key, expand in _TOPIC_EXPAND.items():  # 遍历主题扩展表
+        if key in q or key in topic or key.lower() in q.lower():  # 命中主题
             for e in expand:
-                _add(e)
+                _add(e)  # 添加同义词
     return terms
 
-
-def product_matches_query_terms(product: dict, terms: list[str]) -> bool:
+def product_matches_query_terms(product: dict, terms: list[str]) -> bool:  # 商品标题/描述是否含任一匹配词
     if not terms:
-        return True
+        return True  # 无 terms 则全部匹配
     name = str(product.get("product_name") or product.get("productName") or "").lower()
     desc = str(
         product.get("product_desc")
@@ -145,15 +142,14 @@ def product_matches_query_terms(product: dict, terms: list[str]) -> bool:
         or product.get("description")
         or ""
     ).lower()
-    hay = f"{name} {desc}"
-    return any(term in hay for term in terms)
+    hay = f"{name} {desc}"  # 拼接检索 haystack
+    return any(term in hay for term in terms)  # any 类似 Stream.anyMatch
 
-
-def filter_products_by_query_relevance(products: list[dict], query: str | None) -> list[dict]:
+def filter_products_by_query_relevance(products: list[dict], query: str | None) -> list[dict]:  # 过滤混合检索无关商品
     """Drop hybrid hits that share no topic tokens with the user query."""
     if not products:
         return []
     terms = match_terms_for_query(query)
     if not terms:
-        return list(products)
-    return [p for p in products if product_matches_query_terms(p, terms)]
+        return list(products)  # 无 terms 则原样返回
+    return [p for p in products if product_matches_query_terms(p, terms)]  # list 推导 — 类似 Stream.filter

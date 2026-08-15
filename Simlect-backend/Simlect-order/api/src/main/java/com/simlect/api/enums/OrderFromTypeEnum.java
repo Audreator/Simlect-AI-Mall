@@ -24,7 +24,6 @@ public enum OrderFromTypeEnum {
         return desc;
     }
 
-
     public static OrderFromTypeEnum getByType(Integer type) {
         Optional<OrderFromTypeEnum> typeEnum = Arrays.stream(OrderFromTypeEnum.values()).filter(value -> value.getType().equals(type)).findFirst();
         return typeEnum == null || typeEnum.isEmpty() ? null : typeEnum.get();

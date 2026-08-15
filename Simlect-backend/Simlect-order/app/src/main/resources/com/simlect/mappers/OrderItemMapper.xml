@@ -29,6 +29,7 @@
 		<result column="remark" property="remark"  />
 		<!--退款订单号-->
 		<result column="refund_order_id" property="refundOrderId"  />
+    <result column="refund_amount" property="refundAmount"  />
 	</resultMap>
 
 
@@ -36,7 +37,7 @@
 	<sql id="base_column_list">
 		 o.order_item_id,o.order_id,o.cover,o.product_id,o.product_name,
 		 o.property_value_id_hash,o.property_info,o.item_amount,o.buy_count,o.order_item_status,
-		 o.remark,o.refund_order_id
+		 o.remark,o.refund_order_id,o.refund_amount
 	</sql>
 
 	<sql id="base_condition_filed">
@@ -447,9 +448,12 @@
 			<if test="bean.remark != null">
 				 remark = #{bean.remark},
 			</if>
-			<if test="bean.refundOrderId != null">
-				 refund_order_id = #{bean.refundOrderId},
-			</if>
+<if test="bean.refundOrderId != null">
+    refund_order_id = #{bean.refundOrderId},
+</if>
+<if test="bean.refundAmount != null">
+    refund_amount = #{bean.refundAmount},
+</if>
  		 </set>
  		 <include refid="query_condition" />
 	</update>
@@ -494,9 +498,12 @@
 			<if test="bean.remark != null">
 				 remark = #{bean.remark},
 			</if>
-			<if test="bean.refundOrderId != null">
-				 refund_order_id = #{bean.refundOrderId},
-			</if>
+<if test="bean.refundOrderId != null">
+    refund_order_id = #{bean.refundOrderId},
+</if>
+<if test="bean.refundAmount != null">
+    refund_amount = #{bean.refundAmount},
+</if>
  		 </set>
  		 where order_item_id=#{orderItemId}
 	</update>

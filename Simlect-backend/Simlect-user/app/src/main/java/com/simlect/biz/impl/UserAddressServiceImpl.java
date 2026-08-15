@@ -111,6 +111,13 @@ public class UserAddressServiceImpl implements UserAddressService {
 			this.add(userAddress);
 		}else {
 			// 否则为修改
+			// 校验地址归属：防水平越权（任意登录用户改/窃取他人地址）
+			UserAddress exist = userAddressMapper.selectByAddressId(userAddress.getAddressId());
+			if (exist == null || !exist.getUserId().equals(userAddress.getUserId())) {
+				throw new BusinessException("当前地址不属于该用户");
+			}
+			// 双保险：归属者以库中记录为准，防止修改时把地址过户到他人名下
+			userAddress.setUserId(exist.getUserId());
 			// 如果default_type为1，则将所有其他地址的default_type设置为0
 			if (userAddress.getDefaultType() == 1) {
 				cleanDefaultType(userAddress.getUserId());

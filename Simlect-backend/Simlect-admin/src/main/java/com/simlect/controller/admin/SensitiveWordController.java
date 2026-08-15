@@ -1,5 +1,6 @@
 package com.simlect.controller.admin;
 
+import com.simlect.annotation.AdminSensitiveConfirm;
 import com.simlect.entity.query.SensitiveWordQuery;
 import com.simlect.entity.vo.PaginationResultVO;
 import com.simlect.entity.vo.ResponseVO;
@@ -23,12 +24,14 @@ public class SensitiveWordController extends com.simlect.controller.admin.ABaseC
     }
 
     @PostMapping("/save")
+    @AdminSensitiveConfirm
     public ResponseVO save(Long id, String word, String replaceWord, Integer status) {
         sensitiveWordService.save(id, word, replaceWord, status);
         return getSuccessResponseVO(null);
     }
 
-    @PostMapping("/delete")
+@AdminSensitiveConfirm
+        @PostMapping("/delete")
     public ResponseVO delete(Long id) {
         sensitiveWordService.delete(id);
         return getSuccessResponseVO(null);

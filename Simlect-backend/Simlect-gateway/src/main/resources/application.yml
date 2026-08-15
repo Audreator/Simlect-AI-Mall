@@ -204,7 +204,7 @@ spring:
 simlect:
   production-ready: ${SIMLECT_PRODUCTION_READY:false}
   internal:
-    token: ${SIMLECT_INTERNAL_TOKEN:your-token}
+    token: ${SIMLECT_INTERNAL_TOKEN:}
     auth-enabled: true
   feign:
     connect-timeout-ms: 3000

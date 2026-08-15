@@ -1,6 +1,5 @@
 package com.simlect.entity.vo;
 
-
 public class ResponseVO<T> {
     private String status;
     private Integer code;

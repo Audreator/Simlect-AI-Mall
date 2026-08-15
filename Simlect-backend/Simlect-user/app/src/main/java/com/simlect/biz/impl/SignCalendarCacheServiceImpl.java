@@ -24,6 +24,7 @@ import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 @Service
 @Slf4j
@@ -292,7 +293,8 @@ public class SignCalendarCacheServiceImpl implements SignCalendarCacheService {
 
     private void rebuildWithLock(String userId, String endDate, boolean forceIncludeToday) {
         String lockKey = redisComponent.signRebuildLockKey(userId);
-        boolean locked = redisComponent.setIfAbsent(lockKey, "1",
+        String token = UUID.randomUUID() + ":" + Thread.currentThread().getId();
+        boolean locked = redisComponent.setIfAbsent(lockKey, token,
                 Constants.SIGN_REBUILD_LOCK_SECONDS, java.util.concurrent.TimeUnit.SECONDS);
         if (locked) {
             try {
@@ -301,7 +303,8 @@ public class SignCalendarCacheServiceImpl implements SignCalendarCacheService {
                 }
                 doRebuildFromDb(userId, endDate, forceIncludeToday);
             } finally {
-                redisComponent.deleteKey(lockKey);
+                // 仅当自己仍是持有者时删除（防 TTL 过期后被他人获取时误删他人锁）
+                redisComponent.deleteIfOwned(lockKey, token);
             }
             return;
         }

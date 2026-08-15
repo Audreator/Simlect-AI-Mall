@@ -1,11 +1,9 @@
 package com.simlect.api.enums;
 
-
 public enum UserStatusEnum {
 
     DISABLE(0, "禁用"),
     ENABLE(1, "启用");
-
 
     private Integer status;
     private String desc;

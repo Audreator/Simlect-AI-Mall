@@ -1,17 +1,30 @@
 package com.simlect.controller.admin;
 
+import com.simlect.annotation.AdminSensitiveConfirm;
 import com.simlect.api.dto.OrderStatusDTO;
+import com.simlect.annotation.AdminSensitiveConfirm;
 import com.simlect.api.enums.OrderStatusEnum;
+import com.simlect.annotation.AdminSensitiveConfirm;
 import com.simlect.entity.enums.PageSize;
+import com.simlect.annotation.AdminSensitiveConfirm;
 import com.simlect.entity.po.OrderComment;
+import com.simlect.annotation.AdminSensitiveConfirm;
 import com.simlect.entity.po.OrderInfo;
+import com.simlect.annotation.AdminSensitiveConfirm;
 import com.simlect.entity.po.OrderLogisticsInfo;
+import com.simlect.annotation.AdminSensitiveConfirm;
 import com.simlect.entity.query.OrderCommentQuery;
+import com.simlect.annotation.AdminSensitiveConfirm;
 import com.simlect.entity.query.OrderInfoQuery;
+import com.simlect.annotation.AdminSensitiveConfirm;
 import com.simlect.entity.vo.PaginationResultVO;
+import com.simlect.annotation.AdminSensitiveConfirm;
 import com.simlect.entity.vo.ResponseVO;
+import com.simlect.annotation.AdminSensitiveConfirm;
 import com.simlect.biz.OrderCommentService;
+import com.simlect.annotation.AdminSensitiveConfirm;
 import com.simlect.biz.OrderInfoService;
+import com.simlect.annotation.AdminSensitiveConfirm;
 import com.simlect.biz.OrderLogisticsInfoService;
 import jakarta.annotation.Resource;
 import jakarta.validation.constraints.NotEmpty;
@@ -89,6 +102,7 @@ public class OrderController extends com.simlect.controller.admin.ABaseControlle
     }
 
     // 商家评论
+    @AdminSensitiveConfirm
     @PostMapping("/bizComment")
     public ResponseVO bizComment(@NotEmpty String orderId, @NotEmpty String commentBizReply, String reCommentImages){
         orderCommentService.bizComment(orderId,commentBizReply,reCommentImages);
@@ -96,7 +110,8 @@ public class OrderController extends com.simlect.controller.admin.ABaseControlle
     }
 
     // 删除评论，逻辑删除
-    @PostMapping("/delComment")
+@AdminSensitiveConfirm
+        @PostMapping("/delComment")
     public ResponseVO delComment(@NotEmpty String orderId){
         orderCommentService.delMyComment(null, orderId);
         return getSuccessResponseVO(null);
@@ -109,6 +124,7 @@ public class OrderController extends com.simlect.controller.admin.ABaseControlle
     }
 
     // 发货
+    @AdminSensitiveConfirm
     @PostMapping("/delivery")
     public ResponseVO delivery(OrderLogisticsInfo orderLogisticsInfo){
         orderLogisticsInfoService.delivery(orderLogisticsInfo);

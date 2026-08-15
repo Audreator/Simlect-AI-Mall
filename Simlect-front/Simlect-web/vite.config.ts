@@ -95,8 +95,8 @@ export default defineConfig(({ mode }) => {
     server: {
       port: devPort,
       strictPort: true,
-      host: true,
-      allowedHosts: ['.trycloudflare.com'],
+      host: '127.0.0.1', // 仅本机访问（防内网跳板）
+      // 移除 trycloudflare 隧道放行（防内网跳板）
       proxy: {
         '/api/agent': {
           target: agentTarget,

@@ -2,6 +2,7 @@ package com.simlect.controller.admin;
 
 import java.util.List;
 
+import com.simlect.annotation.AdminSensitiveConfirm;
 import com.simlect.entity.query.ProductSkuQuery;
 import com.simlect.entity.po.ProductSku;
 import com.simlect.entity.vo.ResponseVO;
@@ -39,7 +40,7 @@ public class ProductSkuController extends com.simlect.controller.admin.ABaseCont
 
 	@PostMapping("/addOrUpdateBatch")
 	public ResponseVO addOrUpdateBatch(@RequestBody List<ProductSku> listBean) {
-		productSkuService.addBatch(listBean);
+		productSkuService.addOrUpdateBatch(listBean);
 		return getSuccessResponseVO(null);
 	}
 
@@ -54,7 +55,8 @@ public class ProductSkuController extends com.simlect.controller.admin.ABaseCont
 		return getSuccessResponseVO(null);
 	}
 
-	@PostMapping("/deleteProductSkuByProductIdAndPropertyValueIdHash")
+@AdminSensitiveConfirm
+    	@PostMapping("/deleteProductSkuByProductIdAndPropertyValueIdHash")
 	public ResponseVO deleteProductSkuByProductIdAndPropertyValueIdHash(String productId,String propertyValueIdHash) {
 		productSkuService.deleteProductSkuByProductIdAndPropertyValueIdHash(productId,propertyValueIdHash);
 		return getSuccessResponseVO(null);

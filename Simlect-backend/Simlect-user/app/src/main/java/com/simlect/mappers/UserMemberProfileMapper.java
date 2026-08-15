@@ -7,4 +7,7 @@ public interface UserMemberProfileMapper<T, P> extends BaseMapper<T, P> {
     T selectByUserId(@Param("userId") String userId);
 
     Integer updateByUserId(@Param("bean") T bean, @Param("userId") String userId);
+
+    /** 成长值原子自增（防并发丢失更新） */
+    Integer addGrowthValue(@Param("userId") String userId, @Param("points") Integer points);
 }

@@ -9,7 +9,7 @@ project:
 
 admin:
   account: ${ADMIN_ACCOUNT:admin}
-  password: ${ADMIN_PASSWORD:admin123456}
+  password: ${ADMIN_PASSWORD:}
   emails: ${ADMIN_EMAILS:}
 
 alipay:
@@ -42,7 +42,7 @@ simlect:
   production-ready: ${SIMLECT_PRODUCTION_READY:false}
   dev-login-bypass: ${SIMLECT_DEV_LOGIN_BYPASS:false}
   internal:
-    token: ${SIMLECT_INTERNAL_TOKEN:your-token}
+    token: ${SIMLECT_INTERNAL_TOKEN:}
     auth-enabled: ${SIMLECT_INTERNAL_AUTH_ENABLED:true}
   feign:
     connect-timeout-ms: ${SIMLECT_FEIGN_CONNECT_TIMEOUT_MS:3000}

@@ -30,7 +30,6 @@ public enum RushingStatusEnum {
         this.desc = desc;
     }
 
-
     private String type;
 
     private String desc;

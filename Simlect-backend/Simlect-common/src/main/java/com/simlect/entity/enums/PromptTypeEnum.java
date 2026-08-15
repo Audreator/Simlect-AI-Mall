@@ -75,7 +75,6 @@ public enum PromptTypeEnum {
         return typeEnum == null || typeEnum.isEmpty() ? null : typeEnum.get();
     }
 
-
     public record Prompt(String key, String prompt, String desc) {
         public static Prompt of(PromptTypeEnum typeEnum) {
             return new Prompt(typeEnum.getKey(), typeEnum.getPrompt(), typeEnum.getDesc());

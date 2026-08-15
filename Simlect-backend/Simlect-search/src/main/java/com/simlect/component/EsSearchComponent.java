@@ -112,18 +112,18 @@ public class EsSearchComponent {
                 hasCondition = true;
             }
 
-            // 对于价格
+            // 对于价格（相交语义：商品价格区间与查询区间有交集才命中）
             if (priceFrom != null || priceTo != null){
                 if (priceFrom != null && priceTo != null) {
-                    // 两个条件都有：使用 and 连接
-                    criteria.and(new Criteria("minPrice").greaterThanEqual(priceFrom))
-                            .and(new Criteria("maxPrice").lessThanEqual(priceTo));
+                    // 商品 maxPrice >= 查询下限 且 商品 minPrice <= 查询上限
+                    criteria.and(new Criteria("maxPrice").greaterThanEqual(priceFrom))
+                            .and(new Criteria("minPrice").lessThanEqual(priceTo));
                 } else if (priceFrom != null) {
-                    // 只有最低价格
-                    criteria.and(new Criteria("minPrice").greaterThanEqual(priceFrom));
+                    // 只有最低价格：商品价格上限不低于查询下限
+                    criteria.and(new Criteria("maxPrice").greaterThanEqual(priceFrom));
                 } else {
-                    // 只有最高价格
-                    criteria.and(new Criteria("maxPrice").lessThanEqual(priceTo));
+                    // 只有最高价格：商品价格下限不高于查询上限
+                    criteria.and(new Criteria("minPrice").lessThanEqual(priceTo));
                 }
                 hasCondition = true;
             }

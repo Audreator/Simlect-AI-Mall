@@ -100,6 +100,12 @@ public class Constants {
 
     public static final String REDIS_KEY_TOKEN_ADMIN_ACCOUNT = REDIS_KEY_PREFIX + "token:admin:account:";
 
+    /** 管理端敏感操作一次性确认票据：mall:admin:confirm:{token} */
+    public static final String REDIS_KEY_ADMIN_CONFIRM = REDIS_KEY_PREFIX + "admin:confirm:";
+
+    /** 管理端敏感操作确认票据有效期（秒） */
+    public static final int ADMIN_CONFIRM_TOKEN_TTL_SECONDS = 300;
+
     public static final String REDIS_KEY_ADMIN_LOGIN_FAIL = REDIS_KEY_PREFIX + "admin:login:fail:";
 
     public static final String REDIS_KEY_ADMIN_LOGIN_LOCK = REDIS_KEY_PREFIX + "admin:login:lock:";
@@ -178,7 +184,11 @@ public class Constants {
 
     public static final String REDIS_KEY_PAY_LATE_REFUND_DONE = REDIS_KEY_PREFIX + "pay:late:refund:done:";
 
-    public static final long PAY_ORDER_LIFECYCLE_LOCK_SECONDS = 30L;
+    /** 用户退款幂等：mall:pay:refund:done:{orderItemId} */
+    public static final String REDIS_KEY_ORDER_REFUND_DONE = REDIS_KEY_PREFIX + "pay:refund:done:";
+
+    /** 支付/关单互斥锁看门狗超时（毫秒）：业务执行多久续期多久，进程崩溃后此时间自动释放 */
+    public static final long PAY_ORDER_LIFECYCLE_LOCK_WATCHDOG_MS = 30_000L;
 
     public static final long PAY_ORDER_LIFECYCLE_LOCK_WAIT_MS = 15_000L;
 

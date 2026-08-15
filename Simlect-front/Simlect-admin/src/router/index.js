@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import axios from 'axios'
 import { useDeviceStore } from '@/stores/device'
-
 import { resolveDesktopPath } from '@/utils/device'
 
 const DESKTOP_TO_MOBILE = {
@@ -289,10 +289,24 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const device = useDeviceStore()
   device.sync()
   if (to.path === '/login') return true
+
+  // 登录态校验：未登录一律重定向登录页（Cookie 为 httpOnly，须经后端会话接口确认）
+  const checkLogin = async () => {
+    try {
+      const base = import.meta.env.PROD ? '/admin-api' : '/api'
+      const res = await axios.get(`${base}/admin/account/checkLogin`, { withCredentials: true })
+      return res.data?.data === true
+    } catch (e) {
+      return false
+    }
+  }
+  if (!(await checkLogin())) {
+    return { path: '/login', query: to.fullPath === '/' ? {} : { redirect: to.fullPath } }
+  }
 
   const isMobileRoute = to.path === '/m' || to.path.startsWith('/m/')
 

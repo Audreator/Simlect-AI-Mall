@@ -25,7 +25,6 @@ public enum CouponStatusEnum {
         return desc;
     }
 
-
     public static CouponStatusEnum getByStatus(Integer status) {
         return Arrays.stream(CouponStatusEnum.values())
                 .filter(value -> value.getStatus().equals(status))

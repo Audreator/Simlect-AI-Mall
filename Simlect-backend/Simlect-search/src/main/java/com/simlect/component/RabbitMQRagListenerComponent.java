@@ -277,7 +277,9 @@ public class RabbitMQRagListenerComponent {
             restClient.performRequest(request);
             log.info("已清理商品 {} 的旧文档, 保留 {} 条", productId, keepIds.size());
         } catch (IOException e) {
+            // 清理失败抛异常，交由外层 nackWithRetryOrDlq 重试/死信，避免旧向量残留
             log.error("清理旧文档失败, productId: {}", productId, e);
+            throw new com.simlect.exception.BusinessException("清理旧向量文档失败: " + productId, e);
         }
     }
 
@@ -293,7 +295,9 @@ public class RabbitMQRagListenerComponent {
             restClient.performRequest(request);
             log.info("已删除商品 {} 的所有向量文档", productId);
         } catch (IOException e) {
+            // 删除失败抛异常，交由外层重试/死信，避免下架商品向量残留
             log.error("删除商品向量文档失败, productId: {}", productId, e);
+            throw new com.simlect.exception.BusinessException("删除商品向量文档失败: " + productId, e);
         }
     }
 

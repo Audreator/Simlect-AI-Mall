@@ -21,7 +21,6 @@ public enum ProductStatusEnum {
         return desc;
     }
 
-
     public static ProductStatusEnum getByStatus(Integer status) {
         Optional<ProductStatusEnum> typeEnum = Arrays.stream(ProductStatusEnum.values()).filter(value -> value.getStatus().equals(status)).findFirst();
         return typeEnum == null ||typeEnum.isEmpty()? null : typeEnum.get();

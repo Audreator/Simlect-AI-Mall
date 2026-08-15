@@ -60,3 +60,8 @@ coverage/
 **/Simlect-agent/.venv/
 **/Simlect-agent/.pytest_cache/
 **/Simlect-agent/.langgraph_api/
+# 备份 / 构建产物（禁止入库）
+*.bak
+*.tar.gz
+*.tgz
+*.zip.bak

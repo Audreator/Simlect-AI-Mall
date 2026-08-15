@@ -3,6 +3,7 @@ package com.simlect.controller;
 import com.simlect.annotation.GlobalInterceptor;
 import com.simlect.annotation.RateLimit;
 import com.simlect.component.RedisComponent;
+import com.simlect.component.UserLoginLockService;
 import com.simlect.component.UserTempBanService;
 import com.simlect.constants.Constants;
 import com.simlect.entity.dto.TokenUserInfoDTO;
@@ -47,6 +48,14 @@ import java.util.concurrent.TimeUnit;
 @RequestMapping("/account")
 @RestController
 @Validated
+/**
+ * 【功能】C 端账号：注册、登录、自动登录、登出。
+ * <p>
+ * 【角色】用户会话的「颁发方」。登录成功写入 Redis opaque token + Cookie；Gateway {@code AuthGlobalFilter} 是「校验方」。
+ * <p>
+ * 【登录调用链】login → 校验验证码 → 查用户/校验密码 → RedisComponent.saveTokenUserInfo
+ * → AuthCookieHelper 写 Cookie → 后续请求经 Gateway 查 mall:token:web:{token}。
+ */
 public class AccountController extends ABaseController{
 
     @Resource
@@ -61,11 +70,14 @@ public class AccountController extends ABaseController{
     @Resource
     private StringRedisTemplate stringRedisTemplate;
 
-    @Resource
-    private UserTempBanService userTempBanService;
+@Resource
+private UserTempBanService userTempBanService;
 
-    @Resource
-    private SlideCaptchaVerifier slideCaptchaVerifier;
+@Resource
+private UserLoginLockService userLoginLockService;
+
+@Resource
+private SlideCaptchaVerifier slideCaptchaVerifier;
 
     @Resource
     private AuthCookieHelper authCookieHelper;
@@ -145,6 +157,8 @@ public class AccountController extends ABaseController{
                             @NotEmpty String checkCodeKey,
                             @NotEmpty String checkCode
                             ){
+        String clientIp = getClientIp();
+        userLoginLockService.ensureNotLocked(clientIp);
         try {
             // 验证验证码
             if (!checkCode.equalsIgnoreCase(redisComponent.getCheckCode(checkCodeKey))){
@@ -154,8 +168,10 @@ public class AccountController extends ABaseController{
             // 查询UserInfo
             UserInfo userInfo = userInfoService.getUserInfoByEmail(email);
             if (userInfo == null || !passwordService.matches(password, userInfo.getPassword())){
+                userLoginLockService.recordFailure(clientIp);
                 throw new BusinessException("账号或密码错误！");
             }
+            userLoginLockService.clearFailures(clientIp);
             if (!passwordService.isBcrypt(userInfo.getPassword())) {
                 UserInfo upgrade = new UserInfo();
                 upgrade.setPassword(passwordService.encode(password));
@@ -234,22 +250,7 @@ public class AccountController extends ABaseController{
     }
 
     private String getClientIp() {
-        HttpServletRequest request = currentRequest();
-
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("X-Real-IP");
-        }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getRemoteAddr();
-        }
-
-        // 如果是多个IP，取第一个
-        if (ip != null && ip.contains(",")) {
-            ip = ip.split(",")[0].trim();
-        }
-
-        return ip;
+        return com.simlect.utils.IpUtils.resolveClientIp(currentRequest());
     }
 
     private HttpServletRequest currentRequest() {
@@ -266,6 +267,15 @@ public class AccountController extends ABaseController{
     public ResponseVO getEmailCode(@NotEmpty @Email @Size(max = 150) String email,
                                    @NotEmpty String captchaVerification){
         slideCaptchaVerifier.verify(captchaVerification);
+        // email 维度限流：60 秒内同一邮箱最多发 1 次（换 IP 不可绕过）
+        String emailLimitKey = "mall:email:code:limit:" + email;
+        Long emailCount = stringRedisTemplate.opsForValue().increment(emailLimitKey);
+        if (emailCount != null && emailCount == 1) {
+            stringRedisTemplate.expire(emailLimitKey, 60, TimeUnit.SECONDS);
+        }
+        if (emailCount != null && emailCount > 1) {
+            throw new BusinessException("验证码发送过于频繁，请 1 分钟后再试");
+        }
         // 60秒内只能获取一次
         String existingCode = redisComponent.getEmailCode(email);
         if (existingCode != null){

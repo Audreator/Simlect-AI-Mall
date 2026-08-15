@@ -29,5 +29,10 @@
       <groupId>com.simlect</groupId>
       <artifactId>simlect-product-api</artifactId>
     </dependency>
-  </dependencies>
+  
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <scope>provided</scope>
+    </dependency></dependencies>
 </project>

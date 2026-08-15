@@ -25,7 +25,6 @@ public enum CommentStatusEnum {
         return desc;
     }
 
-
     public static CommentStatusEnum getByStatus(Integer status) {
         Optional<CommentStatusEnum> typeEnum = Arrays.stream(CommentStatusEnum.values()).filter(value -> value.getStatus().equals(status)).findFirst();
         return typeEnum == null ? null : typeEnum.get();

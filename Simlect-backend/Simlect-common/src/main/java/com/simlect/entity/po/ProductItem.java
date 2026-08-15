@@ -19,7 +19,6 @@ public class ProductItem {
     @Max(Constants.ORDER_MAX_BUY_COUNT_PER_SKU)
     private Integer buyCount;
 
-
     public String getProductId() {
         return productId;
     }

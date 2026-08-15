@@ -153,7 +153,10 @@ public class OrderCommentServiceImpl implements OrderCommentService {
 		orderInfoQuery.setUserId(userId);
 		orderInfoQuery.setQueryItems(true);
 		List<OrderInfo> orderInfoList = orderInfoService.findListByParam(orderInfoQuery);
-		OrderInfo orderInfo = orderInfoList.get(0) == null ? null : orderInfoList.get(0);
+        if (orderInfoList == null || orderInfoList.isEmpty()) {
+            throw new BusinessException("订单不存在");
+        }
+        OrderInfo orderInfo = orderInfoList.get(0);
 		if (orderInfo  == null) {
 			throw new BusinessException("订单不存在");
 		}
@@ -168,10 +171,15 @@ public class OrderCommentServiceImpl implements OrderCommentService {
 		orderComment.setCommentContent(commentContent);
 		orderComment.setCommentImages(commentImages);
 		orderComment.setStar(star);
-		orderComment.setProductId(orderInfo.getOrderItemList().get(0).getProductId());
+		// 订单项缺失时防越界（商品信息为空则跳过评价内容挂载）
+		List<com.simlect.entity.po.OrderItem> orderItems = orderInfo.getOrderItemList();
+		if (orderItems == null || orderItems.isEmpty()) {
+			throw new BusinessException("订单商品明细不存在，无法评价");
+		}
+		orderComment.setProductId(orderItems.get(0).getProductId());
 		orderComment.setCommentTime(commentTime);
 		orderComment.setUserId(userId);
-		orderComment.setPropertyInfo(orderInfo.getOrderItemList().get(0).getPropertyInfo());
+		orderComment.setPropertyInfo(orderItems.get(0).getPropertyInfo());
 		orderComment.setStatus(pendingImageReview
 				? CommentStatusEnum.PENDING.getStatus()
 				: CommentStatusEnum.NORMAL.getStatus());
@@ -205,7 +213,10 @@ public class OrderCommentServiceImpl implements OrderCommentService {
 		OrderInfoQuery orderInfoQuery = new OrderInfoQuery();
 		orderInfoQuery.setOrderId(orderId);
 		List<OrderInfo> orderInfoList = orderInfoService.findListByParam(orderInfoQuery);
-		OrderInfo orderInfo = orderInfoList.get(0) == null ? null : orderInfoList.get(0);
+        if (orderInfoList == null || orderInfoList.isEmpty()) {
+            throw new BusinessException("订单不存在");
+        }
+        OrderInfo orderInfo = orderInfoList.get(0);
 		if (orderInfo  == null) {
 			throw new BusinessException("订单不存在");
 		}
@@ -236,7 +247,10 @@ public class OrderCommentServiceImpl implements OrderCommentService {
 		orderInfoQuery.setOrderId(orderId);
 		orderInfoQuery.setUserId(userId);
 		List<OrderInfo> orderInfoList = orderInfoService.findListByParam(orderInfoQuery);
-		OrderInfo orderInfo = orderInfoList.get(0) == null ? null : orderInfoList.get(0);
+        if (orderInfoList == null || orderInfoList.isEmpty()) {
+            throw new BusinessException("订单不存在");
+        }
+        OrderInfo orderInfo = orderInfoList.get(0);
 		if (orderInfo  == null) {
 			throw new BusinessException("订单不存在");
 		}
@@ -252,6 +266,9 @@ public class OrderCommentServiceImpl implements OrderCommentService {
 			throw new BusinessException("订单未评价，无法追评");
 		}
 		OrderComment orderComment = this.getOrderCommentByOrderId(orderId);
+		if (orderComment == null) {
+			throw new BusinessException("订单尚未评价，无法追评");
+		}
 		orderComment.setRecommentContent(reCommentContent);
 		orderComment.setRecommentImages(reCommentImages);
 		orderComment.setRecommentTime(reCommentTime);
@@ -271,7 +288,10 @@ public class OrderCommentServiceImpl implements OrderCommentService {
 		OrderInfoQuery orderInfoQuery = new OrderInfoQuery();
 		orderInfoQuery.setOrderId(orderId);
 		List<OrderInfo> orderInfoList = orderInfoService.findListByParam(orderInfoQuery);
-		OrderInfo orderInfo = orderInfoList.get(0) == null ? null : orderInfoList.get(0);
+        if (orderInfoList == null || orderInfoList.isEmpty()) {
+            throw new BusinessException("订单不存在");
+        }
+        OrderInfo orderInfo = orderInfoList.get(0);
 		if (orderInfo  == null) {
 			throw new BusinessException("订单不存在");
 		}
@@ -300,10 +320,14 @@ public class OrderCommentServiceImpl implements OrderCommentService {
 	@Override
 	public void bizComment(String orderId, String commentContent, String commentImages) {
 		// 如果订单为未评价则无法评价
-		if (Objects.equals(orderInfoService.getOrderInfoByOrderId(orderId).getCommentStatus(), OrderCommentStatusEnum.NOT_EVALUATED.getStatus())){
+		OrderInfo targetOrder = orderInfoService.getOrderInfoByOrderId(orderId);
+		if (targetOrder != null && Objects.equals(targetOrder.getCommentStatus(), OrderCommentStatusEnum.NOT_EVALUATED.getStatus())){
 			throw new BusinessException("订单未评价，无法评价");
 		}
 		OrderComment orderComment = orderCommentMapper.selectByOrderId(orderId);
+		if (orderComment == null) {
+			throw new BusinessException("订单尚未评价，无法回复");
+		}
 		orderComment.setCommentBizReply(commentContent);
 		orderCommentMapper.insertOrUpdate(orderComment);
 	}

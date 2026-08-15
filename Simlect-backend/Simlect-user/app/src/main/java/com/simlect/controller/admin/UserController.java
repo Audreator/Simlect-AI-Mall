@@ -1,5 +1,6 @@
 package com.simlect.controller.admin;
 
+import com.simlect.annotation.AdminSensitiveConfirm;
 import com.simlect.component.RedisComponent;
 import com.simlect.component.UserTempBanService;
 import com.simlect.api.enums.UserStatusEnum;
@@ -39,6 +40,7 @@ public class UserController extends com.simlect.controller.admin.ABaseController
     }
 
     // 改变用户状态
+    @AdminSensitiveConfirm
     @PostMapping("/changeStatus")
     public ResponseVO changeStatus(@NotNull String userId, @NotNull Integer status){
         // 根据userId查询用户

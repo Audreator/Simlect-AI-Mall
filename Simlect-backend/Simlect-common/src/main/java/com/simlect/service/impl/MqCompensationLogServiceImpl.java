@@ -35,6 +35,9 @@ import java.util.List;
 @Slf4j
 public class MqCompensationLogServiceImpl implements MqCompensationLogService {
 
+    /** 手动重放的默认最大重试次数（达到后置 REPLAY_FAILED 终态） */
+    private static final int DEFAULT_MANUAL_MAX_RETRY = 5;
+
     @Resource
     private MqCompensationLogMapper<MqCompensationLog, MqCompensationLogQuery> mqCompensationLogMapper;
     @Resource
@@ -74,6 +77,12 @@ public class MqCompensationLogServiceImpl implements MqCompensationLogService {
         Date now = new Date();
         MqCompensationLog existing = mqCompensationLogMapper.selectByIdempotencyKey(record.getIdempotencyKey());
         if (existing != null) {
+            // 终态（REPLAYED/IGNORED/REPLAY_FAILED）不复活：避免「复活后立即再终态化、不执行任何重试」的空转
+            if (MqCompensationLogStatusEnum.REPLAYED.getStatus().equals(existing.getStatus())
+                    || MqCompensationLogStatusEnum.IGNORED.getStatus().equals(existing.getStatus())
+                    || MqCompensationLogStatusEnum.REPLAY_FAILED.getStatus().equals(existing.getStatus())) {
+                return;
+            }
             MqCompensationLog patch = new MqCompensationLog();
             patch.setErrorMessage(record.getErrorMessage());
             patch.setRetryCount((existing.getRetryCount() == null ? 0 : existing.getRetryCount()));
@@ -129,14 +138,14 @@ public class MqCompensationLogServiceImpl implements MqCompensationLogService {
             throw new BusinessException("当前状态不可重放");
         }
         if (InternalApiHeaders.REMOTE_COMPENSATE_EXCHANGE.equals(existing.getExchange())) {
-            replayRemoteCompensate(existing);
+            replayRemoteCompensate(existing, DEFAULT_MANUAL_MAX_RETRY);
             return;
         }
         if (MqConsumeReplayRouter.isConsumeFailure(existing.getExchange())) {
-            replayConsumeFailure(existing);
+            replayConsumeFailure(existing, DEFAULT_MANUAL_MAX_RETRY);
             return;
         }
-        replaySendFailure(existing);
+        replaySendFailure(existing, DEFAULT_MANUAL_MAX_RETRY);
     }
 
     @Override
@@ -165,13 +174,19 @@ public class MqCompensationLogServiceImpl implements MqCompensationLogService {
             }
             int retry = row.getRetryCount() == null ? 0 : row.getRetryCount();
             if (retry >= maxRetryCount) {
+                // 已达重试上限仍未成功：置为终态，避免每轮空转扫描同一批超限行
+                MqCompensationLog terminal = new MqCompensationLog();
+                terminal.setStatus(MqCompensationLogStatusEnum.REPLAY_FAILED.getStatus());
+                terminal.setErrorMessage("超过最大重试次数(" + maxRetryCount + ")");
+                terminal.setUpdateTime(new Date());
+                mqCompensationLogMapper.updateByLogId(terminal, row.getLogId());
                 continue;
             }
             try {
                 if (InternalApiHeaders.REMOTE_COMPENSATE_EXCHANGE.equals(row.getExchange())) {
-                    replayRemoteCompensate(row);
+                    replayRemoteCompensate(row, maxRetryCount);
                 } else {
-                    replaySendFailure(row);
+                    replaySendFailure(row, maxRetryCount);
                 }
                 replayed++;
             } catch (Exception e) {
@@ -181,7 +196,7 @@ public class MqCompensationLogServiceImpl implements MqCompensationLogService {
         return replayed;
     }
 
-    private void replayRemoteCompensate(MqCompensationLog existing) {
+    private void replayRemoteCompensate(MqCompensationLog existing, int maxRetryCount) {
         Date now = new Date();
         markProcessing(existing.getLogId(), now);
         try {
@@ -212,12 +227,12 @@ public class MqCompensationLogServiceImpl implements MqCompensationLogService {
             mqCompensationStore.remove(existing.getIdempotencyKey());
         } catch (Exception e) {
             log.error("远程补偿重放失败 logId={}", existing.getLogId(), e);
-            markReplayFailed(existing, e.getMessage());
+            markReplayFailedOrPending(existing, e.getMessage(), maxRetryCount);
             throw new BusinessException("远程补偿重放失败：" + e.getMessage());
         }
     }
 
-    private void replaySendFailure(MqCompensationLog existing) {
+    private void replaySendFailure(MqCompensationLog existing, int maxRetryCount) {
         Date now = new Date();
         markProcessing(existing.getLogId(), now);
         mqIdempotencyGuard.releaseSend(existing.getIdempotencyKey());
@@ -232,12 +247,12 @@ public class MqCompensationLogServiceImpl implements MqCompensationLogService {
             mqCompensationStore.remove(existing.getIdempotencyKey());
         } catch (Exception e) {
             log.error("MQ 补偿重放失败 logId={}", existing.getLogId(), e);
-            markReplayFailed(existing, e.getMessage());
+            markReplayFailedOrPending(existing, e.getMessage(), maxRetryCount);
             throw new BusinessException("重放失败：" + e.getMessage());
         }
     }
 
-    private void replayConsumeFailure(MqCompensationLog existing) {
+    private void replayConsumeFailure(MqCompensationLog existing, int maxRetryCount) {
         MqConsumeReplayRouter.Target target = MqConsumeReplayRouter.resolve(existing.getRoutingKey());
         if (target == null) {
             throw new BusinessException("未知消费队列，无法重放：" + existing.getRoutingKey());
@@ -256,7 +271,7 @@ public class MqCompensationLogServiceImpl implements MqCompensationLogService {
             mqCompensationStore.remove(existing.getIdempotencyKey());
         } catch (Exception e) {
             log.error("MQ 消费补偿重放失败 logId={}", existing.getLogId(), e);
-            markReplayFailed(existing, e.getMessage());
+            markReplayFailedOrPending(existing, e.getMessage(), maxRetryCount);
             throw new BusinessException("重放失败：" + e.getMessage());
         }
     }
@@ -277,13 +292,22 @@ public class MqCompensationLogServiceImpl implements MqCompensationLogService {
         mqCompensationLogMapper.updateByLogId(success, existing.getLogId());
     }
 
-    private void markReplayFailed(MqCompensationLog existing, String errorMessage) {
-        MqCompensationLog failed = new MqCompensationLog();
-        failed.setStatus(MqCompensationLogStatusEnum.REPLAY_FAILED.getStatus());
-        failed.setRetryCount((existing.getRetryCount() == null ? 0 : existing.getRetryCount()) + 1);
-        failed.setErrorMessage(errorMessage);
-        failed.setUpdateTime(new Date());
-        mqCompensationLogMapper.updateByLogId(failed, existing.getLogId());
+    /**
+     * 重放失败处理：未达最大重试次数时置回 PENDING（由自动补偿调度继续重试），
+     * 达到上限才置为 REPLAY_FAILED 终态——避免 retryCount < max 时仍永久停留在终态。
+     */
+    private void markReplayFailedOrPending(MqCompensationLog existing, String errorMessage, int maxRetryCount) {
+        int nextRetry = (existing.getRetryCount() == null ? 0 : existing.getRetryCount()) + 1;
+        MqCompensationLog patch = new MqCompensationLog();
+        patch.setRetryCount(nextRetry);
+        patch.setErrorMessage(errorMessage);
+        patch.setUpdateTime(new Date());
+        if (nextRetry >= maxRetryCount) {
+            patch.setStatus(MqCompensationLogStatusEnum.REPLAY_FAILED.getStatus());
+        } else {
+            patch.setStatus(MqCompensationLogStatusEnum.PENDING.getStatus());
+        }
+        mqCompensationLogMapper.updateByLogId(patch, existing.getLogId());
     }
 
     static String resolveBizScene(MqCompensationRecord record) {

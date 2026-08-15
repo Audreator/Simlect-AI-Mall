@@ -2,7 +2,6 @@ package com.simlect.entity.vo;
 import java.util.ArrayList;
 import java.util.List;
 
-
 public class PaginationResultVO<T> {
 	private Integer totalCount;
 	private Integer pageSize;

@@ -5,11 +5,9 @@ from app.services.product_search_query import (
 )
 from app.services.product_service import derive_search_keyword, format_search_tool_message
 
-
 def test_normalize_snack_utterance():
     assert normalize_product_search_query("我要吃零食") == "零食"
     assert derive_search_keyword("我要吃零食", None) == "零食"
-
 
 def test_filter_drops_unrelated_hybrid_hits():
     products = [
@@ -21,7 +19,6 @@ def test_filter_drops_unrelated_hybrid_hits():
     assert len(kept) == 1
     assert "雪饼" in kept[0]["product_name"]
 
-
 def test_filter_all_miss_means_empty():
     products = [
         {"product_name": "名创优品小猪B-BO趴姿公仔"},
@@ -29,7 +26,6 @@ def test_filter_all_miss_means_empty():
     ]
     assert filter_products_by_query_relevance(products, "我要吃零食") == []
     assert "零食" in match_terms_for_query("我要吃零食")
-
 
 def test_hot_sale_fallback_message_not_found():
     products = [{"product_name": "公仔"}, {"product_name": "点卡"}]

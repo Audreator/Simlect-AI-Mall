@@ -4,7 +4,6 @@ import com.simlect.constants.Constants;
 import com.simlect.entity.config.AppConfig;
 import com.simlect.entity.dto.*;
 import com.simlect.exception.BusinessException;
-import com.simlect.support.PayOrderLifecycleLockHolder;
 import com.simlect.redis.RedisUtils;
 import com.simlect.utils.DateUtil;
 import com.simlect.utils.JsonUtils;
@@ -14,6 +13,8 @@ import jakarta.annotation.Resource;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
@@ -27,6 +28,20 @@ import java.util.concurrent.TimeUnit;
 
 @Component("redisComponent")
 @Slf4j
+/**
+ * 【功能】Simlect 公共 Redis 门面：登录会话、秒杀 Lua、支付生命周期锁、签到 Bitmap、Agent 上下文等。
+ * <p>
+ * 【角色】被 user/order/gateway（间接）/agent 等多服务依赖的「缓存与分布式原语层」。
+ * Key 前缀历史遗留为 {@code mall:}，语义以方法为准。
+ * <p>
+ * 【关键能力与调用方】
+ * <ul>
+ *   <li>{@link #saveTokenUserInfo} — 登录双写 token↔userId；Gateway AuthGlobalFilter 只读 token→会话</li>
+ *   <li>{@link #rushingCoupon} — 秒杀 Lua（库存+一人一单+预占 Hash）；OrderInfoServiceImpl.prepareCouponRush</li>
+ *   <li>{@link #runWithPayOrderLifecycleLock} — 支付/关单互斥（Redisson 看门狗）；paySuccess / cancelOrder</li>
+ *   <li>签到 Bitmap/Lua — 签到接口热路径；落库走 MQ</li>
+ * </ul>
+ */
 public class RedisComponent {
 
     @Resource
@@ -37,6 +52,8 @@ public class RedisComponent {
     private StringRedisTemplate stringRedisTemplate;
     @Resource
     private AppConfig appConfig;
+    @Resource
+    private RedissonClient redissonClient;
 
     public void saveCategory2Redis(List<?> list) {
         redisUtils.set(Constants.REDIS_KEY_CATEGORY_LIST, list);
@@ -93,6 +110,10 @@ public class RedisComponent {
     }
 
     // 从TokenUserInfoDTO中获取token，并存入redis，清除旧token,返回新token
+    /**
+     * 【功能】登录发 opaque token，双写 Redis：token→会话、userId→token（踢人/单点）。
+     * 【调用链】AccountController.login → 本方法 → Cookie 写入；之后每次请求 Gateway 用 token 反查会话。
+     */
     public String saveTokenUserInfo(TokenUserInfoDTO tokenUserInfoDTO) {
         // 从TokenUserInfoDTO中获取token
         String oldtoken = tokenUserInfoDTO.getToken();
@@ -215,15 +236,26 @@ public class RedisComponent {
         return (UserLocationCoordsDTO) redisUtils.get(Constants.REDIS_KEY_USER_LOCATION + userId);
     }
 
-    public void updateUser(String userId) {
-        // 修改个人资料后无需重新登录
-        // 只需修改token对应的用户信息
+    public void updateUser(String userId, String avatar, String nickName) {
+        // 修改资料后刷新 Redis 登录会话：以最新资料覆盖旧 DTO
         TokenUserInfoDTO tokenUserInfoDTO = getTokenUserInfoByUserId(userId);
-        // 获取原token
+        if (tokenUserInfoDTO == null) {
+            // 会话不存在/已过期：无需刷新，避免 NPE
+            log.warn("updateUser 跳过：用户会话不存在或已过期 userId={}", userId);
+            return;
+        }
+        if (avatar != null) {
+            tokenUserInfoDTO.setAvatar(avatar);
+        }
+        if (nickName != null) {
+            tokenUserInfoDTO.setNickName(nickName);
+        }
         String token = tokenUserInfoDTO.getToken();
-        // 不改变token，只修改用户信息
-        redisUtils.set(Constants.REDIS_KEY_TOKEN_USERID_WEB + userId, tokenUserInfoDTO);
-        redisUtils.set(Constants.REDIS_KEY_TOKEN_WEB + token, tokenUserInfoDTO);
+        // 用 setex 保留会话 TTL（与登录写入一致），避免 set 覆盖后会话永不过期
+        redisUtils.setex(Constants.REDIS_KEY_TOKEN_USERID_WEB + userId, tokenUserInfoDTO,
+                Constants.REDIS_KEY_EXPIRES_DAY);
+        redisUtils.setex(Constants.REDIS_KEY_TOKEN_WEB + token, tokenUserInfoDTO,
+                Constants.REDIS_KEY_EXPIRES_DAY);
     }
 
     public void cleanAllToken(@NotNull String userId) {
@@ -446,9 +478,17 @@ public class RedisComponent {
 
     // 获取累计签到天数
     public Integer totalSignDays(String userId) {
-        return redisUtils.hashGet(Constants.REDIS_KEY_SIGN + userId, Constants.TOTAL_SIGN_DAYS) == null ?
-                0 :
-                redisUtils.hashGet(Constants.REDIS_KEY_SIGN + userId, Constants.TOTAL_SIGN_DAYS);
+        // 统一用 String 序列化器读取（与写入 writeSignHash/supplementSign 一致，防两套序列化器错位）
+        Object val = stringRedisTemplate.opsForHash().get(
+                Constants.REDIS_KEY_SIGN + userId, Constants.TOTAL_SIGN_DAYS);
+        if (val == null) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(String.valueOf(val));
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     // 获取已使用补签次数
@@ -467,6 +507,8 @@ public class RedisComponent {
                     "local hashKey = KEYS[3]; " +
                     "local todayOffset = tonumber(ARGV[1]); " +
                     "local yesterdayOffset = tonumber(ARGV[2]); " +
+                    "if todayOffset == nil or todayOffset < 0 or todayOffset > 30 then return {-2, 0, 0} end; " +
+                    "if yesterdayOffset == nil or yesterdayOffset < 0 or yesterdayOffset > 30 then return {-2, 0, 0} end; " +
                     "if redis.call('getbit', todayKey, todayOffset) == 1 then return {-1, 0, 0} end; " +
                     "redis.call('setbit', todayKey, todayOffset, 1); " +
                     "local yesterdaySigned = redis.call('getbit', yesterdayKey, yesterdayOffset); " +
@@ -506,6 +548,9 @@ public class RedisComponent {
                 signNullCacheKey(userId)
         );
 
+        if (result == null || result.isEmpty() || result.get(0) == null || result.get(0) == -2) {
+            throw new BusinessException("签到参数异常，请稍后重试");
+        }
         if (result.get(0) == -1) {
             throw new BusinessException("今日已签到");
         }
@@ -524,6 +569,7 @@ public class RedisComponent {
             "local bitmapKey = KEYS[1]; " +
                     "local hashKey = KEYS[2]; " +
                     "local targetOffset = tonumber(ARGV[1]); " +
+                    "if targetOffset == nil or targetOffset < 0 or targetOffset > 30 then return -3; end; " +
                     "if redis.call('getbit', bitmapKey, targetOffset) == 1 then " +
                     "    return -1; " +
                     "end; " +
@@ -554,6 +600,9 @@ public class RedisComponent {
                 signNullCacheKey(userId)
         );
 
+        if (result == null || result == -3) {
+            throw new BusinessException("补签参数异常，请稍后重试");
+        }
         if (result == -1) throw new  BusinessException("该日期已签到");
         if (result == -2) throw new  BusinessException("补签次数不足");
 
@@ -641,7 +690,7 @@ public class RedisComponent {
         return setIfAbsent(
                 Constants.REDIS_KEY_PAY_ORDER_CLOSE_DONE + payOrderId,
                 "1",
-                Constants.REDIS_KEY_EXPIRES_DAY,
+                3L * 24 * 3600, // 覆盖支付宝异步通知窗口（>24h）
                 TimeUnit.SECONDS);
     }
 
@@ -653,11 +702,14 @@ public class RedisComponent {
                 Constants.REDIS_KEY_PAY_ORDER_CLOSE_DONE + payOrderId));
     }
 
-    private static final String PAY_ORDER_LIFECYCLE_UNLOCK_LUA =
-            "if redis.call('get', KEYS[1]) == ARGV[1] then "
-                    + "return redis.call('del', KEYS[1]) "
-                    + "else return 0 end";
-
+    /**
+     * 【功能】支付单生命周期分布式锁（Redisson 看门狗锁）。
+     * 【角色】串行化同一 payOrderId 上的支付回调与关单，避免双成功。
+     * 【看门狗】leaseTime = -1 启用自动续期：锁超时默认 30s（可经
+     * {@link Constants#PAY_ORDER_LIFECYCLE_LOCK_WATCHDOG_MS} 配置），持有线程每 10s 续期一次，
+     * 业务执行多久锁就续多久；进程崩溃后 30s 自动释放，避免死锁。
+     * 释放由 Redisson 内部 Lua 校验持有者，不会误删他人锁。
+     */
     public void runWithPayOrderLifecycleLock(String payOrderId, Runnable action) {
         runWithPayOrderLifecycleLock(payOrderId, () -> {
             action.run();
@@ -676,53 +728,26 @@ public class RedisComponent {
             }
         }
         String lockKey = Constants.REDIS_KEY_PAY_ORDER_LIFECYCLE_LOCK + payOrderId;
-        long deadline = System.currentTimeMillis() + Constants.PAY_ORDER_LIFECYCLE_LOCK_WAIT_MS;
-        String token = null;
+        RLock lock = redissonClient.getLock(lockKey);
         boolean acquired = false;
         try {
-            while (System.currentTimeMillis() < deadline) {
-                token = newPayOrderLifecycleLockToken();
-                if (setIfAbsent(lockKey, token, Constants.PAY_ORDER_LIFECYCLE_LOCK_SECONDS, TimeUnit.SECONDS)) {
-                    acquired = true;
-                    PayOrderLifecycleLockHolder.bind(lockKey, token);
-                    break;
-                }
-                Thread.sleep(50L);
-            }
+            // leaseTime = -1：启用看门狗自动续期
+            acquired = lock.tryLock(Constants.PAY_ORDER_LIFECYCLE_LOCK_WAIT_MS, -1, TimeUnit.MILLISECONDS);
             if (!acquired) {
                 throw new com.simlect.exception.PayOrderLifecycleBusyException();
             }
             return action.call();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new com.simlect.exception.BusinessException("支付订单处理被中断");
+            throw new com.simlect.exception.BusinessException("支付订单处理被中断", e);
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
             throw new com.simlect.exception.BusinessException("支付订单处理失败", e);
         } finally {
-            if (acquired && token != null) {
-                releasePayOrderLifecycleLock(lockKey, token);
+            if (acquired && lock.isHeldByCurrentThread()) {
+                lock.unlock();
             }
-            PayOrderLifecycleLockHolder.clear();
-        }
-    }
-
-    public String getCurrentPayOrderLifecycleLockToken() {
-        return PayOrderLifecycleLockHolder.getToken();
-    }
-
-    private static String newPayOrderLifecycleLockToken() {
-        return UUID.randomUUID() + ":" + Thread.currentThread().getId();
-    }
-
-    private void releasePayOrderLifecycleLock(String lockKey, String token) {
-        DefaultRedisScript<Long> script = new DefaultRedisScript<>();
-        script.setScriptText(PAY_ORDER_LIFECYCLE_UNLOCK_LUA);
-        script.setResultType(Long.class);
-        Long deleted = stringRedisTemplate.execute(script, List.of(lockKey), token);
-        if (deleted == null || deleted == 0L) {
-            log.warn("支付生命周期锁释放跳过（非持有者或已过期） lockKey={}", lockKey);
         }
     }
 
@@ -733,7 +758,7 @@ public class RedisComponent {
         return setIfAbsent(
                 Constants.REDIS_KEY_PAY_LATE_REFUND_DONE + payOrderId,
                 "1",
-                Constants.REDIS_KEY_EXPIRES_DAY,
+                3L * 24 * 3600, // 覆盖支付宝异步通知窗口（>24h）
                 TimeUnit.SECONDS);
     }
 
@@ -742,6 +767,46 @@ public class RedisComponent {
             return;
         }
         stringRedisTemplate.delete(Constants.REDIS_KEY_PAY_LATE_REFUND_DONE + payOrderId);
+    }
+
+    /** 用户退款幂等闸：同一订单项仅执行一次退款，防止并发/重复提交重复退款 */
+    public boolean tryMarkOrderRefundOnce(String orderItemId) {
+        if (StringTools.isEmpty(orderItemId)) {
+            return false;
+        }
+        return setIfAbsent(
+                Constants.REDIS_KEY_ORDER_REFUND_DONE + orderItemId,
+                "1",
+                3L * 24 * 3600, // 覆盖支付宝异步通知窗口（>24h）
+                TimeUnit.SECONDS);
+    }
+
+    /** 退款失败时释放幂等标记，允许用户重试 */
+    public void clearOrderRefundMark(String orderItemId) {
+        if (StringTools.isEmpty(orderItemId)) {
+            return;
+        }
+        stringRedisTemplate.delete(Constants.REDIS_KEY_ORDER_REFUND_DONE + orderItemId);
+    }
+
+    /** 退款单号锚点：订单项首次退款绑定的 refundOrderId（防重试生成新号导致二次退款） */
+    private static final String REFUND_ORDER_ANCHOR = "mall:pay:refund:anchor:";
+
+    public String getRefundOrderIdAnchor(String orderItemId) {
+        if (StringTools.isEmpty(orderItemId)) {
+            return null;
+        }
+        String v = stringRedisTemplate.opsForValue().get(REFUND_ORDER_ANCHOR + orderItemId);
+        return StringTools.isEmpty(v) ? null : v;
+    }
+
+    public boolean bindRefundOrderIdAnchor(String orderItemId, String refundOrderId) {
+        if (StringTools.isEmpty(orderItemId) || StringTools.isEmpty(refundOrderId)) {
+            return false;
+        }
+        Boolean ok = stringRedisTemplate.opsForValue().setIfAbsent(
+                REFUND_ORDER_ANCHOR + orderItemId, refundOrderId, 7L * 24 * 3600, TimeUnit.SECONDS); // 与 pay 侧幂等键 TTL 对齐，防锚点先于幂等闸过期造成二次退款
+        return Boolean.TRUE.equals(ok);
     }
 
     // 抢购相关操作：查询是否有购买资格、扣减库存、记录用户预占信息
@@ -848,6 +913,11 @@ public class RedisComponent {
         return hasRushPrepare(userId, couponId);
     }
 
+    /**
+     * 【功能】执行秒杀 Lua：原子判重、DECR 库存、SADD 已抢用户、写入预占 Hash。
+     * @return 0 成功 / 1 无库存或未预热 / 2 重复抢购
+     * 【调用方】OrderInfoServiceImpl.prepareCouponRush；失败补偿见 rollback / align Lua。
+     */
     public Integer rushingCoupon(String couponId, String userId, String userCouponId) {
         // lua原子执行
         DefaultRedisScript<Long> script = new DefaultRedisScript<>();
@@ -865,6 +935,23 @@ public class RedisComponent {
 
     public void addRagFailRecord(RagDataDTO dto) {
         redisUtils.zsetAdd(Constants.REDIS_RAG_FAIL_RECORD, dto, System.currentTimeMillis());
+        // 防死信 ZSet 无限增长：过期记录由 score(时间戳) 清理
+        pruneRagFailRecords();
+    }
+
+    private void pruneRagFailRecords() {
+        try {
+            // 保留最近 7 天（score = 毫秒时间戳）
+            long cutoff = System.currentTimeMillis() - 7L * 24 * 60 * 60 * 1000;
+            redisTemplate.opsForZSet().removeRangeByScore(Constants.REDIS_RAG_FAIL_RECORD, 0, cutoff);
+            // 数量上限裁剪：最多保留 2000 条（防单量暴增无限增长）
+            Long size = redisTemplate.opsForZSet().zCard(Constants.REDIS_RAG_FAIL_RECORD);
+            if (size != null && size > 2000) {
+                redisTemplate.opsForZSet().removeRange(Constants.REDIS_RAG_FAIL_RECORD, 0, size - 2000 - 1);
+            }
+        } catch (Exception e) {
+            log.warn("清理 RAG 死信记录失败", e);
+        }
     }
 
     public java.util.List<com.simlect.entity.vo.RagSyncFailureVO> listRagFailRedisSnapshots(int offset, int limit) {
@@ -1008,37 +1095,98 @@ public class RedisComponent {
         return Boolean.TRUE.equals(ok);
     }
 
+    /** 仅当 key 仍等于持有者 token 时才删除（防 TTL 过期后误删他人锁） */
+    private static final String DELETE_IF_OWNED_LUA =
+            "if redis.call('get', KEYS[1]) == ARGV[1] then "
+                    + "return redis.call('del', KEYS[1]) "
+                    + "else return 0 end";
+
+    public void deleteIfOwned(String key, String token) {
+        if (StringTools.isEmpty(key) || StringTools.isEmpty(token)) {
+            return;
+        }
+        DefaultRedisScript<Long> script = new DefaultRedisScript<>(DELETE_IF_OWNED_LUA, Long.class);
+        stringRedisTemplate.execute(script, java.util.Collections.singletonList(key), token);
+    }
+
+    /** 管理端敏感操作一次性确认票据（防明文密码入请求头/日志）；绑定管理员与目标操作 */
+    public String issueAdminConfirmToken(String account, String path) {
+        String token = UUID.randomUUID() + ":" + Thread.currentThread().getId();
+        stringRedisTemplate.opsForValue().set(
+                Constants.REDIS_KEY_ADMIN_CONFIRM + token,
+                account + "|" + (path == null ? "" : path),
+                Constants.ADMIN_CONFIRM_TOKEN_TTL_SECONDS,
+                TimeUnit.SECONDS);
+        return token;
+    }
+
+    /** 原子消费一次性确认票据（防重放：存在则删除返回绑定值，不存在返回 null） */
+    private static final String CONSUME_CONFIRM_LUA =
+            "local v = redis.call('get', KEYS[1]); "
+                    + "if v then redis.call('del', KEYS[1]) end; "
+                    + "return v;";
+
+    public boolean consumeAdminConfirmToken(String token, String account, String currentPath) {
+        if (StringTools.isEmpty(token)) {
+            return false;
+        }
+        DefaultRedisScript<String> script = new DefaultRedisScript<>(CONSUME_CONFIRM_LUA, String.class);
+        String bound = stringRedisTemplate.execute(
+                script, java.util.Collections.singletonList(Constants.REDIS_KEY_ADMIN_CONFIRM + token));
+        if (StringTools.isEmpty(bound)) {
+            return false;
+        }
+        // bound = account|targetPath：校验管理员一致，且当前 URI 以 targetPath 结尾（容忍网关/基路径前缀）
+        int sep = bound.indexOf('|');
+        if (sep <= 0) {
+            return false;
+        }
+        String boundAccount = bound.substring(0, sep);
+        String boundPath = bound.substring(sep + 1);
+        if (StringTools.isEmpty(boundAccount) || !boundAccount.equals(account)) {
+            return false;
+        }
+        if (StringTools.isEmpty(boundPath)) {
+            return false;
+        }
+        return currentPath != null && currentPath.endsWith(boundPath);
+    }
+
     private static final String MEMBER_LEVEL_CLAIM_PREFIX = "member:level:claim:";
 
     public java.util.Set<Integer> getMemberLevelClaimed(String userId) {
-        String raw = stringRedisTemplate.opsForValue().get(MEMBER_LEVEL_CLAIM_PREFIX + userId);
         java.util.Set<Integer> set = new java.util.HashSet<>();
-        if (StringTools.isEmpty(raw)) {
+        // 优先读 Set 结构（SADD 原子写入）；兼容旧 CSV 字符串
+        java.util.Set<String> members = stringRedisTemplate.opsForSet().members(MEMBER_LEVEL_CLAIM_PREFIX + userId);
+        if (members == null || members.isEmpty()) {
+            String raw = stringRedisTemplate.opsForValue().get(MEMBER_LEVEL_CLAIM_PREFIX + userId);
+            if (!StringTools.isEmpty(raw)) {
+                for (String part : raw.split(",")) {
+                    if (StringTools.isEmpty(part)) {
+                        continue;
+                    }
+                    try {
+                        set.add(Integer.parseInt(part.trim()));
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
+            }
             return set;
         }
-        for (String part : raw.split(",")) {
-            if (StringTools.isEmpty(part)) {
-                continue;
-            }
+        for (String member : members) {
             try {
-                set.add(Integer.parseInt(part.trim()));
+                set.add(Integer.parseInt(member.trim()));
             } catch (NumberFormatException ignored) {
             }
         }
         return set;
     }
 
+    /** 原子领取标记（SADD + 过期），防并发重复领取升级礼 */
     public void addMemberLevelClaimed(String userId, int levelCode) {
-        java.util.Set<Integer> set = getMemberLevelClaimed(userId);
-        set.add(levelCode);
-        StringBuilder sb = new StringBuilder();
-        for (Integer code : set) {
-            if (sb.length() > 0) {
-                sb.append(',');
-            }
-            sb.append(code);
-        }
-        stringRedisTemplate.opsForValue().set(MEMBER_LEVEL_CLAIM_PREFIX + userId, sb.toString());
+        stringRedisTemplate.opsForSet().add(MEMBER_LEVEL_CLAIM_PREFIX + userId, String.valueOf(levelCode));
+        stringRedisTemplate.expire(MEMBER_LEVEL_CLAIM_PREFIX + userId,
+                Constants.REDIS_KEY_EXPIRES_DAY, TimeUnit.SECONDS);
     }
 
     public long incr(String key) {
@@ -1076,5 +1224,17 @@ public class RedisComponent {
     // 清理邮件验证码
     public void cleanEmailCode(@NotEmpty String email) {
         redisTemplate.delete(Constants.REDIS_KEY_EMAIL_CODE + email);
+    }
+
+    /** 原子消费邮箱验证码（get + del）：防止验证码被无限爆破 */
+    private static final String CONSUME_EMAIL_CODE_LUA =
+            "local code = redis.call('get', KEYS[1]); "
+                    + "if code then redis.call('del', KEYS[1]) end; "
+                    + "return code;";
+
+    public String consumeEmailCode(@NotEmpty String email) {
+        DefaultRedisScript<String> script = new DefaultRedisScript<>(CONSUME_EMAIL_CODE_LUA, String.class);
+        return stringRedisTemplate.execute(script, java.util.Collections.singletonList(
+                Constants.REDIS_KEY_EMAIL_CODE + email));
     }
 }

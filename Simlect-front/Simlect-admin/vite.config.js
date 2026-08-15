@@ -16,7 +16,7 @@ export default defineConfig({
   server: {
     historyApiFallback: true,
     hmr: true,
-    host: '0.0.0.0',
+    host: '127.0.0.1', // 仅本机访问（防内网跳板）；需要局域网调试时临时改回 0.0.0.0
     port: 6002,
     proxy: {
       // 开发态 /api → Gateway /admin-api（与生产 baseURL 对齐）

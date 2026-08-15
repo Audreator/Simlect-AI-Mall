@@ -9,7 +9,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Date;
 
-
 public class StringTools {
 
     public static void checkParam(Object param) {

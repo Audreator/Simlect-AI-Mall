@@ -2,6 +2,7 @@ package com.simlect.controller.admin;
 
 import java.util.List;
 
+import com.simlect.annotation.AdminSensitiveConfirm;
 import com.simlect.entity.query.UserInfoQuery;
 import com.simlect.entity.po.UserInfo;
 import com.simlect.entity.vo.ResponseVO;
@@ -39,7 +40,7 @@ public class UserInfoController extends com.simlect.controller.admin.ABaseContro
 
 	@PostMapping("/addOrUpdateBatch")
 	public ResponseVO addOrUpdateBatch(@RequestBody List<UserInfo> listBean) {
-		userInfoService.addBatch(listBean);
+		userInfoService.addOrUpdateBatch(listBean);
 		return getSuccessResponseVO(null);
 	}
 
@@ -54,7 +55,8 @@ public class UserInfoController extends com.simlect.controller.admin.ABaseContro
 		return getSuccessResponseVO(null);
 	}
 
-	@PostMapping("/deleteUserInfoByUserId")
+@AdminSensitiveConfirm
+    	@PostMapping("/deleteUserInfoByUserId")
 	public ResponseVO deleteUserInfoByUserId(String userId) {
 		userInfoService.deleteUserInfoByUserId(userId);
 		return getSuccessResponseVO(null);
@@ -71,7 +73,8 @@ public class UserInfoController extends com.simlect.controller.admin.ABaseContro
 		return getSuccessResponseVO(null);
 	}
 
-	@PostMapping("/deleteUserInfoByEmail")
+@AdminSensitiveConfirm
+    	@PostMapping("/deleteUserInfoByEmail")
 	public ResponseVO deleteUserInfoByEmail(String email) {
 		userInfoService.deleteUserInfoByEmail(email);
 		return getSuccessResponseVO(null);
@@ -88,7 +91,8 @@ public class UserInfoController extends com.simlect.controller.admin.ABaseContro
 		return getSuccessResponseVO(null);
 	}
 
-	@PostMapping("/deleteUserInfoByNickName")
+@AdminSensitiveConfirm
+    	@PostMapping("/deleteUserInfoByNickName")
 	public ResponseVO deleteUserInfoByNickName(String nickName) {
 		userInfoService.deleteUserInfoByNickName(nickName);
 		return getSuccessResponseVO(null);

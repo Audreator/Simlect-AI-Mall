@@ -95,8 +95,9 @@ public class SignServiceImpl implements SignService {
         if (redisComponent.isSign(userId, yyyyMM, dayOfMonth)) {
             throw new BusinessException("今天已经签到过了哦~");
         }
+        // Lua 原子置位（互斥：并发双请求只有一个成功），成功后加成长值（幂等键防重复加）
         redisComponent.sign(userId);
-        userMemberProfileService.addGrowth(userId, SIGN_GROWTH);
+        grantSignGrowthOnce(userId, DateUtil.getTimeOnParttern(0, "yyyyMMdd"));
         int continuousDays = redisComponent.getContinuousDays(userId);
         int totalSignDays = redisComponent.totalSignDays(userId);
         int usedCount = redisComponent.getUsedCount(userId);
@@ -111,16 +112,32 @@ public class SignServiceImpl implements SignService {
         if (redisComponent.getRemainSignCount(userId) <= 0) {
             throw new BusinessException("补签次数不足");
         }
-        if (yyyyMMdd.length() != 8) {
+        // 日期合法性校验：必须为 yyyyMMdd、是合法日期、不早于本月 1 日、不晚于今天
+        if (yyyyMMdd == null || yyyyMMdd.length() != 8) {
             throw new BusinessException("日期格式错误");
+        }
+        LocalDate signDate;
+        try {
+            signDate = LocalDate.parse(yyyyMMdd, DateTimeFormatter.ofPattern("yyyyMMdd"));
+        } catch (Exception e) {
+            throw new BusinessException("日期格式错误");
+        }
+        LocalDate today = LocalDate.now();
+        LocalDate monthStart = today.withDayOfMonth(1);
+        if (signDate.isBefore(monthStart)) {
+            throw new BusinessException("只能补签本月内的日期");
+        }
+        if (signDate.isAfter(today)) {
+            throw new BusinessException("不能补签未来日期");
         }
         String yyyyMM = yyyyMMdd.substring(0, 6);
         int dayOfMonth = Integer.parseInt(yyyyMMdd.substring(6, 8));
         if (redisComponent.isSign(userId, yyyyMM, dayOfMonth)) {
             throw new BusinessException("该日期已经签到过了哦~");
         }
+        // Lua 原子补签位（互斥），成功后加成长值（幂等键防重复加）
         redisComponent.supplementSign(userId, yyyyMM, dayOfMonth);
-        userMemberProfileService.addGrowth(userId, SIGN_GROWTH);
+        grantSignGrowthOnce(userId, yyyyMMdd);
         int continuousDays = redisComponent.getContinuousDays(userId);
         int totalSignDays = redisComponent.totalSignDays(userId);
         int usedCount = redisComponent.getUsedCount(userId);
@@ -128,6 +145,14 @@ public class SignServiceImpl implements SignService {
         tryGrantStreakCoupon(userId, continuousDays);
         userNotificationService.sendAsync(userId, "补签成功",
                 "补签已获得 " + SIGN_GROWTH + " 成长值", "sign", yyyyMMdd);
+    }
+
+    /** 签到/补签成长值发放：按 用户+日期 幂等（防并发/重试重复 +5） */
+    private void grantSignGrowthOnce(String userId, String yyyyMMdd) {
+        String growthKey = "sign:growth:" + userId + ":" + yyyyMMdd;
+        if (redisComponent.setIfAbsent(growthKey, "1", 7, java.util.concurrent.TimeUnit.DAYS)) {
+            userMemberProfileService.addGrowth(userId, SIGN_GROWTH);
+        }
     }
 
     private void sendSignRecordToMQ(String userId, int continuousDays, int totalSignDays, int usedCount,
@@ -197,8 +222,14 @@ public class SignServiceImpl implements SignService {
     }
 
     private int getDayofMonth(String yyyyMM){
+        if (yyyyMM == null || !yyyyMM.matches("\\d{6}")) {
+            throw new BusinessException(ResponseCodeEnum.CODE_600);
+        }
         int year = Integer.parseInt(yyyyMM.substring(0, 4));
         int month = Integer.parseInt(yyyyMM.substring(4, 6));
+        if (month < 1 || month > 12) {
+            throw new BusinessException(ResponseCodeEnum.CODE_600);
+        }
         YearMonth yearMonth = YearMonth.of(year, month);
         return yearMonth.lengthOfMonth();
     }

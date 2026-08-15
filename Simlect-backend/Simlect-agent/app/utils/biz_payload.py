@@ -180,7 +180,6 @@ def _find_balanced_json_array_span(text: str, start: int) -> tuple[int, int] | N
                 return start, i + 1
     return None
 
-
 def _is_product_id_array(obj: object) -> bool:
     if not isinstance(obj, list) or not obj:
         return False
@@ -190,7 +189,6 @@ def _is_product_id_array(obj: object) -> bool:
         if not (item.get("productId") or item.get("product_id")):
             return False
     return True
-
 
 def strip_embedded_product_json(text: str | None) -> str:
     """Remove PRODUCT_SEARCH_RESULT blobs and bare product card JSON arrays from prose."""
@@ -369,7 +367,6 @@ def is_product_cards_json(raw: str | None) -> bool:
     has_name = bool(first.get("productName") or first.get("product_name"))
     return has_id and has_name
 
-
 def is_action_confirm_json(raw: str | None) -> bool:
     """True when text is a full ACTION_CONFIRM card JSON (valid or fabricated)."""
     if not raw or not isinstance(raw, str):
@@ -383,7 +380,6 @@ def is_action_confirm_json(raw: str | None) -> bool:
         return False
     return isinstance(obj, dict) and obj.get("type") == "ACTION_CONFIRM"
 
-
 _AFTERSALES_HINTS = (
     "退款",
     "退货",
@@ -395,7 +391,6 @@ _AFTERSALES_HINTS = (
     "快递",
     "到哪了",
 )
-
 
 def looks_like_aftersales_or_order_text(text: str | None) -> bool:
     """Used to avoid hijacking aftersales turns into product-search backfill.
@@ -412,7 +407,6 @@ def looks_like_aftersales_or_order_text(text: str | None) -> bool:
     if any(k in t for k in ("如何", "怎么", "怎样", "在哪", "哪里", "方法", "步骤")):
         return False
     return any(k in t for k in _AFTERSALES_HINTS)
-
 
 def build_order_payload(orders: list[dict], items_map: dict[str, list[dict]]) -> tuple[str, str | None]:
 

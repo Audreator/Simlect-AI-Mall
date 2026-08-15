@@ -16,17 +16,21 @@ public class GatewayProductionSafetyValidator {
     @Value("${simlect.production-ready:false}")
     private boolean productionReady;
 
-    @Value("${simlect.internal.token:your-token}")
+    @Value("${simlect.internal.token:}")
     private String internalToken;
 
     @PostConstruct
     public void validate() {
-        if (!productionReady) {
-            log.warn("simlect.production-ready=false（Gateway）：上线前请设为 true 并配置强内部 Token");
+        // 内部令牌未配置或仍为默认弱值：生产就绪时拒绝启动；非生产就绪仅告警
+        if (!StringUtils.hasText(internalToken) || WEAK_INTERNAL.equals(internalToken)) {
+            if (productionReady) {
+                throw new IllegalStateException("生产就绪校验失败: 请设置强 SIMLECT_INTERNAL_TOKEN");
+            }
+            log.warn("simlect.internal.token 未配置（内部接口将全部 401），上线前请设置强 SIMLECT_INTERNAL_TOKEN");
             return;
         }
-        if (!StringUtils.hasText(internalToken) || WEAK_INTERNAL.equals(internalToken)) {
-            throw new IllegalStateException("生产就绪校验失败: 请设置强 SIMLECT_INTERNAL_TOKEN");
+        if (!productionReady) {
+            log.warn("simlect.production-ready=false（Gateway）：上线前请设为 true");
         }
         log.info("Gateway 生产就绪校验通过");
     }

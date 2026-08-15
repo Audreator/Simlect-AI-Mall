@@ -31,7 +31,6 @@ public enum OrderStatusEnum {
         return desc;
     }
 
-
     public static OrderStatusEnum getByStatus(Integer status) {
         Optional<OrderStatusEnum> typeEnum = Arrays.stream(OrderStatusEnum.values()).filter(value -> value.getStatus().equals(status)).findFirst();
         return typeEnum == null ? null : typeEnum.get();

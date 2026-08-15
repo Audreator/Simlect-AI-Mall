@@ -182,11 +182,20 @@ public class UserMemberProfileServiceImpl implements UserMemberProfileService {
         if (points <= 0) {
             return;
         }
-        UserMemberProfile profile = getOrInitProfile(userId);
-        profile.setGrowthValue((profile.getGrowthValue() == null ? 0 : profile.getGrowthValue()) + points);
-        refreshLevel(profile);
-        profile.setUpdateTime(new Date());
-        userMemberProfileMapper.updateByUserId(profile, userId);
+        // 确保 profile 行存在
+        getOrInitProfile(userId);
+        // DB 原子自增（防并发读改写丢失更新）
+        Integer affected = userMemberProfileMapper.addGrowthValue(userId, points);
+        if (affected == null || affected == 0) {
+            throw new BusinessException("成长值更新失败，请稍后重试");
+        }
+        // 读回最新成长值刷新等级（成长值单调递增，等级最终一致）
+        UserMemberProfile latest = userMemberProfileMapper.selectByUserId(userId);
+        if (latest != null) {
+            refreshLevel(latest);
+            latest.setUpdateTime(new Date());
+            userMemberProfileMapper.updateByUserId(latest, userId);
+        }
     }
 
     private void refreshLevel(UserMemberProfile profile) {

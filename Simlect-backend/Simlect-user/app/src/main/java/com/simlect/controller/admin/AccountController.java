@@ -86,6 +86,46 @@ public class AccountController extends com.simlect.controller.admin.ABaseControl
         return getSuccessResponseVO(null);
     }
 
+    /** 管理端登录态校验（前端路由守卫用）：已登录返回 true，未登录返回 false */
+    @GetMapping("/checkLogin")
+    public ResponseVO<Boolean> checkLogin(HttpServletRequest request){
+        String token = authCookieHelper.resolveAdminToken(request);
+        boolean logged = !StringTools.isEmpty(token)
+                && redisComponent.getLoginInfo4Admin(token) != null;
+        return getSuccessResponseVO(logged);
+    }
+
+    /**
+     * 敏感操作二次确认：校验管理员密码，签发一次性确认票据（防明文密码入请求头）。
+     * 前端拿到票据后在敏感请求头 X-Admin-Confirm-Token 中携带，切面原子消费。
+     */
+    @PostMapping("/confirmPassword")
+    public ResponseVO<String> confirmPassword(@NotEmpty String password,
+                                              @NotEmpty String targetPath,
+                                              HttpServletRequest request){
+        if (!passwordService.matches(password, appConfig.getAdminPasswordHash())) {
+            throw new BusinessException("管理员密码确认失败");
+        }
+        String token = authCookieHelper.resolveAdminToken(request);
+        Object loginInfo = redisComponent.getLoginInfo4Admin(token);
+        if (StringTools.isEmpty(token) || loginInfo == null) {
+            throw new BusinessException("登录状态已失效，请重新登录");
+        }
+        // 票据绑定管理员与目标操作路径（防 5 分钟内票据泄露后被用于任意敏感操作）
+        String path = targetPath.trim();
+        // 路径归一化：与切面消费端一致（去掉 /api 或 /admin-api 前缀）
+        if (path.startsWith("/api/")) {
+            path = path.substring(4);
+        } else if (path.startsWith("/admin-api/")) {
+            path = path.substring(10);
+        }
+        if (!path.startsWith("/admin/")) {
+            throw new BusinessException("非法的敏感操作路径");
+        }
+        return getSuccessResponseVO(redisComponent.issueAdminConfirmToken(
+                String.valueOf(loginInfo), path));
+    }
+
     private HttpServletRequest currentRequest() {
         return ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
     }

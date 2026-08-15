@@ -12,6 +12,14 @@ logger = structlog.get_logger()
 
 PRODUCT_INDEX = "simlect-index"
 
+
+def _escape_wildcard(text: str) -> str:
+    """转义 ES wildcard 查询中的通配符（防用户输入 * ? 触发前导通配导致性能 DoS / 语义错乱）。"""
+    if not text:
+        return text
+    return text.replace("\\", "\\\\").replace("*", "\\*").replace("?", "\\?")
+
+
 class RagRetriever:
 
     def __init__(self):
@@ -62,7 +70,8 @@ class RagRetriever:
                     "bool": {
                         "should": [
                             {"match": {"productName": {"query": query, "boost": 2}}},
-                            {"wildcard": {"productName.keyword": f"*{query}*"}},
+                            # wildcard 特殊字符转义：防用户输入 * ? 触发前导通配导致性能 DoS/语义错乱
+                            {"wildcard": {"productName.keyword": f"*{_escape_wildcard(query)}*"}},
                         ]
                     }
                 },

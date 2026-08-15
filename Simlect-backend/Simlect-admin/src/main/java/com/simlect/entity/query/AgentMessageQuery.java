@@ -2,7 +2,6 @@ package com.simlect.entity.query;
 
 public class AgentMessageQuery extends BaseParam {
 
-
 	// 消息ID
 	private Integer messageId;
 

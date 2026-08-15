@@ -3,19 +3,19 @@ create table if not exists order_info
 (
     order_id         varchar(32)                 not null comment '订单ID' primary key,
     amount           decimal(10, 2)              null comment '金额',
-    goods_amount     decimal(10, 2)              null comment '商品原价合计（未优惠）',
+    goods_amount     decimal(10, 2)              null comment '商品原价合计（未优惠�?,
     discount_amount  decimal(10, 2) default 0.00 not null comment '优惠抵扣总额（券+活动等）',
-    coupon_discount  decimal(10, 2) default 0.00 not null comment '优惠券抵扣金额',
+    coupon_discount  decimal(10, 2) default 0.00 not null comment '优惠券抵扣金�?,
     user_coupon_id   varchar(32)                 null comment '使用的用户券ID user_coupon.user_coupon_id',
     coupon_id        varchar(20)                 null comment '券模板ID discount_coupon.coupon_id',
     user_id          varchar(15)                 null comment '用户ID',
     order_time       datetime                    null comment '订单创建时间',
-    order_status     tinyint(1)                  null comment '-1已删除 0:待付款 1:已付款,待发货  2:已发货  3:已完成 4:已取消 5:已关闭 6:已退款 7:部分退款',
+    order_status     tinyint(1)                  null comment '-1已删�?0:待付�?1:已付�?待发�? 2:已发�? 3:已完�?4:已取�?5:已关�?6:已退�?7:部分退�?,
     pay_channel      varchar(10)                 null comment '支付通道',
     pay_scene        varchar(20)                 null comment '支付场景',
-    pay_order_id     varchar(32)                 null comment '支付订单号',
+    pay_order_id     varchar(32)                 null comment '支付订单�?,
     channel_order_Id varchar(50)                 null comment '通道ID',
-    comment_status   tinyint        default 0    null comment '评价状态 0:未评价  1:已评价  2:已追评',
+    comment_status   tinyint        default 0    null comment '评价状�?0:未评�? 1:已评�? 2:已追�?,
     subject          varchar(200)                null comment '订单标题'
 ) comment '订单信息' collate = utf8mb4_general_ci row_format = DYNAMIC;
 
@@ -27,13 +27,15 @@ create table if not exists order_item
     product_id             varchar(15)    not null comment '商品ID',
     product_name           varchar(200)   null comment '商品名称',
     property_value_id_hash varchar(32)    not null comment '属性值id组hash',
-    property_info          varchar(150)   null comment '属性信息',
+    property_info          varchar(150)   null comment '属性信�?,
     item_amount            decimal(10, 2) null comment '价格',
     buy_count              int            null comment '数量',
-    order_item_status      tinyint(1)     null comment '状态 1:正常 0:已退款',
+    order_item_status      tinyint(1)     null comment '状�?1:正常 0:已退�?,
     remark                 varchar(300)   null comment '备注',
-    refund_order_id        varchar(32)    null comment '退款订单号'
-) comment '订单明细表' collate = utf8mb4_general_ci row_format = DYNAMIC;
+    refund_order_id        varchar(32)    null comment '退款订单号',
+    refund_amount          decimal(10, 2) null comment 'ʵ���˿��ȯ���̯�����ۼƳ��ˣ�'
+
+) comment '订单明细�? collate = utf8mb4_general_ci row_format = DYNAMIC;
 
 create table if not exists order_comment
 (
@@ -48,8 +50,8 @@ create table if not exists order_comment
     recomment_time    datetime          null comment '追评时间',
     recomment_images  varchar(300)      null comment '追评图片',
     user_id           varchar(15)       null comment '用户ID',
-    property_info     varchar(150)      null comment '属性信息',
-    status            tinyint default 0 null comment '0:正常 1:已删除'
+    property_info     varchar(150)      null comment '属性信�?,
+    status            tinyint default 0 null comment '0:正常 1:已删�?
 ) collate = utf8mb4_general_ci row_format = DYNAMIC;
 
 create table if not exists order_coupon_rel
@@ -71,28 +73,27 @@ create table if not exists comment_report
     reporter_user_id varchar(64)       null comment '举报人用户ID',
     reason           varchar(50)       not null comment '举报理由',
     detail           varchar(500)      null comment '补充说明',
-    comment_snapshot varchar(1000)     null comment '举报时评论内容快照',
-    status           tinyint default 0 not null comment '0:待处理 1:已处理 2:已驳回',
+    comment_snapshot varchar(1000)     null comment '举报时评论内容快�?,
+    status           tinyint default 0 not null comment '0:待处�?1:已处�?2:已驳�?,
     report_time      datetime          null comment '举报时间',
     handle_time      datetime          null comment '处理时间',
     handle_remark    varchar(500)      null comment '处理备注'
 ) comment '评论举报';
 
--- Outbox / 补偿（与业务同库，避免漏跑 12_order_outbox.sql）
-create table if not exists local_message_outbox
+-- Outbox / 补偿（与业务同库，避免漏�?12_order_outbox.sql�?create table if not exists local_message_outbox
 (
     id                bigint auto_increment comment '主键' primary key,
     idempotency_key   varchar(128)                   not null comment '发送幂等键',
-    exchange_name     varchar(64)                    not null comment '交换机',
-    routing_key       varchar(64)                    not null comment '路由键',
-    payload_json      mediumtext                     not null comment '消息体 JSON',
+    exchange_name     varchar(64)                    not null comment '交换�?,
+    routing_key       varchar(64)                    not null comment '路由�?,
+    payload_json      mediumtext                     not null comment '消息�?JSON',
     reliability_level varchar(16) default 'STANDARD' not null comment 'HIGH/STANDARD',
-    status            tinyint     default 0          not null comment '0待发送 1发送中 2已发送 3失败',
+    status            tinyint     default 0          not null comment '0待发�?1发送中 2已发�?3失败',
     retry_count       int         default 0          not null comment '重试次数',
-    error_message     varchar(512)                   null comment '最近失败原因',
+    error_message     varchar(512)                   null comment '最近失败原�?,
     create_time       datetime                       not null comment '创建时间',
     update_time       datetime                       null comment '更新时间',
-    sent_time         datetime                       null comment '成功发送时间',
+    sent_time         datetime                       null comment '成功发送时�?,
     constraint uk_outbox_idempotency unique (idempotency_key),
     key idx_outbox_status_ctime (status, create_time)
 ) comment '本地消息 Outbox（事务后可靠投递）' charset = utf8mb4;
@@ -100,21 +101,21 @@ create table if not exists local_message_outbox
 create table if not exists mq_compensation_log
 (
     log_id            int auto_increment comment '日志ID' primary key,
-    idempotency_key   varchar(128)               not null comment '幂等键',
-    exchange          varchar(64)                not null comment '交换机',
-    routing_key       varchar(64)                not null comment '路由键',
+    idempotency_key   varchar(128)               not null comment '幂等�?,
+    exchange          varchar(64)                not null comment '交换�?,
+    routing_key       varchar(64)                not null comment '路由�?,
     biz_scene         varchar(32)                null comment '业务场景',
-    payload_json      mediumtext                 null comment '消息体 JSON',
-    reliability_level varchar(16) default 'HIGH' not null comment '发送级别',
+    payload_json      mediumtext                 null comment '消息�?JSON',
+    reliability_level varchar(16) default 'HIGH' not null comment '发送级�?,
     error_message     varchar(512)               null comment '失败原因',
     retry_count       int         default 0      not null comment '重放次数',
-    status            int         default 0      not null comment '0待处理 1处理中 2已重放成功 3重放失败 4已忽略',
+    status            int         default 0      not null comment '0待处�?1处理�?2已重放成�?3重放失败 4已忽�?,
     create_time       datetime                   not null comment '创建时间',
     update_time       datetime                   null comment '更新时间',
     handle_time       datetime                   null comment '运维处理时间',
     handle_remark     varchar(512)               null comment '处理备注',
     constraint uk_idempotency_key unique (idempotency_key)
-) comment 'MQ补偿审查日志（订单库）' charset = utf8mb4;
+) comment 'MQ补偿审查日志（订单库�? charset = utf8mb4;
 
 -- 物流信息（订单域，同库）
 create table if not exists order_logistics_info
@@ -123,14 +124,14 @@ create table if not exists order_logistics_info
     user_id           varchar(15)       null comment '用户ID',
     logistics_no      varchar(128)      null comment '物流单号',
     logistics_company varchar(100)      null comment '物流公司',
-    sender_name       varchar(100)      null comment '发货人姓名',
-    sender_phone      varchar(20)       null comment '发货人电话',
+    sender_name       varchar(100)      null comment '发货人姓�?,
+    sender_phone      varchar(20)       null comment '发货人电�?,
     sender_address    varchar(500)      null comment '发货地址',
-    receiver_name     varchar(100)      null comment '收件人姓名',
-    receiver_phone    varchar(20)       null comment '收件人电话',
+    receiver_name     varchar(100)      null comment '收件人姓�?,
+    receiver_phone    varchar(20)       null comment '收件人电�?,
     receiver_address  varchar(500)      null comment '收件地址',
-    logistics_status  tinyint default 0 null comment '物流状态：0待发货 1运输中 2已送达 3订单取消'
-) comment '物流信息表' collate = utf8mb4_general_ci row_format = DYNAMIC;
+    logistics_status  tinyint default 0 null comment '物流状态：0待发�?1运输�?2已送达 3订单取消'
+) comment '物流信息�? collate = utf8mb4_general_ci row_format = DYNAMIC;
 
 create table if not exists order_logistics_info_record
 (

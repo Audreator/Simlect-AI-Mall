@@ -25,6 +25,28 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 这个类干什么？
+ * Gateway 上校验「用户有没有登录」：从 Cookie/Header 取出 token，去 Redis 查会话。
+ * 查得到 → 把用户 ID 写进请求头转给后面的微服务；查不到 → 返回登录超时（业务码 901）。
+ * 注意：用的是 Redis 里的随机 token，不是 JWT。
+ * <p>
+ * 出现在什么功能里？角色是什么？
+ * - 功能：所有需要登录的 C 端/管理端接口（/api/**、/admin-api/**、/ws/**）
+ * - 角色：南北向（浏览器→网关）的会话门卫。order=-100，排在内部令牌 Filter（-200）后面。
+ *   /internal/** 不归它管（内部调用走 InternalTokenGlobalFilter）。
+ * <p>
+ * 调用链（每一步的作用）：
+ * <pre>
+ * 1. 用户先登录：AccountController.login → RedisComponent.saveTokenUserInfo
+ *    → 作用：Redis 写入 mall:token:web:{token}，浏览器带上 Cookie
+ * 2. 之后每次请求：浏览器 → Nginx → 本 Filter.filter
+ *    → 作用：ReactiveRedis GET 会话；成功则注入 X-User-Id 等头
+ * 3. chain.filter → 具体微服务
+ *    → 作用：业务服务信任网关已验过登录，直接用 X-User-Id
+ * </pre>
+ * 约束：WebFlux 里不能写阻塞 JDBC；这里只查 Redis。
+ */
 @Component
 public class AuthGlobalFilter implements GlobalFilter, Ordered {
 
@@ -45,6 +67,10 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
         this.objectMapper = objectMapper;
     }
 
+    /**
+     * 鉴权入口：跳过健康检查/OPTIONS/内部路径后，按 web/admin 查 Redis 会话并改写请求头。
+     * 内部调用（/internal/**）应走 {@link InternalTokenGlobalFilter}，本方法会直接放行该路径。
+     */
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         if (!authProperties.isEnabled()) {

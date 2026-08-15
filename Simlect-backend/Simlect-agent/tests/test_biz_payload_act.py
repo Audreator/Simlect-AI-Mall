@@ -63,7 +63,6 @@ def test_compact_product_search_intro_strips_product_lines():
     assert "旺旺雪饼" not in intro
     assert "12元" not in intro
 
-
 def test_compact_prefers_miss_hint_over_llm_found_claim():
     hint = (
         "【搜索结果】暂未找到与「我要吃零食」相关的商品。\n"
@@ -74,7 +73,6 @@ def test_compact_prefers_miss_hint_over_llm_found_claim():
     assert "暂未找到" in intro
     assert "另荐热销" in intro or "另外推荐" in intro
     assert "为你找到以下零食" not in intro
-
 
 def test_compact_product_search_intro_keeps_full_llm_when_present():
     llm = "这款吉他音色均衡，适合初学者弹唱。\n请查看下方推荐卡片。"
@@ -117,7 +115,6 @@ def test_build_action_confirm_unavailable_payload():
     assert card["status"] == 3
     assert card["token"] == token
     assert "无权" in card["summary"]
-
 
 def test_extract_review_helpers():
     from app.graph.nodes import _extract_review_content, _extract_review_star

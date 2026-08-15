@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     )
 
     internal_token: str = Field(
-        default="your-token",
+        default="",
         validation_alias=AliasChoices(
             "SIMLECT_INTERNAL_TOKEN",
             "INTERNAL_TOKEN",
@@ -86,6 +86,9 @@ class Settings(BaseSettings):
     graph_max_react_rounds: int = 5
     graph_checkpoint_ttl: int = 3600
     graph_checkpoint_prefix: str = "mall:agent:graph:ckpt"
+    # checkpoint HMAC 签名密钥（防 Redis 被注入恶意 pickle 载荷 → RCE）：
+    # 留空则进程启动时随机生成（重启后旧断点失效，仅影响断点续跑，不影响会话）
+    graph_checkpoint_hmac_secret: str = ""
 
     intent_use_llm: bool = True
     intent_rule_fallback: bool = True
@@ -108,4 +111,10 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
 
-    return Settings()
+    settings = Settings()
+    # 启动 FailFast：内部令牌未配置或仍为默认弱值时拒绝启动（防 /internal 裸奔与弱令牌直调）
+    if not settings.internal_token or settings.internal_token in ("your-token", "changeme"):
+        raise RuntimeError(
+            "SIMLECT_INTERNAL_TOKEN 未配置或为弱值：请设置强内部令牌后再启动 Agent"
+        )
+    return settings

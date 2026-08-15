@@ -4,7 +4,6 @@ from app.utils.biz_payload import (
     strip_embedded_product_json,
 )
 
-
 def test_strip_bare_product_id_array():
     raw = (
         '为你推荐：\n'
@@ -16,11 +15,9 @@ def test_strip_bare_product_id_array():
     assert "为你推荐" in cleaned
     assert "请查看下方卡片" in cleaned
 
-
 def test_id_only_array_is_not_product_cards():
     assert not is_product_cards_json('[{"productId":"1"}]')
     assert is_product_cards_json('[{"productId":"1","productName":"零食"}]')
-
 
 def test_compact_intro_strips_id_array():
     raw = '看看这些\n[{"productId":"1"},{"productId":"2"}]'

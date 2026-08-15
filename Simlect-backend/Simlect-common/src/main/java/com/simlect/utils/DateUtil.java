@@ -42,11 +42,14 @@ public class DateUtil {
 
     public static Date parse(String dateStr, String pattern) {
         try {
-            return getSdf(pattern).parse(dateStr);
+            SimpleDateFormat sdf = getSdf(pattern);
+            sdf.setLenient(false); // 严格解析：拒绝 13 月/32 日等非法日期
+            return sdf.parse(dateStr);
         } catch (ParseException e) {
-            e.printStackTrace();
+            // 解析失败抛明确异常（不再静默返回当前时间，避免券有效期等配置被错误静默生效）
+            throw new com.simlect.exception.BusinessException(
+                    "日期格式错误: " + dateStr + " (期望格式 " + pattern + ")");
         }
-        return new Date();
     }
     public static String getMinAfter(Integer afterMinute, String pattern) {
         // 获取当前时间

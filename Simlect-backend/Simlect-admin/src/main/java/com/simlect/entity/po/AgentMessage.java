@@ -10,7 +10,6 @@ import java.io.Serializable;
 
 public class AgentMessage implements Serializable {
 
-
 	// 消息ID
 	private Integer messageId;
 
@@ -36,7 +35,6 @@ public class AgentMessage implements Serializable {
 
 	// 业务数据
 	private String bizData;
-
 
 	public void setMessageId(Integer messageId){
 		this.messageId = messageId;

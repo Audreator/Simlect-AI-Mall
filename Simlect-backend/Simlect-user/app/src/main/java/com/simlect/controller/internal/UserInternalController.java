@@ -15,6 +15,7 @@ import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Collections;
@@ -47,6 +48,14 @@ public class UserInternalController extends ABaseController {
     @PostMapping("/listAllUserIds")
     public ResponseVO<List<String>> listAllUserIds() {
         return getSuccessResponseVO(userInternalService.listAllUserIds());
+    }
+
+    /** 分页拉取用户 ID（通知广播大批量场景） */
+    @PostMapping("/listUserIdsByPage")
+    public ResponseVO<List<String>> listUserIdsByPage(
+            @RequestParam(required = false) Integer pageNo,
+            @RequestParam(required = false) Integer pageSize) {
+        return getSuccessResponseVO(userInternalService.listUserIdsByPage(pageNo, pageSize));
     }
 
     @PostMapping("/listBriefByUserIds")

@@ -1,4 +1,6 @@
+<!-- [zh] SFC 区块开始（单文件组件 template/script/style 三段） -->
 <template>
+  <!-- [zh] 开始标签 `<el-dialog>` -->
   <el-dialog
     v-model="visible"
     title="评价详情"
@@ -7,9 +9,13 @@
     destroy-on-close
     class="comment-preview-dialog"
   >
+    <!-- [zh] 开始标签 `<el-skeleton>` -->
     <el-skeleton v-if="loading" animated :rows="6" />
+    <!-- [zh] SFC 区块开始（单文件组件 template/script/style 三段） -->
     <template v-else>
+      <!-- [zh] 开始标签 `<div>` -->
       <div v-if="data" class="preview">
+        <!-- [zh] 开始标签 `<header>` -->
         <header
           v-if="data.productName || productCover"
           class="product-head"
@@ -18,29 +24,52 @@
           @click="goProductDetail"
           @keydown.enter="goProductDetail"
         >
+          <!-- [zh] 开始标签 `<img>` -->
           <img v-if="productCover" :src="productCover" class="product-cover" alt="" />
+          <!-- [zh] 开始标签 `<div>` -->
           <div class="product-meta">
+            <!-- [zh] 开始标签 `<p>` -->
             <p class="product-name">{{ data.productName || '商品' }}</p>
+            <!-- [zh] 开始标签 `<p>` -->
             <p v-if="data.propertyInfo" class="product-spec">{{ data.propertyInfo }}</p>
+          <!-- [zh] 闭合标签 `</div>` -->
           </div>
+          <!-- [zh] 开始标签 `<el-icon>` -->
           <el-icon class="product-arrow"><ArrowRight /></el-icon>
+        <!-- [zh] 闭合标签 `</header>` -->
         </header>
 
+        <!-- [zh] 开始标签 `<div>` -->
         <div class="row">
+          <!-- [zh] 开始标签 `<span>` -->
           <span class="label">评价星级</span>
+          <!-- [zh] 开始标签 `<el-rate>` -->
           <el-rate :model-value="Number(data.star || 0)" disabled />
+        <!-- [zh] 闭合标签 `</div>` -->
         </div>
+        <!-- [zh] 开始标签 `<div>` -->
         <div v-if="data.commentTime" class="row">
+          <!-- [zh] 开始标签 `<span>` -->
           <span class="label">评价时间</span>
+          <!-- [zh] 开始标签 `<span>` -->
           <span class="value">{{ formatTime(data.commentTime) }}</span>
+        <!-- [zh] 闭合标签 `</div>` -->
         </div>
+        <!-- [zh] 开始标签 `<div>` -->
         <div class="row col">
+          <!-- [zh] 开始标签 `<span>` -->
           <span class="label">评价内容</span>
+          <!-- [zh] 开始标签 `<p>` -->
           <p class="text">{{ data.commentContent || '（无）' }}</p>
+        <!-- [zh] 闭合标签 `</div>` -->
         </div>
+        <!-- [zh] 开始标签 `<div>` -->
         <div v-if="commentImages.length" class="row col">
+          <!-- [zh] 开始标签 `<span>` -->
           <span class="label">评价图片</span>
+          <!-- [zh] 开始标签 `<div>` -->
           <div class="img-list">
+            <!-- [zh] 开始标签 `<img>` -->
             <img
               v-for="(img, idx) in commentImages"
               :key="idx"
@@ -49,26 +78,45 @@
               alt=""
               @click="previewImage(commentImages, idx)"
             />
+          <!-- [zh] 闭合标签 `</div>` -->
           </div>
+        <!-- [zh] 闭合标签 `</div>` -->
         </div>
 
+        <!-- [zh] 开始标签 `<div>` -->
         <div v-if="data.commentBizReply" class="biz-reply">
+          <!-- [zh] 开始标签 `<p>` -->
           <p class="biz-label">商家回复</p>
+          <!-- [zh] 开始标签 `<p>` -->
           <p class="text">{{ data.commentBizReply }}</p>
+        <!-- [zh] 闭合标签 `</div>` -->
         </div>
 
+        <!-- [zh] 开始标签 `<div>` -->
         <div v-if="data.recommentContent || recommentImages.length" class="divider">追评</div>
+        <!-- [zh] 开始标签 `<div>` -->
         <div v-if="data.recommentTime" class="row">
+          <!-- [zh] 开始标签 `<span>` -->
           <span class="label">追评时间</span>
+          <!-- [zh] 开始标签 `<span>` -->
           <span class="value">{{ formatTime(data.recommentTime) }}</span>
+        <!-- [zh] 闭合标签 `</div>` -->
         </div>
+        <!-- [zh] 开始标签 `<div>` -->
         <div v-if="data.recommentContent" class="row col">
+          <!-- [zh] 开始标签 `<span>` -->
           <span class="label">追评内容</span>
+          <!-- [zh] 开始标签 `<p>` -->
           <p class="text">{{ data.recommentContent }}</p>
+        <!-- [zh] 闭合标签 `</div>` -->
         </div>
+        <!-- [zh] 开始标签 `<div>` -->
         <div v-if="recommentImages.length" class="row col">
+          <!-- [zh] 开始标签 `<span>` -->
           <span class="label">追评图片</span>
+          <!-- [zh] 开始标签 `<div>` -->
           <div class="img-list">
+            <!-- [zh] 开始标签 `<img>` -->
             <img
               v-for="(img, idx) in recommentImages"
               :key="idx"
@@ -77,240 +125,440 @@
               alt=""
               @click="previewImage(recommentImages, idx)"
             />
+          <!-- [zh] 闭合标签 `</div>` -->
           </div>
+        <!-- [zh] 闭合标签 `</div>` -->
         </div>
+      <!-- [zh] 闭合标签 `</div>` -->
       </div>
+      <!-- [zh] 开始标签 `<el-empty>` -->
       <el-empty v-else description="暂无评价内容" />
     </template>
+    <!-- [zh] SFC 区块开始（单文件组件 template/script/style 三段） -->
     <template #footer>
+      <!-- [zh] 开始标签 `<el-button>` -->
       <el-button type="primary" @click="visible = false">关闭</el-button>
     </template>
   </el-dialog>
 </template>
 
+// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
+// [zh] 导入 `vue`
 import { computed, ref, watch } from 'vue';
+// [zh] 导入 `vue-router`
 import { useRouter } from 'vue-router';
+// [zh] 导入 `@element-plus/icons-vue`
 import { ArrowRight } from '@element-plus/icons-vue';
+// [zh] 导入 `@/api/modules`
 import { commentApi, productApi } from '@/api/modules';
+// [zh] 导入 `@/utils/product`
 import { isProductOnSale } from '@/utils/product';
+// [zh] 导入 `@/utils/image`
 import { resolveImageUrl, splitImagePaths } from '@/utils/image';
+// [zh] 导入 `@/composables/imagePreview`
 import { openImagePreview, closeImagePreview } from '@/composables/imagePreview';
+// [zh] 导入 `@/utils/toast`
 import { toast } from '@/utils/toast';
 
+// [zh] 声明变量 `router`
 const router = useRouter();
+// [zh] 声明变量 `visible`
 const visible = ref(false);
+// [zh] 声明变量 `loading`
 const loading = ref(false);
+// [zh] 声明变量 `navigating`
 const navigating = ref(false);
+// [zh] 声明变量 `data`
 const data = ref<Record<string, any> | null>(null);
 
+// [zh] 声明变量 `toImageSrc`
 const toImageSrc = (path: string) => resolveImageUrl(path, { useThumbnail: false }) || path;
 
+// [zh] 声明变量 `commentImages`
 const commentImages = computed(() => splitImagePaths(data.value?.commentImages as string | null));
+// [zh] 声明变量 `recommentImages`
 const recommentImages = computed(() => splitImagePaths(data.value?.recommentImages as string | null));
 
+// [zh] 声明变量 `productCover`
 const productCover = computed(() => {
+  // [zh] 声明变量 `cover`
   const cover = data.value?.cover;
+  // [zh] return 返回
   return cover ? resolveImageUrl(cover) : '';
+// [zh] 语句
 });
 
+// [zh] 声明变量 `formatTime`
 const formatTime = (val: unknown) => {
+  // [zh] 条件判断 if
   if (!val) return '--';
+  // [zh] 条件判断 if
   if (typeof val === 'string') return val.replace('T', ' ').slice(0, 19);
+  // [zh] 声明变量 `d`
   const d = new Date(val as string | number);
+  // [zh] 条件判断 if
   if (Number.isNaN(d.getTime())) return String(val);
+  // [zh] 声明变量 `pad`
   const pad = (n: number) => String(n).padStart(2, '0');
+  // [zh] return 返回
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+// [zh] 语句
 };
 
+// [zh] 声明变量 `previewImage`
 const previewImage = (list: string[], index: number) => {
+  // [zh] 声明变量 `urls`
   const urls = list.map((p) => toImageSrc(p)).filter(Boolean);
+  // [zh] 条件判断 if
   if (!urls.length) return;
+  // [zh] 语句
   openImagePreview(urls, Math.min(Math.max(index, 0), urls.length - 1));
+// [zh] 语句
 };
 
+// [zh] 声明变量 `goProductDetail`
 const goProductDetail = async () => {
+  // [zh] 声明变量 `productId`
   const productId = data.value?.productId;
+  // [zh] 条件判断 if
   if (!productId) {
+    // [zh] 语句
     toast.warning('无法获取商品信息');
+    // [zh] 语句
     return;
+  // [zh] 语法符号
   }
+  // [zh] 条件判断 if
   if (navigating.value) return;
+  // [zh] 语句
   navigating.value = true;
+  // [zh] 代码块开始
   try {
+    // [zh] 声明变量 `res`
     const res = await productApi.getProduct(String(productId));
+    // [zh] 声明变量 `info`
     const info = res?.productInfo;
+    // [zh] 条件判断 if
     if (!info) {
+      // [zh] 语句
       toast.warning('商品不存在或已下架');
+      // [zh] 语句
       return;
+    // [zh] 语法符号
     }
+    // [zh] 条件判断 if
     if (!isProductOnSale(info)) {
+      // [zh] 语句
       toast.warning('该商品已下架');
+      // [zh] 语句
       return;
+    // [zh] 语法符号
     }
+    // [zh] 语句
     visible.value = false;
+    // [zh] await 等待 Promise（类比 CompletableFuture.get）
     await router.push(`/product/${productId}`);
+  // [zh] 代码块开始
   } catch {
+    // [zh] 语句
     toast.warning('商品不存在或已下架');
+  // [zh] 代码块开始
   } finally {
+    // [zh] 语句
     navigating.value = false;
+  // [zh] 语法符号
   }
+// [zh] 语句
 };
 
+// [zh] 声明变量 `show`
 const show = async (payload: string | Record<string, unknown>) => {
+  // [zh] 语句
   visible.value = true;
+  // [zh] 语句
   loading.value = true;
+  // [zh] 语句
   data.value = null;
+  // [zh] 代码块开始
   try {
+    // [zh] 条件判断 if
     if (typeof payload === 'object' && payload !== null) {
+      // [zh] 语句
       data.value = { ...payload };
+      // [zh] 语句
       return;
+    // [zh] 语法符号
     }
+    // [zh] 语句
     data.value = (await commentApi.getComment(payload)) || null;
+  // [zh] 代码块开始
   } finally {
+    // [zh] 语句
     loading.value = false;
+  // [zh] 语法符号
   }
+// [zh] 语句
 };
 
+// [zh] 代码块开始
 watch(visible, (open) => {
+  // [zh] 条件判断 if
   if (!open) closeImagePreview();
+// [zh] 语句
 });
 
+// [zh] 语句
 defineExpose({ show });
 </script>
 
+/* [zh] 样式声明 */
 <style scoped lang="scss">
+/* [zh] 样式规则 `@use '@/styles/variables' as *;` */
 @use '@/styles/variables' as *;
 
+/* [zh] 样式规则 `.preview {` */
 .preview {
+  /* [zh] 样式规则 `display: flex;` */
   display: flex;
+  /* [zh] 样式规则 `flex-direction: column;` */
   flex-direction: column;
+  /* [zh] 样式规则 `gap: 12px;` */
   gap: 12px;
+  /* [zh] 样式规则 `max-height: min(70vh, 560px);` */
   max-height: min(70vh, 560px);
+  /* [zh] 样式规则 `overflow-y: auto;` */
   overflow-y: auto;
+/* [zh] 样式规则 `}` */
 }
 
+/* [zh] 样式规则 `.product-head {` */
 .product-head {
+  /* [zh] 样式规则 `display: flex;` */
   display: flex;
+  /* [zh] 样式规则 `align-items: center;` */
   align-items: center;
+  /* [zh] 样式规则 `gap: 10px;` */
   gap: 10px;
+  /* [zh] 样式规则 `padding-bottom: 12px;` */
   padding-bottom: 12px;
+  /* [zh] 样式规则 `border-bottom: 1px solid $color-border-l` */
   border-bottom: 1px solid $color-border-light;
+  /* [zh] 样式规则 `cursor: pointer;` */
   cursor: pointer;
+  /* [zh] 样式规则 `border-radius: $radius-xs;` */
   border-radius: $radius-xs;
+  /* [zh] 样式规则 `transition: background 0.15s ease;` */
   transition: background 0.15s ease;
 
+  /* [zh] 样式规则 `&:hover {` */
   &:hover {
+    /* [zh] 样式规则 `background: $color-bg-subtle;` */
     background: $color-bg-subtle;
+  /* [zh] 样式规则 `}` */
   }
 
+  /* [zh] 样式规则 `&:active {` */
   &:active {
+    /* [zh] 样式规则 `opacity: 0.92;` */
     opacity: 0.92;
+  /* [zh] 样式规则 `}` */
   }
+/* [zh] 样式规则 `}` */
 }
 
+/* [zh] 样式规则 `.product-arrow {` */
 .product-arrow {
+  /* [zh] 样式规则 `flex-shrink: 0;` */
   flex-shrink: 0;
+  /* [zh] 样式规则 `font-size: 16px;` */
   font-size: 16px;
+  /* [zh] 样式规则 `color: $color-text-muted;` */
   color: $color-text-muted;
+/* [zh] 样式规则 `}` */
 }
 
+/* [zh] 样式规则 `.product-cover {` */
 .product-cover {
+  /* [zh] 样式规则 `width: 56px;` */
   width: 56px;
+  /* [zh] 样式规则 `height: 56px;` */
   height: 56px;
+  /* [zh] 样式规则 `border-radius: $radius-xs;` */
   border-radius: $radius-xs;
+  /* [zh] 样式规则 `object-fit: cover;` */
   object-fit: cover;
+  /* [zh] 样式规则 `flex-shrink: 0;` */
   flex-shrink: 0;
+  /* [zh] 样式规则 `background: $color-bg-subtle;` */
   background: $color-bg-subtle;
+/* [zh] 样式规则 `}` */
 }
 
+/* [zh] 样式规则 `.product-meta {` */
 .product-meta {
+  /* [zh] 样式规则 `flex: 1;` */
   flex: 1;
+  /* [zh] 样式规则 `min-width: 0;` */
   min-width: 0;
+/* [zh] 样式规则 `}` */
 }
 
+/* [zh] 样式规则 `.product-name {` */
 .product-name {
+  /* [zh] 样式规则 `margin: 0;` */
   margin: 0;
+  /* [zh] 样式规则 `font-size: 14px;` */
   font-size: 14px;
+  /* [zh] 样式规则 `font-weight: 600;` */
   font-weight: 600;
+  /* [zh] 样式规则 `color: $color-text-title;` */
   color: $color-text-title;
+  /* [zh] 样式规则 `line-height: 1.4;` */
   line-height: 1.4;
+/* [zh] 样式规则 `}` */
 }
 
+/* [zh] 样式规则 `.product-spec {` */
 .product-spec {
+  /* [zh] 样式规则 `margin: 4px 0 0;` */
   margin: 4px 0 0;
+  /* [zh] 样式规则 `font-size: 12px;` */
   font-size: 12px;
+  /* [zh] 样式规则 `color: $color-text-muted;` */
   color: $color-text-muted;
+/* [zh] 样式规则 `}` */
 }
 
+/* [zh] 样式规则 `.row {` */
 .row {
+  /* [zh] 样式规则 `display: flex;` */
   display: flex;
+  /* [zh] 样式规则 `align-items: center;` */
   align-items: center;
+  /* [zh] 样式规则 `justify-content: space-between;` */
   justify-content: space-between;
+  /* [zh] 样式规则 `gap: 10px;` */
   gap: 10px;
+/* [zh] 样式规则 `}` */
 }
 
+/* [zh] 样式规则 `.row.col {` */
 .row.col {
+  /* [zh] 样式规则 `align-items: flex-start;` */
   align-items: flex-start;
+  /* [zh] 样式规则 `flex-direction: column;` */
   flex-direction: column;
+/* [zh] 样式规则 `}` */
 }
 
+/* [zh] 样式规则 `.label {` */
 .label {
+  /* [zh] 样式规则 `font-size: 12px;` */
   font-size: 12px;
+  /* [zh] 样式规则 `color: $color-text-muted;` */
   color: $color-text-muted;
+  /* [zh] 样式规则 `flex-shrink: 0;` */
   flex-shrink: 0;
+/* [zh] 样式规则 `}` */
 }
 
+/* [zh] 样式规则 `.value {` */
 .value {
+  /* [zh] 样式规则 `font-size: 13px;` */
   font-size: 13px;
+  /* [zh] 样式规则 `color: $color-text-body;` */
   color: $color-text-body;
+/* [zh] 样式规则 `}` */
 }
 
+/* [zh] 样式规则 `.text {` */
 .text {
+  /* [zh] 样式规则 `margin: 0;` */
   margin: 0;
+  /* [zh] 样式规则 `font-size: 14px;` */
   font-size: 14px;
+  /* [zh] 样式规则 `line-height: 1.55;` */
   line-height: 1.55;
+  /* [zh] 样式规则 `color: $color-text-body;` */
   color: $color-text-body;
+  /* [zh] 样式规则 `white-space: pre-wrap;` */
   white-space: pre-wrap;
+  /* [zh] 样式规则 `word-break: break-word;` */
   word-break: break-word;
+/* [zh] 样式规则 `}` */
 }
 
+/* [zh] 样式规则 `.img-list {` */
 .img-list {
+  /* [zh] 样式规则 `display: grid;` */
   display: grid;
+  /* [zh] 样式规则 `grid-template-columns: repeat(4, 1fr);` */
   grid-template-columns: repeat(4, 1fr);
+  /* [zh] 样式规则 `gap: 8px;` */
   gap: 8px;
+  /* [zh] 样式规则 `width: 100%;` */
   width: 100%;
+/* [zh] 样式规则 `}` */
 }
 
+/* [zh] 样式规则 `.img {` */
 .img {
+  /* [zh] 样式规则 `width: 100%;` */
   width: 100%;
+  /* [zh] 样式规则 `aspect-ratio: 1;` */
   aspect-ratio: 1;
+  /* [zh] 样式规则 `object-fit: cover;` */
   object-fit: cover;
+  /* [zh] 样式规则 `border-radius: $radius-sm;` */
   border-radius: $radius-sm;
+  /* [zh] 样式规则 `background: $color-bg-subtle;` */
   background: $color-bg-subtle;
+  /* [zh] 样式规则 `cursor: pointer;` */
   cursor: pointer;
+/* [zh] 样式规则 `}` */
 }
 
+/* [zh] 样式规则 `.biz-reply {` */
 .biz-reply {
+  /* [zh] 样式规则 `padding: 10px 12px;` */
   padding: 10px 12px;
+  /* [zh] 样式规则 `border-radius: $radius-btn;` */
   border-radius: $radius-btn;
+  /* [zh] 样式规则 `background: rgba($color-primary, 0.06);` */
   background: rgba($color-primary, 0.06);
+  /* [zh] 样式规则 `border: 1px solid rgba($color-primary, 0` */
   border: 1px solid rgba($color-primary, 0.12);
 
+  /* [zh] 样式规则 `.biz-label {` */
   .biz-label {
+    /* [zh] 样式规则 `margin: 0 0 6px;` */
     margin: 0 0 6px;
+    /* [zh] 样式规则 `font-size: 12px;` */
     font-size: 12px;
+    /* [zh] 样式规则 `font-weight: 600;` */
     font-weight: 600;
+    /* [zh] 样式规则 `color: $color-primary;` */
     color: $color-primary;
+  /* [zh] 样式规则 `}` */
   }
+/* [zh] 样式规则 `}` */
 }
 
+/* [zh] 样式规则 `.divider {` */
 .divider {
+  /* [zh] 样式规则 `margin-top: 2px;` */
   margin-top: 2px;
+  /* [zh] 样式规则 `padding-top: 10px;` */
   padding-top: 10px;
+  /* [zh] 样式规则 `border-top: 1px solid $color-border;` */
   border-top: 1px solid $color-border;
+  /* [zh] 样式规则 `font-size: 13px;` */
   font-size: 13px;
+  /* [zh] 样式规则 `font-weight: 600;` */
   font-weight: 600;
+  /* [zh] 样式规则 `color: $color-text-title;` */
   color: $color-text-title;
+/* [zh] 样式规则 `}` */
 }
 </style>

@@ -177,9 +177,15 @@ public class UserNotificationServiceImpl implements UserNotificationService {
         notification.setBizId(bizId);
         notification.setReadStatus(0);
         notification.setCreateTime(new Date());
-        userNotificationMapper.insert(notification);
-        incrUnread(userId);
-        notifyPushPublisher.push(notification);
+        try {
+            userNotificationMapper.insert(notification);
+            incrUnread(userId);
+            notifyPushPublisher.push(notification);
+        } catch (Exception e) {
+            // 落库失败：释放去重键，避免 24 小时内不再通知
+            redisComponent.deleteKey(dedupKey);
+            throw e;
+        }
     }
 
     @Override

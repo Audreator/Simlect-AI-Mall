@@ -25,12 +25,21 @@ public class RemoteCompensateRecorder {
         if (StringTools.isEmpty(bizKey) || items == null || items.isEmpty()) {
             return;
         }
-        MqCompensationRecord record = baseRecord(
-                "remote:stock:changeBatch:" + bizKey,
-                InternalApiHeaders.REMOTE_STOCK_CHANGE_BATCH,
-                items,
-                error);
-        persist(record);
+        // 按 SKU 拆分为独立补偿记录：key 带 productId+hash，
+        // 防同 payOrderId 多商品回补失败互相覆盖导致第二条永久不补
+        for (ProductItem item : items) {
+            if (item == null || StringTools.isEmpty(item.getProductId())) {
+                continue;
+            }
+            String skuKey = "remote:stock:changeBatch:" + bizKey + ":" + item.getProductId()
+                    + ":" + (item.getPropertyValueIdHash() == null ? "" : item.getPropertyValueIdHash());
+            MqCompensationRecord record = baseRecord(
+                    skuKey,
+                    InternalApiHeaders.REMOTE_STOCK_CHANGE_BATCH,
+                    List.of(item),
+                    error);
+            persist(record);
+        }
     }
 
     public void recordCouponUnlock(String bizKey, String userCouponId, String userId,

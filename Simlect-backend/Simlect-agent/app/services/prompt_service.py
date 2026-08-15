@@ -1,15 +1,17 @@
-from __future__ import annotations
+"""Prompt 服务模块：加载全局/意图 Prompt 模板，组装 Agent 系统提示词并注入 ReAct 执行说明。"""
 
-from pathlib import Path
+from __future__ import annotations  # import statement — 延迟类型注解
 
-from app.constants import REDIS_PROMPT
-from app.domain.intent.types import INTENT_PROMPT_KEY, IntentKind
-from app.services.redis_service import redis_service
-from app.utils.prompt_boundary import append_untrusted_rule
+from pathlib import Path  # import statement — 路径操作，类似 java.nio.file.Path
 
-PROMPT_DIR = Path(__file__).resolve().parents[2] / "prompts"
+from app.constants import REDIS_PROMPT  # import statement — Redis Prompt 键前缀
+from app.domain.intent.types import INTENT_PROMPT_KEY, IntentKind  # import statement — 意图枚举与 Prompt 映射
+from app.services.redis_service import redis_service  # import statement — Redis 缓存读取
+from app.utils.prompt_boundary import append_untrusted_rule  # import statement — 追加不可信输入边界规则
 
-PROMPT_FILE_MAP: dict[str, str] = {
+PROMPT_DIR = Path(__file__).resolve().parents[2] / "prompts"  # Prompt 文件目录 — 相对 app/prompts
+
+PROMPT_FILE_MAP: dict[str, str] = {  # dict 类似 Map — Prompt 键到文件名
     "agent": "agent.txt",
     "compress": "compress.txt",
     "global": "global.txt",
@@ -36,9 +38,9 @@ _REACT_SUPPLEMENT = """
 - 取消订单：无取消写工具；说明用户去「我的订单」操作；仅当用户要核对某笔订单状态时再 QUERY_ORDERS。
 - 写操作必须走 PROPOSE_*；禁止编造【act_xxx】；禁止未调工具就声称业务已完成。
 - 商品/订单卡片由系统渲染，回复中禁止输出 JSON 数组。
-""".strip()
+""".strip()  # ReAct 工具调用补充说明 — 多行字符串
 
-_REACT_ADAPTED_INTENTS = frozenset(
+_REACT_ADAPTED_INTENTS = frozenset(  # frozenset 类似不可变 Set — 需 ReAct 说明的意图
     {
         IntentKind.PRODUCT_SEARCH,
         IntentKind.QUERY_ORDER,
@@ -53,22 +55,22 @@ _REACT_ADAPTED_INTENTS = frozenset(
     }
 )
 
-async def load_prompt(prompt_key: str) -> str:
-    cached = await redis_service.client.get(f"{REDIS_PROMPT}{prompt_key}")
+async def load_prompt(prompt_key: str) -> str:  # 加载 Prompt — Redis 优先，文件兜底
+    cached = await redis_service.client.get(f"{REDIS_PROMPT}{prompt_key}")  # 读 Redis 缓存
     if cached:
         return cached
-    filename = PROMPT_FILE_MAP.get(prompt_key, f"{prompt_key}.txt")
+    filename = PROMPT_FILE_MAP.get(prompt_key, f"{prompt_key}.txt")  # 默认 {key}.txt
     file_path = PROMPT_DIR / filename
     if file_path.exists():
-        return file_path.read_text(encoding="utf-8")
+        return file_path.read_text(encoding="utf-8")  # 读本地文件
     return ""
 
-async def load_user_intent_classifier_prompt() -> str:
+async def load_user_intent_classifier_prompt() -> str:  # 加载意图分类 Prompt
     return await load_prompt("user_intent")
 
-def _safe_format(template: str, *args: str) -> str:
+def _safe_format(template: str, *args: str) -> str:  # 安全 % 格式化 — 占位符不匹配时原样返回
     try:
-        return template % args
+        return template % args  # Python % 格式化 — 类似 String.format
     except TypeError:
         return template
 
@@ -77,16 +79,16 @@ async def _format_intent_prompt(
     user_id: str,
     user_text: str,
     *,
-    product_snapshot: str | None = None,
+    product_snapshot: str | None = None,  # @Nullable 商品快照 JSON
     faq_text: str | None = None,
     knowledge_text: str | None = None,
-) -> str:
-    key = INTENT_PROMPT_KEY.get(intent, "chat")
+) -> str:  # 按意图格式化 Prompt 模板
+    key = INTENT_PROMPT_KEY.get(intent, "chat")  # 意图 → Prompt 键
     template = await load_prompt(key)
     if not template.strip():
         return ""
 
-    if intent == IntentKind.PRODUCT_CONSULT:
+    if intent == IntentKind.PRODUCT_CONSULT:  # 商品咨询 — 注入快照与 FAQ
         return _safe_format(
             template,
             product_snapshot or "（暂无商品快照，请先 GET_PRODUCT_DETAIL 或等待用户发送商品卡片）",
@@ -94,20 +96,20 @@ async def _format_intent_prompt(
             user_id,
             user_text,
         )
-    if intent == IntentKind.CHAT:
+    if intent == IntentKind.CHAT:  # 闲聊 — 注入知识库
         return _safe_format(
             template,
             knowledge_text or "（暂无知识库命中）",
             user_id,
             user_text,
         )
-    if intent == IntentKind.PRODUCT_SEARCH:
+    if intent == IntentKind.PRODUCT_SEARCH:  # 商品搜索 — 禁止编造 productId
         return _safe_format(
             template,
             "（商品数据由 SEARCH_PRODUCTS 工具返回，禁止自行编造 productId）",
             user_text,
         )
-    return _safe_format(template, user_id, user_text)
+    return _safe_format(template, user_id, user_text)  # 默认两占位符
 
 async def build_agent_system_prompt(
     intent: IntentKind,
@@ -117,13 +119,13 @@ async def build_agent_system_prompt(
     product_snapshot: str | None = None,
     faq_text: str | None = None,
     knowledge_text: str | None = None,
-) -> str:
+) -> str:  # 组装完整 Agent 系统 Prompt
 
-    global_part = (await load_prompt("global")).strip()
+    global_part = (await load_prompt("global")).strip()  # 全局规则
     if not global_part:
-        global_part = (await load_prompt("agent")).strip()
+        global_part = (await load_prompt("agent")).strip()  # 回退 agent.txt
 
-    intent_part = await _format_intent_prompt(
+    intent_part = await _format_intent_prompt(  # 意图专用段落
         intent,
         user_id,
         user_text,
@@ -132,32 +134,32 @@ async def build_agent_system_prompt(
         knowledge_text=knowledge_text,
     )
 
-    parts: list[str] = []
+    parts: list[str] = []  # List<String> 段落列表
     if global_part:
         parts.append(global_part)
     if intent_part:
         parts.append(f"=== 当前意图：{intent.value} ===\n{intent_part}")
-    if intent in _REACT_ADAPTED_INTENTS or intent == IntentKind.PRODUCT_CONSULT:
+    if intent in _REACT_ADAPTED_INTENTS or intent == IntentKind.PRODUCT_CONSULT:  # 需 ReAct 说明
         parts.append(_REACT_SUPPLEMENT)
 
-    body = "\n\n".join(parts).strip()
+    body = "\n\n".join(parts).strip()  # 拼接段落
     if not body:
-        body = (await load_prompt("agent")).strip()
-    return append_untrusted_rule(body)
+        body = (await load_prompt("agent")).strip()  # 兜底
+    return append_untrusted_rule(body)  # 追加不可信输入边界
 
 async def load_agent_prompt(
     intent: IntentKind | None = None,
     user_id: str = "",
     user_text: str = "",
-    **kwargs,
-) -> str:
+    **kwargs,  # **kwargs 类似 Java Map<String, Object> 可变参数
+) -> str:  # 加载 Agent Prompt — 兼容旧接口
 
-    if intent is None:
+    if intent is None:  # 无意图 — 仅全局/agent
         template = await load_prompt("agent")
         if not template.strip():
             template = await load_prompt("global")
         return append_untrusted_rule(template)
     return await build_agent_system_prompt(intent, user_id, user_text, **kwargs)
 
-async def load_compress_prompt() -> str:
+async def load_compress_prompt() -> str:  # 加载记忆压缩 Prompt
     return await load_prompt("compress")

@@ -6,10 +6,12 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.context.annotation.FullyQualifiedAnnotationBeanNameGenerator;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
+@EnableAspectJAutoProxy(exposeProxy = true)
 @EnableDiscoveryClient
 @EnableFeignClients(basePackages = "com.simlect.api", defaultConfiguration = com.simlect.api.feign.SimlectFeignConfiguration.class)
 @ComponentScan(basePackages = "com.simlect", nameGenerator = FullyQualifiedAnnotationBeanNameGenerator.class)

@@ -136,18 +136,18 @@ public class UserInfoServiceImpl implements UserInfoService {
 
 	@Override
 	public void register(String email, String nickName, String registerPassword, String checkCode) {
-		// 从redis中读取验证码
-		String trueCode = redisComponent.getEmailCode(email);
+		// 原子消费邮箱验证码（get + del）：无论后续成败验证码都作废，防无限爆破
+		String trueCode = redisComponent.consumeEmailCode(email);
 		if (trueCode == null) {
 			throw new BusinessException("验证码已过期，请重新获取！");
 		}
 		if (!trueCode.equals(checkCode)) {
 			throw new BusinessException("验证码错误！");
 		}
-		// 检查该用户是否已经存在
+		// 检查该用户是否已经存在（统一模糊文案，防邮箱枚举）
 		UserInfo userInfo = this.getUserInfoByEmail(email);
 		if (userInfo != null) {
-			throw new  BusinessException("该用户已经存在");
+			throw new BusinessException("注册失败，请稍后重试");
 		}
 		// 注册
 		userInfo = new UserInfo();
@@ -161,18 +161,17 @@ public class UserInfoServiceImpl implements UserInfoService {
 		userInfo.setJoinTime(StringTools.getCurrentDate());
 		userInfo.setStatus(UserStatusEnum.ENABLE.getStatus());
 		this.userInfoMapper.insert(userInfo);
-		redisComponent.cleanEmailCode(email);
 	}
 
-	@Override
+    @Override
     public void updateUserInfo(String userId, String avatar, @NotEmpty String nickName, @NotNull Integer sex) {
 		UserInfo userInfo = new UserInfo();
 		userInfo.setAvatar(avatar);
 		userInfo.setNickName(nickName);
 		userInfo.setSex(sex);
 		this.userInfoMapper.updateByUserId(userInfo, userId);
-		// 更新token
-		redisComponent.updateUser(userId);
+		// 更新 token 会话（刷新最新资料，空会话不 NPE）
+		redisComponent.updateUser(userId, avatar, nickName);
     }
 
 	@Override
@@ -193,12 +192,8 @@ public class UserInfoServiceImpl implements UserInfoService {
 	// 找回密码
 	@Override
 	public void forgetPassword(String email, String newPassword, String checkCode) {
-		// 判断当前用户是否已注册
-		if (this.getUserInfoByEmail(email) == null) {
-			throw new BusinessException("该用户未注册");
-		}
-		// 从redis中读取验证码
-		String trueCode = redisComponent.getEmailCode(email);
+		// 先原子消费验证码再查邮箱存在性（防邮箱枚举：未注册与验证码错误统一响应路径）
+		String trueCode = redisComponent.consumeEmailCode(email);
 		if (trueCode == null) {
 			throw new BusinessException("验证码已过期，请重新获取！");
 		}
@@ -206,9 +201,11 @@ public class UserInfoServiceImpl implements UserInfoService {
 			throw new BusinessException("验证码错误！");
 		}
 		UserInfo userInfo = this.getUserInfoByEmail(email);
+		if (userInfo == null) {
+			throw new BusinessException("该用户未注册");
+		}
 		userInfo.setPassword(passwordService.encode(newPassword));
 		this.userInfoMapper.updateByEmail(userInfo, email);
-		redisComponent.cleanEmailCode(email);
 		redisComponent.cleanAllToken(userInfo.getUserId());
 	}
 }

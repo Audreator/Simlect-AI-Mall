@@ -62,9 +62,6 @@ public class CouponRushRateLimitAspect {
         if (StringTools.isEmpty(token)) {
             throw new BusinessException(ResponseCodeEnum.CODE_901);
         }
-        if (System.getProperty("dev") != null) {
-            return "vuzPteqk";
-        }
         TokenUserInfoDTO user = redisComponent.getTokenUserInfo(token);
         if (user == null || StringTools.isEmpty(user.getUserId())) {
             throw new BusinessException(ResponseCodeEnum.CODE_901);

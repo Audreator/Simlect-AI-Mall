@@ -2,6 +2,7 @@ package com.simlect.controller.admin;
 
 import java.util.List;
 
+import com.simlect.annotation.AdminSensitiveConfirm;
 import com.simlect.entity.po.SysProductProperty;
 import com.simlect.entity.query.SysCategoryQuery;
 import com.simlect.entity.po.SysCategory;
@@ -46,7 +47,7 @@ public class SysCategoryController extends com.simlect.controller.admin.ABaseCon
 
 	@PostMapping("/addOrUpdateBatch")
 	public ResponseVO addOrUpdateBatch(@RequestBody List<SysCategory> listBean) {
-		sysCategoryService.addBatch(listBean);
+		sysCategoryService.addOrUpdateBatch(listBean);
 		return getSuccessResponseVO(null);
 	}
 
@@ -61,7 +62,8 @@ public class SysCategoryController extends com.simlect.controller.admin.ABaseCon
 		return getSuccessResponseVO(null);
 	}
 
-	@PostMapping("/delCategory")
+@AdminSensitiveConfirm
+    	@PostMapping("/delCategory")
 	public ResponseVO delCategory(SysCategory bean) {
 		sysCategoryService.deleteSysCategory(bean);
 		return getSuccessResponseVO(null);
@@ -79,7 +81,8 @@ public class SysCategoryController extends com.simlect.controller.admin.ABaseCon
 		return getSuccessResponseVO(null);
 	}
 
-	@PostMapping("/delProductProperty")
+@AdminSensitiveConfirm
+    	@PostMapping("/delProductProperty")
 	public ResponseVO delProductProperty(SysProductProperty bean) {
 		sysCategoryService.delProductProperty(bean);
 		return getSuccessResponseVO(null);

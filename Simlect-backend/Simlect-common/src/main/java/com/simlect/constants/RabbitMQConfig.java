@@ -85,6 +85,10 @@ public class RabbitMQConfig {
     public static final String NOTIFY_QUEUE = "notify.queue";
     // 通知路由键
     public static final String NOTIFY_KEY = "notify";
+    // 通知死信队列（TTL 到期/消费拒绝转存，防大流量广播期间消息被静默丢弃）
+    public static final String NOTIFY_DEAD_QUEUE = "notify.dead.queue";
+    // 通知死信路由键（仅死信投递使用，正常路由永不匹配）
+    public static final String NOTIFY_DEAD_KEY = "notify.dead";
 
     // 签到记录交换机
     public static final String SIGN_RECORD_EXCHANGE = "sign_record.exchange";
@@ -300,12 +304,29 @@ public class RabbitMQConfig {
         return new DirectExchange(NOTIFY_EXCHANGE, true, false);
     }
 
-    @Bean
-    public Queue notifyQueue() {
-        return QueueBuilder.durable(NOTIFY_QUEUE)
-                .withArgument("x-message-ttl", 300000)  // 5分钟过期
-                .build();
-    }
+@Bean
+public Queue notifyQueue() {
+    return QueueBuilder.durable(NOTIFY_QUEUE)
+            .withArgument("x-message-ttl", 300000)  // 5分钟过期上限
+            .withArgument("x-dead-letter-exchange", NOTIFY_EXCHANGE)  // TTL 到期/拒绝转死信，防消息静默丢弃
+            .withArgument("x-dead-letter-routing-key", NOTIFY_DEAD_KEY)
+            .build();
+}
+
+@Bean
+public Queue notifyDeadQueue() {  // 通知死信队列：转存积压超期/消费失败的消息
+    // 自身 7 天 TTL（无 DLX，防与正常路由循环）：消费者在线时秒级处理，仅作消费者宕机时的防无限堆积兜底
+    return QueueBuilder.durable(NOTIFY_DEAD_QUEUE)
+            .withArgument("x-message-ttl", 604800000)
+            .build();
+}
+
+@Bean
+public Binding notifyDeadBinding() {
+    return BindingBuilder.bind(notifyDeadQueue())
+            .to(notifyExchange())
+            .with(NOTIFY_DEAD_KEY);
+}
 
     @Bean
     public Binding notifyBinding() {

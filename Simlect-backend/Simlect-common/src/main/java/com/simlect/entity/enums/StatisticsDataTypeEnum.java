@@ -1,6 +1,5 @@
 package com.simlect.entity.enums;
 
-
 public enum StatisticsDataTypeEnum {
     SALE_AMOUNT(1, "销售金额"),
     SALE_COUNT(2, "订单数量"),

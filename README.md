@@ -31,10 +31,11 @@ Java 侧按领域拆成商品、订单、支付、营销（优惠券）、库存
 | ------------- | ----------------------------------------------------------------------------------------------- |
 | **AI + 传统电商** | LangGraph 编排 LLM + 10 个业务工具（6 读 / 4 写提案）；**自主规划**优先，少强制调工具；流式 WebSocket（复用站内通知）；商品/订单卡片由前端结构化渲染 |
 | **交易与库存**     | SKU：MySQL 行锁预检 + 条件更新防超卖；超时未支付经 RabbitMQ TTL/DLX 关单并回补。秒杀券：Redis Lua 原子预扣 + DB 兜底               |
-| **签到与异步**     | Redis Bitmap + Lua 签到/补签与跨月连续天数；签到落库、通知削峰经 MQ，消费端手动 ACK                                         |
+| **签到与异步**     | Redis Bitmap + Lua 签到/补签与跨月连续天数（Lua offset 边界校验）；签到落库、通知削峰经 MQ，消费端手动 ACK；通知死信队列**有限退避重投 + 超限丢弃审计**，消息不静默丢失 |
 | **搜索与 RAG**   | ES 关键词 + 向量 RRF；**标题相关性过滤**；未命中时热销/足迹兜底并明确告知「未搜到 + 另荐」；FAQ 向量检索；商品变更 MQ 异步向量化                   |
 | **支付与订单**     | 支付宝异步回调；延时关单 / 自动收货；状态条件更新，处理支付与关单并发                                                            |
 | **微服务边界**     | 一域一库；跨库禁止直连 Mapper，统一 OpenFeign `/internal/`** + MQ；Gateway 鉴权与限流                               |
+| **可靠性与安全**   | 退款单号 Redis 锚点与支付幂等键对齐（防二次退款）；pending 提案 confirm 经 **Lua CAS 原子落定状态**消除写操作重复执行；MCP Server 强制 `X-Internal-Token` 令牌（`/health` 探活白名单）；WS Origin 精确白名单；管理端敏感操作一次性票据绑定路径 |
 
 
 ---
@@ -63,10 +64,10 @@ Java 侧按领域拆成商品、订单、支付、营销（优惠券）、库存
 
 | 组件                            | 版本约束（见 `requirements-runtime.txt`） |
 | ----------------------------- | ---------------------------------- |
-| FastAPI                       | >=0.115                             |
-| Uvicorn                       | >=0.32                              |
-| LangChain / LangGraph         | >=0.3 / >=0.2                        |
-| MCP                           | >=1.9（Streamable HTTP）              |
+| FastAPI                       | ≥0.115                             |
+| Uvicorn                       | ≥0.32                              |
+| LangChain / LangGraph         | ≥0.3 / ≥0.2                        |
+| MCP                           | ≥1.9（Streamable HTTP）              |
 | Redis / Elasticsearch / httpx | 异步客户端                              |
 
 
@@ -112,7 +113,7 @@ MySQL 8.3 · Redis 7 · RabbitMQ 3.13 · Nacos 2.4.3 · Elasticsearch 9.2.1-IK �
      MySQL(分库) · Redis · RabbitMQ · Elasticsearch
 ```
 
-Agent 不直连业务库改写；读/写工具由 **MCP Server** 实现，经 Gateway `/internal/**` 调 Java。写操作仍走<提案 -> 用户确认 -> Java 执行>。
+Agent 不直连业务库改写；读/写工具由 **MCP Server** 实现，经 Gateway `/internal/**` 调 Java。MCP HTTP 端点强制 `X-Internal-Token` 鉴权（与 Agent `.env` 的 `SIMLECT_INTERNAL_TOKEN` 一致，`GET /health` 探活免令牌）。写操作仍走「提案 → 用户确认 → Java 执行」，确认经 Lua CAS 原子落定状态，杜绝重复执行。
 
 **微服务模块：** `gateway` · `user` · `product` · `stock` · `cart` · `order` · `pay` · `coupon` · `search` · `admin` · `agent(Python)` · `mcp-server(Python :7060)`
 
@@ -180,7 +181,7 @@ Simlect/
 Agent 通过 **MCP Streamable HTTP**（默认 `:7060/mcp`）调用 10 个工具；工具实现经 Gateway `/internal/`** 调 Java。
 
 - **读类**（搜商品、查订单/物流/评价/优惠券、商品详情）直接返回结构化数据；前端渲染商品卡 / 订单卡。
-- **写类**（确认收货、退款、评价、追评）只写入 Redis **待确认提案**（`【act_<32位hex>】`），用户点确认后由 Java 真正改库；拦截伪造 token、确认/取消用 Redis NX 防双击。
+- **写类**（确认收货、退款、评价、追评）只写入 Redis **待确认提案**（`【act_<32位hex>】`），用户点确认后由 Java 真正改库；确认执行前经 **Lua CAS 把提案状态原子落为 CONFIRMED**（业务失败才回滚）——即便删除/崩溃，重试也会被状态检查拒绝，写操作不会二次执行；拦截伪造 token、确认/取消用 Redis NX 防双击。
 - **自主性**：默认不靠关键词强行塞工具（`FORCE_MCP_ON_LLM_SKIP=false`）；<如何取消订单 / 优惠券怎么用>等 how to 走说明，不强行查单/查券。UI 明确要<我的订单>时仍会拉订单卡。
 
 ### 下单超时关单
@@ -189,7 +190,7 @@ Agent 通过 **MCP Streamable HTTP**（默认 `:7060/mcp`）调用 10 个工具�
 
 ### 搜索：RRF + 相关性过滤 + 兜底文案
 
-1. 口语归一化（如"我要吃零食"→"零食"）后做 **ES 关键词 + 向量 RRF**。
+1. 口语归一化（如<我要吃零食>→<零食>）后做 **ES 关键词 + 向量 RRF**。
 2. 对召回标题做 **品类/同义词相关性过滤**；全部不相关则视为未命中。
 3. 未命中再回落足迹 / 热销，工具文案为"暂未找到…"+【另荐热销/浏览推荐】。
 
@@ -197,7 +198,7 @@ Agent 通过 **MCP Streamable HTTP**（默认 `:7060/mcp`）调用 10 个工具�
 
 ## 快速开始
 
-> 建议本机内存 **>=16GB**（全中间件 + 全服务更舒适）。以下以 Windows / PowerShell 为例，Linux/macOS 命令等价。
+> 建议本机内存 **≥16GB**（全中间件 + 全服务更舒适）。以下以 Windows / PowerShell 为例，Linux/macOS 命令等价。
 
 ### 0. 环境要求
 
@@ -294,7 +295,7 @@ python -m app.mcp_server
 uvicorn app.main:app --host 0.0.0.0 --port 7050
 ```
 
-健康检查：`GET http://127.0.0.1:7050/health`；MCP 端点：`http://127.0.0.1:7060/mcp`。
+健康检查：`GET http://127.0.0.1:7050/health`；MCP 端点：`http://127.0.0.1:7060/mcp`（需 `X-Internal-Token` 请求头，见 `.env` 的 `SIMLECT_INTERNAL_TOKEN`），MCP 探活：`GET http://127.0.0.1:7060/health`（免令牌）。
 
 > **重要：** MCP 进程**无热重载**。修改 `mcp_tools_service` / `product_service` 等工具实现后，必须重启 `python -m app.mcp_server`（或 `start-mcp.bat`），否则 Agent 仍可能拿到旧逻辑。Agent 侧对 `SEARCH_PRODUCTS` 会再跑一遍本地实现作兜底，但 MCP 进程仍应保持与代码同步。
 

@@ -67,8 +67,9 @@ public class ProductInfoController extends com.simlect.controller.admin.ABaseCon
 		return getSuccessResponseVO(productInfoService.getProductInfoByProductId(productId));
 	}
 
-	@PostMapping("/updateProductInfoByProductId")
-	public ResponseVO updateProductInfoByProductId(ProductInfo bean,String productId) {
+    @PostMapping("/updateProductInfoByProductId")
+    @AdminSensitiveConfirm
+    public ResponseVO updateProductInfoByProductId(ProductInfo bean,String productId) {
 		productInfoService.updateProductInfoByProductId(bean,productId);
 		return getSuccessResponseVO(null);
 	}

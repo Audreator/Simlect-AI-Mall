@@ -30,6 +30,9 @@ public class OrderItem implements Serializable {
 
 	private String refundOrderId;
 
+    /** 实际退款金额（券后分摊，防累计超退） */
+    private java.math.BigDecimal refundAmount;
+
 	public void setOrderItemId(String orderItemId){
 		this.orderItemId = orderItemId;
 	}
@@ -122,7 +125,15 @@ public class OrderItem implements Serializable {
 		this.refundOrderId = refundOrderId;
 	}
 
-	public String getRefundOrderId(){
+	public java.math.BigDecimal getRefundAmount() {
+        return refundAmount;
+    }
+
+    public void setRefundAmount(java.math.BigDecimal refundAmount) {
+        this.refundAmount = refundAmount;
+    }
+
+    public String getRefundOrderId(){
 		return this.refundOrderId;
 	}
 

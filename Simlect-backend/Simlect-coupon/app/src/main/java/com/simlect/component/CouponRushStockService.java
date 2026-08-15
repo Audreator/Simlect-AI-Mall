@@ -11,13 +11,14 @@ import com.simlect.utils.StringTools;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
-
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -90,13 +91,20 @@ public class CouponRushStockService {
         return syncFromDbAuthoritative(couponId);
     }
 
+    /** 秒杀库存同步锁释放：Lua 校验持有者后再删，防 TTL 过期后误删他人锁 */
+    private static final String SYNC_UNLOCK_LUA =
+            "if redis.call('get', KEYS[1]) == ARGV[1] then "
+                    + "return redis.call('del', KEYS[1]) "
+                    + "else return 0 end";
+
     public CouponRushStockReconcileDTO syncFromDbAuthoritative(String couponId) {
         if (StringTools.isEmpty(couponId)) {
             return new CouponRushStockReconcileDTO();
         }
         String lockKey = syncLockKey(couponId);
+        String token = UUID.randomUUID() + ":" + Thread.currentThread().getId();
         Boolean acquired = stringRedisTemplate.opsForValue().setIfAbsent(
-                lockKey, "1", Constants.RUSHING_STOCK_SYNC_LOCK_SECONDS, TimeUnit.SECONDS);
+                lockKey, token, Constants.RUSHING_STOCK_SYNC_LOCK_SECONDS, TimeUnit.SECONDS);
         if (!Boolean.TRUE.equals(acquired)) {
             throw new BusinessException("库存同步中，请稍后再试");
         }
@@ -113,7 +121,9 @@ public class CouponRushStockService {
                     couponId, dto.getDbRemainCount(), dto.getRedisStockAfter());
             return dto;
         } finally {
-            stringRedisTemplate.delete(lockKey);
+            // 仅当自己仍是持有者时删除（防 TTL 过期后被他人获取时误删他人锁）
+            DefaultRedisScript<Long> script = new DefaultRedisScript<>(SYNC_UNLOCK_LUA, Long.class);
+            stringRedisTemplate.execute(script, List.of(lockKey), token);
         }
     }
 
@@ -133,6 +143,7 @@ public class CouponRushStockService {
         }
         final String cId = couponId;
         final String uId = userId;
+        final boolean stockAdded = affected != null && affected > 0;
         Runnable alignRedis = () -> {
             DiscountCoupon latest = discountCouponMapper.selectByCouponId(cId);
             int redisStock;
@@ -150,15 +161,29 @@ public class CouponRushStockService {
             redisComponent.alignRushStockAfterRelease(cId, uId, redisStock);
             log.info("秒杀库存 Redis 已对齐 couponId={}, redisStock={}", cId, redisStock);
         };
+        // 提交后按 DB 剩余对齐 Redis；回滚时释放 Redis 预占（防建单失败/DB 回滚后 Redis 泄漏）
+        Runnable rollbackRedis = () -> redisComponent.rollbackRushRedisReserve(cId, uId);
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
-                public void afterCommit() {
-                    alignRedis.run();
+                public void afterCompletion(int status) {
+                    if (status == TransactionSynchronization.STATUS_COMMITTED) {
+                        if (stockAdded) {
+                            alignRedis.run();
+                        } else {
+                            rollbackRedis.run();
+                        }
+                    } else if (status == TransactionSynchronization.STATUS_ROLLED_BACK) {
+                        rollbackRedis.run();
+                    }
                 }
             });
         } else {
-            alignRedis.run();
+            if (stockAdded) {
+                alignRedis.run();
+            } else {
+                rollbackRedis.run();
+            }
         }
         log.info("秒杀库存 DB 已回补 couponId={}, addRows={}", couponId, affected);
     }

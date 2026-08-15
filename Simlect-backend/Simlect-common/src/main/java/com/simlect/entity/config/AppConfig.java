@@ -22,17 +22,38 @@ public class AppConfig {
     @Value("${admin.account:admin}")
     private String adminAccount;
 
-    @Value("${admin.password:admin123456}")
+    @Value("${admin.password:}")
     private String adminPassword;
+
+    /** 管理端弱口令黑名单：生产/显式开启安全校验时拒绝启动 */
+    private static final java.util.Set<String> WEAK_ADMIN_PASSWORDS = java.util.Set.of(
+            "admin123", "admin123456", "123456", "admin", "password");
 
     private String adminPasswordHash;
 
     @Resource
     private PasswordService passwordService;
 
+    /** 生产就绪标记：true 时强制校验管理端密码（各业务服务共享 common，避免整栈因未配密码无法启动） */
+    @Value("${simlect.production-ready:false}")
+    private boolean productionReady;
+
     @PostConstruct
     public void initAdminPasswordHash() {
-        if (adminPassword != null && adminPassword.startsWith("$2")) {
+        boolean weakOrMissing = adminPassword == null || adminPassword.isEmpty()
+                || WEAK_ADMIN_PASSWORDS.contains(adminPassword);
+        if (weakOrMissing && productionReady) {
+            throw new IllegalStateException(
+                    "管理端密码未配置或为弱口令，请通过环境变量 ADMIN_PASSWORD 设置强密码后重启");
+        }
+        if (weakOrMissing) {
+            // 非生产：仅告警（本地开发可缺省），生产就绪时必须配置
+            logger.warn("管理端密码未配置或为弱口令（仅生产就绪模式强制）");
+        }
+        if (adminPassword == null || adminPassword.isEmpty()) {
+            // 无密码时使用不可用哈希，避免空密码可登录
+            adminPasswordHash = "$2a$10$invalidinvalidinvalidinvalidinvalidinvalidinvalidinva";
+        } else if (adminPassword.startsWith("$2")) {
             adminPasswordHash = adminPassword;
         } else {
             adminPasswordHash = passwordService.encode(adminPassword);

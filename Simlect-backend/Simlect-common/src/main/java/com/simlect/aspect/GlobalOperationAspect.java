@@ -13,7 +13,6 @@ import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.reflect.MethodSignature;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -31,9 +30,6 @@ public class GlobalOperationAspect {
 
     @Resource
     private AuthCookieHelper authCookieHelper;
-
-    @Value("${simlect.dev-login-bypass:false}")
-    private boolean devLoginBypass;
 
     // 校验登录
     @Before("@annotation(com.simlect.annotation.GlobalInterceptor)")
@@ -71,16 +67,7 @@ public class GlobalOperationAspect {
             throw new BusinessException(ResponseCodeEnum.CODE_901);
         }
         // 根据token查询用户
-        TokenUserInfoDTO tokenUserInfoDto;
-        // 仅显式开启开发绕过（simlect.production-ready=true 时启动会失败）
-        if (devLoginBypass || System.getProperty("dev") != null) {
-            tokenUserInfoDto = new TokenUserInfoDTO();
-            tokenUserInfoDto.setUserId("vuzPteqk");
-            tokenUserInfoDto.setNickName("test");
-            tokenUserInfoDto.setToken(token);
-        } else {
-            tokenUserInfoDto = redisComponent.getTokenUserInfo(token);
-        }
+        TokenUserInfoDTO tokenUserInfoDto = redisComponent.getTokenUserInfo(token);
         // 若查询不到用户，返回登陆超时异常
         if(tokenUserInfoDto == null ){
             throw new BusinessException(ResponseCodeEnum.CODE_901);

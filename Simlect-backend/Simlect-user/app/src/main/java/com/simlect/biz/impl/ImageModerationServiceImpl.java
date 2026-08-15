@@ -65,6 +65,9 @@ public class ImageModerationServiceImpl implements ImageModerationService {
     public ImageUploadResultDTO uploadAndModerate(String userId, String userIp, MultipartFile file,
                                                   Boolean createThumbnail, String scene, String orderId) {
         ImageModerationSceneEnum sceneEnum = ImageModerationSceneEnum.getByCode(scene);
+        if (sceneEnum == null) {
+            throw new BusinessException("非法的图片审核场景");
+        }
         ImageCompressUtils.PreparedImage prepared = fileUtils.prepareUploadImage(file);
         byte[] censorBytes = ImageCompressUtils.prepareForBaiduCensor(prepared.getData());
         BaiduImageCensorResultDTO result = censorImageBytes(censorBytes, userId, userIp);
@@ -79,6 +82,9 @@ public class ImageModerationServiceImpl implements ImageModerationService {
     public BaiduImageCensorResultDTO censorImageBytes(byte[] imageBytes, String userId, String userIp) {
         if (baiduImageCensorComponent.isEnabled()) {
             imageCensorRateLimitService.checkUserAndIp(userId, userIp);
+        } else {
+            // 明确提示：审核未启用时静默放行（仅告警，不阻塞上传；生产需配置 baidu.aip.enabled）
+            log.warn("图片审核未启用（baidu.aip.enabled=false），本次上传静默放行 userId={}, ip={}", userId, userIp);
         }
         return baiduImageCensorComponent.censorImage(imageBytes);
     }

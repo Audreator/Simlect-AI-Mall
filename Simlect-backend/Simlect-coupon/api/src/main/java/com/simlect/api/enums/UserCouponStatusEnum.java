@@ -25,7 +25,6 @@ public enum UserCouponStatusEnum {
         return desc;
     }
 
-
     public static UserCouponStatusEnum getByStatus(Integer status) {
         Optional<UserCouponStatusEnum> typeEnum = Arrays.stream(UserCouponStatusEnum.values()).filter(value -> value.getStatus().equals(status)).findFirst();
         return typeEnum == null ? null : typeEnum.get();

@@ -25,7 +25,13 @@ public class RedissionConfig {
         try {
             // 创建RedissonClient对象
             Config config = new Config();
-            config.useSingleServer().setAddress("redis://" + redisHost + ":" + redisPort);
+            // 看门狗续期周期：锁超时默认 30s、每 10s 续期一次；与
+            // Constants.PAY_ORDER_LIFECYCLE_LOCK_WATCHDOG_MS 保持一致
+            config.setLockWatchdogTimeout(30_000);
+            config.useSingleServer()
+                    .setAddress("redis://" + redisHost + ":" + redisPort)
+                    // 长连接保活，避免长时间空闲被 Redis 断开
+                    .setPingConnectionInterval(30_000);
             RedissonClient redissonClient = Redisson.create(config);
             log.info("RedissonClient 创建成功，连接地址: redis://{}:{}", redisHost, redisPort);
             return redissonClient;

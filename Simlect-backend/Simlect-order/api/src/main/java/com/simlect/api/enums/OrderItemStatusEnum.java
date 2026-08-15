@@ -23,7 +23,6 @@ public enum OrderItemStatusEnum {
         return desc;
     }
 
-
     public static OrderItemStatusEnum getByStatus(Integer status) {
         Optional<OrderItemStatusEnum> typeEnum = Arrays.stream(OrderItemStatusEnum.values()).filter(value -> value.getStatus().equals(status)).findFirst();
         return typeEnum == null||typeEnum.isEmpty() ? null : typeEnum.get();

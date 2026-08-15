@@ -6,6 +6,7 @@ import com.simlect.api.vo.UserBriefVO;
 import com.simlect.entity.po.UserAddress;
 import com.simlect.entity.po.UserInfo;
 import com.simlect.entity.query.UserAddressQuery;
+import com.simlect.entity.query.SimplePage;
 import com.simlect.entity.query.UserInfoQuery;
 import com.simlect.exception.BusinessException;
 import com.simlect.mappers.UserAddressMapper;
@@ -67,6 +68,26 @@ public class UserInternalService {
     public List<String> listAllUserIds() {
         List<String> ids = userInfoMapper.selectAllUserId();
         return ids == null ? Collections.emptyList() : ids;
+    }
+
+    /** 分页拉取用户 ID（通知广播等大批量场景，避免全量加载） */
+    public List<String> listUserIdsByPage(Integer pageNo, Integer pageSize) {
+        int size = pageSize == null || pageSize <= 0 ? 500 : Math.min(pageSize, 1000);
+        UserInfoQuery query = new UserInfoQuery();
+        int total = userInfoMapper.selectCount(new UserInfoQuery());
+        SimplePage page = new SimplePage(pageNo == null || pageNo < 1 ? 1 : pageNo, total, size);
+        query.setSimplePage(page);
+        List<UserInfo> rows = userInfoMapper.selectList(query);
+        if (rows == null || rows.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<String> ids = new ArrayList<>(rows.size());
+        for (UserInfo u : rows) {
+            if (!StringTools.isEmpty(u.getUserId())) {
+                ids.add(u.getUserId());
+            }
+        }
+        return ids;
     }
 
     public List<UserBriefVO> listBriefByUserIds(List<String> userIds) {

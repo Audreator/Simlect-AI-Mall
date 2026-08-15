@@ -13,11 +13,14 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.Collections;
 import java.util.HexFormat;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -151,7 +154,8 @@ public class DiscountCouponCacheComponent {
             Integer pageSize,
             String keyword,
             Supplier<PaginationResultVO<DiscountCoupon>> dbLoader) {
-        if (!tryRebuildLock(cacheKey)) {
+        String token = tryRebuildLock(cacheKey);
+        if (token == null) {
             return;
         }
         cacheRebuildExecutor.execute(() -> {
@@ -161,13 +165,14 @@ public class DiscountCouponCacheComponent {
             } catch (Exception e) {
                 log.error("异步重建优惠券列表缓存失败 key={}", cacheKey, e);
             } finally {
-                releaseRebuildLock(cacheKey);
+                releaseRebuildLock(cacheKey, token);
             }
         });
     }
 
     private void submitDetailRebuild(String cacheKey, String couponId, Supplier<DiscountCoupon> dbLoader) {
-        if (!tryRebuildLock(cacheKey)) {
+        String token = tryRebuildLock(cacheKey);
+        if (token == null) {
             return;
         }
         cacheRebuildExecutor.execute(() -> {
@@ -177,7 +182,7 @@ public class DiscountCouponCacheComponent {
             } catch (Exception e) {
                 log.error("异步重建优惠券详情缓存失败 couponId={}", couponId, e);
             } finally {
-                releaseRebuildLock(cacheKey);
+                releaseRebuildLock(cacheKey, token);
             }
         });
     }
@@ -228,20 +233,37 @@ public class DiscountCouponCacheComponent {
         return System.currentTimeMillis() >= entry.getLogicalExpireAt();
     }
 
-    private boolean tryRebuildLock(String cacheKey) {
+    /**
+     * 重建缓存互斥锁：返回持有者 token；未获取到返回 null（防并发重复重建）。
+     * 锁值带持有者标识，释放时校验持有者（防 TTL 过期后被他人获取时误删他人锁）。
+     */
+    private String tryRebuildLock(String cacheKey) {
         String lockKey = Constants.REDIS_KEY_COUPON_REBUILD_LOCK + hashKey(cacheKey);
+        String token = UUID.randomUUID() + ":" + Thread.currentThread().getId();
         Boolean ok = stringRedisTemplate.opsForValue().setIfAbsent(
                 lockKey,
-                "1",
+                token,
                 Constants.COUPON_CACHE_REBUILD_LOCK_SECONDS,
                 TimeUnit.SECONDS
         );
-        return Boolean.TRUE.equals(ok);
+        return Boolean.TRUE.equals(ok) ? token : null;
     }
 
-    private void releaseRebuildLock(String cacheKey) {
-        stringRedisTemplate.delete(Constants.REDIS_KEY_COUPON_REBUILD_LOCK + hashKey(cacheKey));
+    private void releaseRebuildLock(String cacheKey, String token) {
+        if (StringTools.isEmpty(token)) {
+            return;
+        }
+        String lockKey = Constants.REDIS_KEY_COUPON_REBUILD_LOCK + hashKey(cacheKey);
+        stringRedisTemplate.execute(
+                new DefaultRedisScript<>(DELETE_IF_OWNED_LUA, Long.class),
+                Collections.singletonList(lockKey),
+                token);
     }
+
+    private static final String DELETE_IF_OWNED_LUA =
+            "if redis.call('get', KEYS[1]) == ARGV[1] then "
+                    + "return redis.call('del', KEYS[1]) "
+                    + "else return 0 end";
 
     private void bumpPlazaListVersion() {
         stringRedisTemplate.opsForValue().increment(Constants.REDIS_KEY_COUPON_PLAZA_CACHE_VERSION);

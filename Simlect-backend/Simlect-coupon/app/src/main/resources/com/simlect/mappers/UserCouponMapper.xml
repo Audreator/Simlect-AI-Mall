@@ -287,18 +287,39 @@
 		select <include refid="base_column_list" /> from user_coupon u where user_coupon_id=#{userCouponId}
 	</select>
 
-	<select id="selectExpiringUnused" resultType="java.util.HashMap">
-		select uc.user_id as userId,
-		       uc.user_coupon_id as userCouponId,
-		       c.coupon_id as couponId,
-		       c.coupon_name as couponName
-		from user_coupon uc
-		inner join discount_coupon c on uc.coupon_id = c.coupon_id
-		where uc.status = 0
-		  and c.valid_end_time is not null
-		  <![CDATA[ and c.valid_end_time >= now() ]]>
-		  <![CDATA[ and c.valid_end_time <= date_add(now(), interval 3 day) ]]>
-		order by c.valid_end_time asc
-		limit #{limit}
-	</select>
+<select id="selectExpiringUnused" resultType="java.util.HashMap">
+select uc.user_id as userId,
+uc.user_coupon_id as userCouponId,
+c.coupon_id as couponId,
+c.coupon_name as couponName
+from user_coupon uc
+inner join discount_coupon c on uc.coupon_id = c.coupon_id
+where uc.status = 0
+and c.valid_end_time is not null
+<![CDATA[ and c.valid_end_time >= now() ]]>
+<![CDATA[ and c.valid_end_time <= date_add(now(), interval 3 day) ]]>
+order by c.valid_end_time asc
+limit #{limit}
+</select>
+
+<!-- keyset 游标分页版：防 limit 截断导致排在后面的用户永远收不到提醒 -->
+<select id="selectExpiringUnusedByCursor" resultType="java.util.HashMap">
+select uc.user_id as userId,
+uc.user_coupon_id as userCouponId,
+c.coupon_id as couponId,
+c.coupon_name as couponName,
+c.valid_end_time as validEndTime
+from user_coupon uc
+inner join discount_coupon c on uc.coupon_id = c.coupon_id
+where uc.status = 0
+and c.valid_end_time is not null
+<![CDATA[ and c.valid_end_time >= now() ]]>
+<![CDATA[ and c.valid_end_time <= date_add(now(), interval 3 day) ]]>
+<if test="cursorEndTime != null">
+<![CDATA[ and (c.valid_end_time > #{cursorEndTime}
+    or (c.valid_end_time = #{cursorEndTime} and uc.user_coupon_id > #{cursorUserCouponId})) ]]>
+</if>
+order by c.valid_end_time asc, uc.user_coupon_id asc
+limit #{limit}
+</select>
 </mapper>

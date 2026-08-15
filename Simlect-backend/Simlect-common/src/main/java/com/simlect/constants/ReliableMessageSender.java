@@ -75,9 +75,16 @@ public class ReliableMessageSender {
             return;
         }
         try {
+            // 发送前先写补偿哨兵（防「取幂等闸后、异步发送前」崩溃导致消息无痕丢失；
+            // 成功后清除，失败/崩溃残留由补偿流程兜底可见）
+            MqCompensationRecord pending = buildCompensationRecord(
+                    exchange, routingKey, message, idempotencyKey,
+                    new IllegalStateException("发送前哨兵（待发送）"));
+            mqCompensationStore.saveToRedis(pending);
             mqAsyncExecutor.execute(() -> {
                 try {
                     doSendWithConfirm(exchange, routingKey, message, idempotencyKey);
+                    mqCompensationStore.remove(idempotencyKey);
                     log.debug("高并发 MQ 已异步发送并 Confirm, exchange={}, routingKey={}, key={}",
                             exchange, routingKey, idempotencyKey);
                 } catch (Exception e) {
@@ -142,6 +149,17 @@ public class ReliableMessageSender {
 
     private void saveCompensation(String exchange, String routingKey, Object message,
                                   String idempotencyKey, Exception error) {
+        MqCompensationRecord record = buildCompensationRecord(exchange, routingKey, message, idempotencyKey, error);
+        try {
+            mqCompensationLogService.saveFromFailure(record);
+            mqCompensationStore.saveToRedis(record);
+        } catch (Exception e) {
+            log.error("MQ 补偿记录写入失败, key={}", idempotencyKey, e);
+        }
+    }
+
+    private MqCompensationRecord buildCompensationRecord(String exchange, String routingKey, Object message,
+                                                         String idempotencyKey, Exception error) {
         MqCompensationRecord record = new MqCompensationRecord();
         record.setIdempotencyKey(idempotencyKey);
         record.setExchange(exchange);
@@ -151,11 +169,6 @@ public class ReliableMessageSender {
         record.setFailedAt(System.currentTimeMillis());
         record.setRetryCount(0);
         record.setErrorMessage(error == null ? null : error.getMessage());
-        try {
-            mqCompensationLogService.saveFromFailure(record);
-            mqCompensationStore.saveToRedis(record);
-        } catch (Exception e) {
-            log.error("MQ 补偿记录写入失败, key={}", idempotencyKey, e);
-        }
+        return record;
     }
 }
