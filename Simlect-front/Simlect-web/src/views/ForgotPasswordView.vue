@@ -88,9 +88,7 @@
               class="send-code-btn"
               size="large"
               :disabled="emailCodeCountdown > 0 || !form.email"
-              <!-- [zh] 模板内容：`@click="sendEmailCode"` -->
               @click="sendEmailCode"
-            <!-- [zh] 模板内容：`>` -->
             >
               <!-- [zh] Mustache 插值表达式 -->
               {{ emailCodeCountdown > 0 ? `${emailCodeCountdown}s后重发` : '发送验证码' }}
@@ -123,208 +121,110 @@
   <SlideCaptchaDialog ref="slideCaptchaRef" />
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed, reactive, ref } from 'vue';
-// [zh] 导入 `vue-router`
 import { RouterLink, useRouter } from 'vue-router';
-// [zh] 导入 `element-plus`
 import { ElMessage } from 'element-plus';
-// [zh] 导入 `@/utils/toast`
 import { toast } from '@/utils/toast';
-// [zh] 导入 `@/components/common/BrandMark.vue`
 import BrandMark from '@/components/common/BrandMark.vue';
-// [zh] 导入 `@/components/business/SlideCaptchaDialog.vue`
 import SlideCaptchaDialog from '@/components/business/SlideCaptchaDialog.vue';
-// [zh] 导入 `@/api/modules`
 import { accountApi } from '@/api/modules';
-// [zh] 导入 `@/constants/validation`
 import { isValidEmail, isValidPassword, PASSWORD_FORMAT_HINT } from '@/constants/validation';
-// [zh] 导入 `@/composables/useEmailCode`
 import { useEmailCode, type SlideCaptchaDialogExpose } from '@/composables/useEmailCode';
 
-// [zh] 声明变量 `router`
 const router = useRouter();
-// [zh] 声明变量 `slideCaptchaRef`
 const slideCaptchaRef = ref<SlideCaptchaDialogExpose | null>(null);
-// [zh] 声明变量 `error`
 const error = ref('');
-// [zh] 声明变量 `submitting`
 const submitting = ref(false);
-// [zh] 语句
 const { emailCodeCountdown, startCountdown, requestSlideVerification } = useEmailCode();
 
-// [zh] 声明变量 `form`
 const form = reactive({
-  // [zh] TypeScript/JS 语句：`email: '',`
   email: '',
-  // [zh] TypeScript/JS 语句：`newPassword: '',`
   newPassword: '',
-  // [zh] TypeScript/JS 语句：`confirmPassword: '',`
   confirmPassword: '',
-  // [zh] TypeScript/JS 语句：`emailCode: ''`
   emailCode: ''
-// [zh] 语句
 });
 
-// [zh] 声明变量 `passwordStrength`
 const passwordStrength = computed(() => {
-  // [zh] 声明变量 `p`
   const p = form.newPassword;
-  // [zh] 条件判断 if
   if (!p) return 0;
-  // [zh] 声明变量 `score`
   let score = 0;
-  // [zh] 条件判断 if
   if (p.length >= 6) score++;
-  // [zh] 条件判断 if
   if (p.length >= 10) score++;
-  // [zh] 条件判断 if
   if (/[a-z]/.test(p) && /[A-Z]/.test(p)) score++;
-  // [zh] 条件判断 if
   if (/\d/.test(p)) score++;
-  // [zh] 条件判断 if
   if (/[^A-Za-z0-9]/.test(p)) score++;
-  // [zh] 条件判断 if
   if (score <= 1) return 1;
-  // [zh] 条件判断 if
   if (score <= 3) return 2;
-  // [zh] return 返回
   return 3;
-// [zh] 语句
 });
 
-// [zh] 声明变量 `strengthLabel`
 const strengthLabel = computed(() => {
-  // [zh] 声明变量 `map`
   const map = ['', '弱', '中', '强'] as const;
-  // [zh] return 返回
   return map[passwordStrength.value] || '';
-// [zh] 语句
 });
 
-// [zh] 声明变量 `strengthClass`
 const strengthClass = computed(() => {
-  // [zh] 声明变量 `map`
   const map = ['', 'weak', 'mid', 'strong'] as const;
-  // [zh] return 返回
   return map[passwordStrength.value] || '';
-// [zh] 语句
 });
 
-// [zh] 声明变量 `sendEmailCode`
 const sendEmailCode = async () => {
-  // [zh] 语句
   error.value = '';
-  // [zh] 条件判断 if
   if (!form.email?.trim()) {
-    // [zh] 语句
     ElMessage.warning('请先输入邮箱');
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
-  // [zh] 条件判断 if
   if (!isValidEmail(form.email)) {
-    // [zh] 语句
     error.value = '请输入有效的邮箱地址';
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
-  // [zh] 代码块开始
   try {
-    // [zh] 声明变量 `captchaVerification`
     const captchaVerification = await requestSlideVerification(slideCaptchaRef.value);
-    // [zh] await 等待 Promise（类比 CompletableFuture.get）
     await accountApi.getEmailCode({ email: form.email, captchaVerification });
-    // [zh] 语句
     ElMessage.success('验证码已发送');
-    // [zh] 语句
     startCountdown();
-  // [zh] 代码块开始
   } catch (e: any) {
-    // [zh] 语句
     error.value = e?.info || e?.message || '验证码发送失败';
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 声明变量 `submit`
 const submit = async () => {
-  // [zh] 语句
   error.value = '';
-  // [zh] 条件判断 if
   if (!form.email?.trim()) {
-    // [zh] 语句
     ElMessage.warning('请输入邮箱');
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
-  // [zh] 条件判断 if
   if (!isValidEmail(form.email)) {
-    // [zh] 语句
     error.value = '请输入有效的邮箱地址';
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
-  // [zh] 条件判断 if
   if (!isValidPassword(form.newPassword)) {
-    // [zh] 语句
     error.value = PASSWORD_FORMAT_HINT;
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
-  // [zh] 条件判断 if
   if (form.newPassword !== form.confirmPassword) {
-    // [zh] 语句
     error.value = '两次密码不一致';
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
-  // [zh] 条件判断 if
   if (!form.emailCode) {
-    // [zh] 语句
     error.value = '请输入邮箱验证码';
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
-  // [zh] 语句
   submitting.value = true;
-  // [zh] 代码块开始
   try {
-    // [zh] await 等待 Promise（类比 CompletableFuture.get）
     await accountApi.forgetPassword({
-      // [zh] TypeScript/JS 语句：`email: form.email,`
       email: form.email,
-      // [zh] TypeScript/JS 语句：`newPassword: form.newPassword,`
       newPassword: form.newPassword,
-      // [zh] TypeScript/JS 语句：`checkCode: form.emailCode`
       checkCode: form.emailCode
-    // [zh] 语句
     });
-    // [zh] 语句
     toast.success('密码重置成功，请登录');
-    // [zh] 语句
     router.push('/login');
-  // [zh] 代码块开始
   } catch (e: any) {
-    // [zh] 语句
     error.value = e?.info || e?.message || '密码重置失败，请稍后重试';
-  // [zh] 代码块开始
   } finally {
-    // [zh] 语句
     submitting.value = false;
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 </script>
 

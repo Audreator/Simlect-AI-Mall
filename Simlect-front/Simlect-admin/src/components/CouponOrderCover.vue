@@ -15,53 +15,30 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `vue`
 import { computed } from 'vue'
-// [zh] 导入 `@element-plus/icons-vue`
 import { Ticket } from '@element-plus/icons-vue'
 
-// [zh] 声明变量 `props`
 const props = defineProps({
-  // [zh] 代码块开始
   width: {
-    // [zh] TypeScript/JS 语句：`type: Number,`
     type: Number,
-    // [zh] TypeScript/JS 语句：`default: 80,`
     default: 80,
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   scale: {
-    // [zh] TypeScript/JS 语句：`type: Number,`
     type: Number,
-    // [zh] TypeScript/JS 语句：`default: 1,`
     default: 1,
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   borderRadius: {
-    // [zh] TypeScript/JS 语句：`type: String,`
     type: String,
-    // [zh] TypeScript/JS 语句：`default: '5px',`
     default: '5px',
-  // [zh] TypeScript/JS 语句：`},`
   },
-// [zh] TypeScript/JS 语句：`})`
 })
 
-// [zh] 声明变量 `iconSize`
 const iconSize = computed(() => {
-  // [zh] 声明变量 `w`
   const w = props.width || 80
-  // [zh] 条件判断 if
   if (w <= 52) return 26
-  // [zh] 条件判断 if
   if (w <= 76) return 32
-  // [zh] return 返回
   return Math.round(w * 0.4)
-// [zh] TypeScript/JS 语句：`})`
 })
 </script>
 

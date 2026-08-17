@@ -182,133 +182,74 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
-// [zh] 导入 `vue-router`
 import { useRouter } from 'vue-router';
-// [zh] 导入 `@element-plus/icons-vue`
 import { ArrowRight, Search } from '@element-plus/icons-vue';
-// [zh] 导入 `@/api/modules`
 import { productApi } from '@/api/modules';
-// [zh] 导入 `@/utils/category`
 import { countCategoryNodes, normalizeCategoryTree } from '@/utils/category';
-// [zh] 导入 `@/composables/useDevice`
 import { useDevice } from '@/composables/useDevice';
-// [zh] 导入 `@/composables/pullRefresh`
 import { usePageRefresh } from '@/composables/pullRefresh';
 
-// [zh] 声明变量 `router`
 const router = useRouter();
-// [zh] 语句
 const { isDesktop } = useDevice();
-// [zh] 声明变量 `loading`
 const loading = ref(true);
-// [zh] 声明变量 `rootCategories`
 const rootCategories = ref<any[]>([]);
-// [zh] 声明变量 `navActive`
 const navActive = ref(0);
-// [zh] 声明变量 `conterRef`
 const conterRef = ref<HTMLElement | null>(null);
-// [zh] 声明变量 `asideRef`
 const asideRef = ref<HTMLElement | null>(null);
-// [zh] 声明变量 `isAsideOverflow`
 const isAsideOverflow = ref(false);
 
-// [zh] 声明变量 `checkAsideOverflow`
 const checkAsideOverflow = () => {
-  // [zh] 声明变量 `el`
   const el = asideRef.value;
-  // [zh] 条件判断 if
   if (!el) return;
-  // [zh] 语句
   isAsideOverflow.value = el.scrollHeight > el.clientHeight;
-// [zh] 语句
 };
 
-// [zh] 声明变量 `handleResize`
 const handleResize = () => {
-  // [zh] 语句
   checkAsideOverflow();
-// [zh] 语句
 };
 
-// [zh] 声明变量 `categoryCount`
 const categoryCount = computed(() => countCategoryNodes(rootCategories.value));
 
-// [zh] 声明变量 `sectionId`
 const sectionId = (index: number) => `b${index}`;
 
-// [zh] 声明变量 `goCategory`
 const goCategory = (categoryId: string) => {
-  // [zh] 语句
   router.push(`/category/${categoryId}`);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `tapNav`
 const tapNav = (index: number) => {
-  // [zh] 语句
   navActive.value = index;
-  // [zh] 声明变量 `el`
   const el = document.getElementById(sectionId(index));
-  // [zh] 语句
   el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-// [zh] 语句
 };
 
-// [zh] 声明变量 `onConterScroll`
 const onConterScroll = () => {
-  // [zh] 声明变量 `root`
   const root = conterRef.value;
-  // [zh] 条件判断 if
   if (!root || !rootCategories.value.length) return;
-  // [zh] 声明变量 `top`
   const top = root.scrollTop;
-  // [zh] 声明变量 `active`
   let active = 0;
-  // [zh] for 循环
   for (let i = 0; i < rootCategories.value.length; i++) {
-    // [zh] 声明变量 `el`
     const el = document.getElementById(sectionId(i));
-    // [zh] 条件判断 if
     if (el && el.offsetTop - root.offsetTop <= top + 80) active = i;
-  // [zh] 语法符号
   }
-  // [zh] 语句
   navActive.value = active;
-// [zh] 语句
 };
 
-// [zh] 声明变量 `load`
 const load = async () => {
-  // [zh] 语句
   loading.value = true;
-  // [zh] 代码块开始
   try {
-    // [zh] 声明变量 `data`
     const data = await productApi.loadCategory();
-    // [zh] 语句
     rootCategories.value = normalizeCategoryTree(data);
-    // [zh] 语句
     nextTick(checkAsideOverflow);
-  // [zh] 代码块开始
   } finally {
-    // [zh] 语句
     loading.value = false;
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 语句
 onMounted(load);
-// [zh] 语句
 onMounted(() => window.addEventListener('resize', handleResize));
-// [zh] 语句
 usePageRefresh(load);
-// [zh] 语句
 onUnmounted(() => window.removeEventListener('resize', handleResize));
 </script>
 

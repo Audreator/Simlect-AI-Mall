@@ -46,97 +46,52 @@
   </el-dialog>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 声明变量 `props`
 const props = defineProps({
-  // [zh] 代码块开始
   draggable: {
-    // [zh] TypeScript/JS 语句：`type: Boolean,`
     type: Boolean,
-    // [zh] TypeScript/JS 语句：`default: true,`
     default: true,
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   title: {
-    // [zh] TypeScript/JS 语句：`type: String,`
     type: String,
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   show: {
-    // [zh] TypeScript/JS 语句：`type: Boolean,`
     type: Boolean,
-    // [zh] TypeScript/JS 语句：`default: false,`
     default: false,
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   showClose: {
-    // [zh] TypeScript/JS 语句：`type: Boolean,`
     type: Boolean,
-    // [zh] TypeScript/JS 语句：`default: true,`
     default: true,
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   showCancel: {
-    // [zh] TypeScript/JS 语句：`type: Boolean,`
     type: Boolean,
-    // [zh] TypeScript/JS 语句：`default: true,`
     default: true,
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   top: {
-    // [zh] TypeScript/JS 语句：`type: Number,`
     type: Number,
-    // [zh] TypeScript/JS 语句：`default: 50,`
     default: 50,
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   width: {
-    // [zh] TypeScript/JS 语句：`type: String,`
     type: String,
-    // [zh] TypeScript/JS 语句：`default: "30%",`
     default: "30%",
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   buttons: {
-    // [zh] TypeScript/JS 语句：`type: Array,`
     type: Array,
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   padding: {
-    // [zh] TypeScript/JS 语句：`type: Number,`
     type: Number,
-    // [zh] TypeScript/JS 语句：`default: 15,`
     default: 15,
-  // [zh] TypeScript/JS 语句：`},`
   },
-// [zh] 语句
 });
 
-// [zh] 声明变量 `maxHeight`
 const maxHeight =
-  // [zh] TypeScript/JS 语句：`window.innerHeight -`
   window.innerHeight -
-  // [zh] TypeScript/JS 语句：`props.top -`
   props.top -
-  // [zh] 语句
   (!props.buttons || props.buttons.length == 0 ? 70 : 120);
 
-// [zh] 声明变量 `emit`
 const emit = defineEmits();
-// [zh] 声明变量 `close`
 const close = () => {
-  // [zh] 语句
   emit("close");
-// [zh] 语句
 };
 </script>
 

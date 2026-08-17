@@ -30,85 +30,48 @@
   </el-image>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed } from 'vue';
-// [zh] 导入 `@element-plus/icons-vue`
 import { Picture } from '@element-plus/icons-vue';
-// [zh] 导入 `@/utils/image`
 import { pickProductCover, resolveImageUrl } from '@/utils/image';
 
-// [zh] 声明变量 `props`
 const props = withDefaults(
-  // [zh] 代码块开始
   defineProps<{
-    // [zh] 语句
     source?: string | null;
-    // [zh] 语句
     product?: Record<string, any>;
-    // [zh] 语句
     width?: number | string;
-    // [zh] 语句
     height?: number | string;
-    // [zh] 语句
     fit?: 'cover' | 'contain' | 'fill';
-    // [zh] 语句
     lazy?: boolean;
-    // [zh] 语句
     useThumbnail?: boolean;
 
-    // [zh] 语句
     dense?: boolean;
-  // [zh] TypeScript/JS 语句：`}>(),`
   }>(),
-  // [zh] TypeScript/JS 语句：`{ fit: 'cover', lazy: true, useThumbnail: true, dense: `
   { fit: 'cover', lazy: true, useThumbnail: true, dense: false }
-// [zh] 语句
 );
 
-// [zh] 声明变量 `src`
 const src = computed(() => {
-  // [zh] 声明变量 `raw`
   const raw = props.source ?? (props.product ? pickProductCover(props.product) : '');
-  // [zh] return 返回
   return resolveImageUrl(raw, { useThumbnail: props.useThumbnail });
-// [zh] 语句
 });
 
-// [zh] 声明变量 `toCssSize`
 const toCssSize = (val?: number | string) => {
-  // [zh] 条件判断 if
   if (val == null || val === '') return undefined;
-  // [zh] 条件判断 if
   if (typeof val === 'number' && Number.isFinite(val)) return `${val}px`;
-  // [zh] 声明变量 `text`
   const text = String(val).trim();
-  // [zh] 条件判断 if
   if (/^\d+(\.\d+)?$/.test(text)) return `${text}px`;
-  // [zh] return 返回
   return text;
-// [zh] 语句
 };
 
-// [zh] 声明变量 `sizeStyle`
 const sizeStyle = computed(() => ({
-  // [zh] TypeScript/JS 语句：`width: toCssSize(props.width) ?? '100%',`
   width: toCssSize(props.width) ?? '100%',
-  // [zh] TypeScript/JS 语句：`height: toCssSize(props.height) ?? '100%'`
   height: toCssSize(props.height) ?? '100%'
-// [zh] 语句
 }));
 
-// [zh] 声明变量 `iconSize`
 const iconSize = computed(() => {
-  // [zh] 声明变量 `w`
   const w = Number(props.width);
-  // [zh] 条件判断 if
   if (!Number.isNaN(w) && w > 0) return Math.min(32, Math.max(20, Math.floor(w / 3)));
-  // [zh] return 返回
   return 28;
-// [zh] 语句
 });
 </script>
 

@@ -63,67 +63,39 @@
   </article>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed } from 'vue';
-// [zh] 导入 `@element-plus/icons-vue`
 import { ShoppingCart } from '@element-plus/icons-vue';
-// [zh] 导入 `@/components/common/ProductImage.vue`
 import ProductImage from '@/components/common/ProductImage.vue';
-// [zh] 导入 `@/composables/useDevice`
 import { useDevice } from '@/composables/useDevice';
-// [zh] 导入 `@/composables/useProductSkuSheet`
 import { useProductSkuSheet } from '@/composables/useProductSkuSheet';
 
-// [zh] 语句
 const { isDesktop } = useDevice();
 
-// [zh] 声明变量 `props`
 const props = withDefaults(
-  // [zh] 代码块开始
   defineProps<{
-    // [zh] 语句
     product: Record<string, any>;
-    // [zh] 语句
     compact?: boolean;
 
-    // [zh] 语句
     imageFit?: 'cover' | 'contain' | 'fill';
-    // [zh] 语句
     imageLazy?: boolean;
-  // [zh] TypeScript/JS 语句：`}>(),`
   }>(),
-  // [zh] TypeScript/JS 语句：`{ compact: false, imageLazy: true }`
   { compact: false, imageLazy: true }
-// [zh] 语句
 );
 
-// [zh] 语句
 const { open: openSkuSheet } = useProductSkuSheet();
-// [zh] 声明变量 `resolvedFit`
 const resolvedFit = computed(() => props.imageFit ?? (props.compact ? 'contain' : 'cover'));
-// [zh] 语句
 defineEmits<{ click: [Record<string, any>]; addToCart: [Record<string, any>] }>();
 
-// [zh] 声明变量 `goSkuPick`
 const goSkuPick = () => {
-  // [zh] 声明变量 `id`
   const id = props.product?.productId;
-  // [zh] 条件判断 if
   if (!id) return;
-  // [zh] 语句
   openSkuSheet(id);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `displayPrice`
 const displayPrice = computed(() => {
-  // [zh] 声明变量 `p`
   const p = props.product.price ?? props.product.salePrice ?? props.product.minPrice;
-  // [zh] return 返回
   return p != null ? Number(p).toFixed(2) : '--';
-// [zh] 语句
 });
 
 </script>

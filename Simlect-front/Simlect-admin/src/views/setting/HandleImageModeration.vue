@@ -85,292 +85,155 @@
   </el-dialog>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `vue`
 import { reactive, ref, computed, getCurrentInstance } from 'vue'
 
-// [zh] TypeScript/JS 语句：`const { proxy } = getCurrentInstance()`
 const { proxy } = getCurrentInstance()
-// [zh] 声明变量 `emit`
 const emit = defineEmits(['reload'])
 
-// [zh] 声明变量 `visible`
 const visible = ref(false)
-// [zh] 声明变量 `submitting`
 const submitting = ref(false)
-// [zh] 声明变量 `unbanning`
 const unbanning = ref(false)
-// [zh] 声明变量 `tempBanned`
 const tempBanned = ref(false)
-// [zh] 声明变量 `unbanAt`
 const unbanAt = ref(null)
-// [zh] 声明变量 `recordStatus`
 const recordStatus = ref(null)
 
-// [zh] 声明变量 `form`
 const form = reactive({
-  // [zh] TypeScript/JS 语句：`recordId: null,`
   recordId: null,
-  // [zh] TypeScript/JS 语句：`userId: '',`
   userId: '',
-  // [zh] TypeScript/JS 语句：`orderId: '',`
   orderId: '',
-  // [zh] TypeScript/JS 语句：`userIp: '',`
   userIp: '',
-  // [zh] TypeScript/JS 语句：`scene: '',`
   scene: '',
-  // [zh] TypeScript/JS 语句：`conclusion: '',`
   conclusion: '',
-  // [zh] TypeScript/JS 语句：`imagePath: '',`
   imagePath: '',
-  // [zh] TypeScript/JS 语句：`createTime: '',`
   createTime: '',
-  // [zh] TypeScript/JS 语句：`handleRemark: ''`
   handleRemark: ''
-// [zh] TypeScript/JS 语句：`})`
 })
 
-// [zh] 声明变量 `isPending`
 const isPending = computed(() => recordStatus.value === 0)
 
-// [zh] 声明变量 `formatUnbanTime`
 const formatUnbanTime = (ms) => {
-  // [zh] 声明变量 `d`
   const d = new Date(ms)
-  // [zh] 声明变量 `pad`
   const pad = (n) => String(n).padStart(2, '0')
-  // [zh] return 返回
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `unbanTimeText`
 const unbanTimeText = computed(() => (unbanAt.value ? formatUnbanTime(unbanAt.value) : '—'))
 
-// [zh] 声明变量 `sceneLabel`
 const sceneLabel = (s) => (s === 'avatar' ? '头像' : s === 'comment' ? '评论' : s || '—')
-// [zh] 声明变量 `imageUrl`
 const imageUrl = (path) => `${proxy.Api.sourcePath}${encodeURIComponent(path)}`
 
-// [zh] 声明变量 `reset`
 const reset = () => {
-  // [zh] 代码块开始
   Object.assign(form, {
-    // [zh] TypeScript/JS 语句：`recordId: null,`
     recordId: null,
-    // [zh] TypeScript/JS 语句：`userId: '',`
     userId: '',
-    // [zh] TypeScript/JS 语句：`orderId: '',`
     orderId: '',
-    // [zh] TypeScript/JS 语句：`userIp: '',`
     userIp: '',
-    // [zh] TypeScript/JS 语句：`scene: '',`
     scene: '',
-    // [zh] TypeScript/JS 语句：`conclusion: '',`
     conclusion: '',
-    // [zh] TypeScript/JS 语句：`imagePath: '',`
     imagePath: '',
-    // [zh] TypeScript/JS 语句：`createTime: '',`
     createTime: '',
-    // [zh] TypeScript/JS 语句：`handleRemark: ''`
     handleRemark: ''
-  // [zh] TypeScript/JS 语句：`})`
   })
-  // [zh] TypeScript/JS 语句：`tempBanned.value = false`
   tempBanned.value = false
-  // [zh] TypeScript/JS 语句：`unbanAt.value = null`
   unbanAt.value = null
-  // [zh] TypeScript/JS 语句：`recordStatus.value = null`
   recordStatus.value = null
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `loadTempBanInfo`
 const loadTempBanInfo = async (userId) => {
-  // [zh] 条件判断 if
   if (!userId) {
-    // [zh] TypeScript/JS 语句：`tempBanned.value = false`
     tempBanned.value = false
-    // [zh] TypeScript/JS 语句：`unbanAt.value = null`
     unbanAt.value = null
-    // [zh] TypeScript/JS 语句：`return`
     return
-  // [zh] 语法符号
   }
-  // [zh] 声明变量 `result`
   const result = await proxy.Request({
-    // [zh] TypeScript/JS 语句：`url: proxy.Api.imageModerationGetTempBanInfo,`
     url: proxy.Api.imageModerationGetTempBanInfo,
-    // [zh] TypeScript/JS 语句：`params: { userId },`
     params: { userId },
-    // [zh] TypeScript/JS 语句：`showLoading: false,`
     showLoading: false,
-    // [zh] TypeScript/JS 语句：`showError: false`
     showError: false
-  // [zh] TypeScript/JS 语句：`})`
   })
-  // [zh] 条件判断 if
   if (!result) {
-    // [zh] TypeScript/JS 语句：`tempBanned.value = false`
     tempBanned.value = false
-    // [zh] TypeScript/JS 语句：`unbanAt.value = null`
     unbanAt.value = null
-    // [zh] TypeScript/JS 语句：`return`
     return
-  // [zh] 语法符号
   }
-  // [zh] 声明变量 `data`
   const data = result.data || {}
-  // [zh] TypeScript/JS 语句：`tempBanned.value = !!data.tempBanned`
   tempBanned.value = !!data.tempBanned
-  // [zh] TypeScript/JS 语句：`unbanAt.value = data.unbanAt || null`
   unbanAt.value = data.unbanAt || null
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `show`
 const show = async (row) => {
-  // [zh] TypeScript/JS 语句：`reset()`
   reset()
-  // [zh] TypeScript/JS 语句：`form.recordId = row.recordId`
   form.recordId = row.recordId
-  // [zh] TypeScript/JS 语句：`form.userId = row.userId || ''`
   form.userId = row.userId || ''
-  // [zh] TypeScript/JS 语句：`form.orderId = row.orderId || ''`
   form.orderId = row.orderId || ''
-  // [zh] TypeScript/JS 语句：`form.userIp = row.userIp || ''`
   form.userIp = row.userIp || ''
-  // [zh] TypeScript/JS 语句：`form.scene = row.scene || ''`
   form.scene = row.scene || ''
-  // [zh] TypeScript/JS 语句：`form.conclusion = row.conclusion || ''`
   form.conclusion = row.conclusion || ''
-  // [zh] TypeScript/JS 语句：`form.imagePath = row.imagePath || ''`
   form.imagePath = row.imagePath || ''
-  // [zh] TypeScript/JS 语句：`form.createTime = row.createTime || ''`
   form.createTime = row.createTime || ''
-  // [zh] TypeScript/JS 语句：`recordStatus.value = row.status`
   recordStatus.value = row.status
-  // [zh] TypeScript/JS 语句：`visible.value = true`
   visible.value = true
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await loadTempBanInfo(form.userId)
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `doUnban`
 const doUnban = () => {
-  // [zh] 代码块开始
   proxy.Confirm({
-    // [zh] TypeScript/JS 语句：`message: `确认立即解封用户 ${form.userId}？解封时间原为 ${unbanTimeTex`
     message: `确认立即解封用户 ${form.userId}？解封时间原为 ${unbanTimeText.value}`,
-    // [zh] 代码块开始
     okfun: async () => {
-      // [zh] TypeScript/JS 语句：`unbanning.value = true`
       unbanning.value = true
-      // [zh] 代码块开始
       try {
-        // [zh] 声明变量 `result`
         const result = await proxy.Request({
-          // [zh] TypeScript/JS 语句：`url: proxy.Api.imageModerationUnbanUser,`
           url: proxy.Api.imageModerationUnbanUser,
-          // [zh] TypeScript/JS 语句：`params: { userId: form.userId }`
           params: { userId: form.userId }
-        // [zh] TypeScript/JS 语句：`})`
         })
-        // [zh] 条件判断 if
         if (!result) return
-        // [zh] TypeScript/JS 语句：`proxy.Message.success('已解封')`
         proxy.Message.success('已解封')
-        // [zh] TypeScript/JS 语句：`tempBanned.value = false`
         tempBanned.value = false
-        // [zh] TypeScript/JS 语句：`unbanAt.value = null`
         unbanAt.value = null
-        // [zh] TypeScript/JS 语句：`emit('reload')`
         emit('reload')
-      // [zh] 代码块开始
       } finally {
-        // [zh] TypeScript/JS 语句：`unbanning.value = false`
         unbanning.value = false
-      // [zh] 语法符号
       }
-    // [zh] 语法符号
     }
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `submit`
 const submit = async (action) => {
-  // [zh] 声明变量 `tips`
   const tips = {
-    // [zh] TypeScript/JS 语句：`approve: '确认标记为通过？',`
     approve: '确认标记为通过？',
-    // [zh] TypeScript/JS 语句：`dismiss: '确认误报驳回？',`
     dismiss: '确认误报驳回？',
-    // [zh] TypeScript/JS 语句：`ban_temp: '确认对该用户临时封禁2小时？',`
     ban_temp: '确认对该用户临时封禁2小时？',
-    // [zh] TypeScript/JS 语句：`ban_perm: '确认永久封禁该用户？'`
     ban_perm: '确认永久封禁该用户？'
-  // [zh] 语法符号
   }
-  // [zh] 代码块开始
   proxy.Confirm({
-    // [zh] TypeScript/JS 语句：`message: tips[action] || '确认处理？',`
     message: tips[action] || '确认处理？',
-    // [zh] 代码块开始
     okfun: async () => {
-      // [zh] TypeScript/JS 语句：`submitting.value = true`
       submitting.value = true
-      // [zh] 代码块开始
       try {
-        // [zh] 声明变量 `result`
         const result = await proxy.Request({
-          // [zh] TypeScript/JS 语句：`url: proxy.Api.imageModerationHandleReview,`
           url: proxy.Api.imageModerationHandleReview,
-          // [zh] 代码块开始
           params: {
-            // [zh] TypeScript/JS 语句：`recordId: form.recordId,`
             recordId: form.recordId,
-            // [zh] TypeScript/JS 语句：`action,`
             action,
-            // [zh] TypeScript/JS 语句：`handleRemark: form.handleRemark || undefined`
             handleRemark: form.handleRemark || undefined
-          // [zh] 语法符号
           }
-        // [zh] TypeScript/JS 语句：`})`
         })
-        // [zh] 条件判断 if
         if (!result) return
-        // [zh] TypeScript/JS 语句：`proxy.Message.success('处理成功')`
         proxy.Message.success('处理成功')
-        // [zh] 条件判断 if
         if (action === 'ban_temp') {
-          // [zh] await 等待 Promise（类比 CompletableFuture.get）
           await loadTempBanInfo(form.userId)
-        // [zh] 代码块开始
         } else {
-          // [zh] TypeScript/JS 语句：`visible.value = false`
           visible.value = false
-        // [zh] 语法符号
         }
-        // [zh] TypeScript/JS 语句：`emit('reload')`
         emit('reload')
-      // [zh] 代码块开始
       } finally {
-        // [zh] TypeScript/JS 语句：`submitting.value = false`
         submitting.value = false
-      // [zh] 语法符号
       }
-    // [zh] 语法符号
     }
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 
-// [zh] TypeScript/JS 语句：`defineExpose({ show })`
 defineExpose({ show })
 </script>
 

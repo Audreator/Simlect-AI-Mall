@@ -84,205 +84,113 @@
   </Drawer>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `vue`
 import { ref, reactive, getCurrentInstance, nextTick, computed } from 'vue'
-// [zh] 导入 `vue-router`
 import { useRouter, useRoute } from 'vue-router'
-// [zh] TypeScript/JS 语句：`const { proxy } = getCurrentInstance()`
 const { proxy } = getCurrentInstance()
-// [zh] 声明变量 `router`
 const router = useRouter()
-// [zh] 声明变量 `route`
 const route = useRoute()
 
-// [zh] 导入 `vue3-image-magnifier`
 import Vue3ImageMagnifier from 'vue3-image-magnifier'
-// [zh] 导入 `模块`
 import 'vue3-image-magnifier/dist/vue3-image-magnifier.css'
 
-// [zh] 声明变量 `dialogConfig`
 const dialogConfig = ref({
-  // [zh] TypeScript/JS 语句：`show: false,`
   show: false,
-  // [zh] TypeScript/JS 语句：`title: '商品预览',`
   title: '商品预览',
-// [zh] TypeScript/JS 语句：`})`
 })
-// [zh] 声明变量 `productInfo`
 const productInfo = ref({})
-// [zh] 声明变量 `productPropertyList`
 const productPropertyList = ref([])
-// [zh] 声明变量 `skuList`
 const skuList = ref([])
-// [zh] 声明变量 `getProduct`
 const getProduct = async (productId) => {
-  // [zh] 声明变量 `result`
   let result = await proxy.Request({
-    // [zh] TypeScript/JS 语句：`url: proxy.Api.getProductInfo,`
     url: proxy.Api.getProductInfo,
-    // [zh] 代码块开始
     params: {
-      // [zh] TypeScript/JS 语句：`productId,`
       productId,
-    // [zh] TypeScript/JS 语句：`},`
     },
-  // [zh] TypeScript/JS 语句：`})`
   })
-  // [zh] 条件判断 if
   if (!result) {
-    // [zh] TypeScript/JS 语句：`return`
     return
-  // [zh] 语法符号
   }
-  // [zh] TypeScript/JS 语句：`productInfo.value = result.data.productInfo`
   productInfo.value = result.data.productInfo
   
-  // [zh] TypeScript/JS 语句：`selectImage(productInfo.value.cover.split(',')[0])`
   selectImage(productInfo.value.cover.split(',')[0])
 
-  // [zh] TypeScript/JS 语句：`productPropertyList.value = result.data.productProperty`
   productPropertyList.value = result.data.productPropertyList
-  // [zh] TypeScript/JS 语句：`skuList.value = result.data.skuList`
   skuList.value = result.data.skuList
   
-  // [zh] TypeScript/JS 语句：`initDefaultPropertySelected()`
   initDefaultPropertySelected()
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `showImage`
 const showImage = computed(() => {
-  // [zh] return 返回
   return (
-    // [zh] TypeScript/JS 语句：`proxy.Api.sourcePath +`
     proxy.Api.sourcePath +
-    // [zh] TypeScript/JS 语句：`selectedImage.value?.replace(proxy.imageThumbnailSuffix`
     selectedImage.value?.replace(proxy.imageThumbnailSuffix, '')
-  // [zh] 语法符号
   )
-// [zh] TypeScript/JS 语句：`})`
 })
 
-// [zh] 声明变量 `selectedImage`
 const selectedImage = ref()
-// [zh] 声明变量 `selectImage`
 const selectImage = (img) => {
-  // [zh] TypeScript/JS 语句：`selectedImage.value = img`
   selectedImage.value = img
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `show`
 const show = (productId) => {
-  // [zh] TypeScript/JS 语句：`dialogConfig.value.show = true`
   dialogConfig.value.show = true
-  // [zh] TypeScript/JS 语句：`getProduct(productId)`
   getProduct(productId)
-// [zh] 语法符号
 }
 
 
-// [zh] 声明变量 `selectedSku`
 const selectedSku = ref({})
-// [zh] 声明变量 `selectedProperty`
 const selectedProperty = ref({})
-// [zh] 声明变量 `propertyImageMap`
 const propertyImageMap = ref({})
-// [zh] 声明变量 `initDefaultPropertySelected`
 const initDefaultPropertySelected = () => {
-  // [zh] TypeScript/JS 语句：`selectedSku.value = skuList.value[0]`
   selectedSku.value = skuList.value[0]
-  // [zh] 声明变量 `propertyValueIdArray`
   const propertyValueIdArray = selectedSku.value.propertyValueIds.split('-')
   
-  // [zh] 声明变量 `initSelect`
   let initSelect = null
-  // [zh] for 循环
   for (let [index, property] of productPropertyList.value.entries()) {
-    // [zh] TypeScript/JS 语句：`selectedProperty.value[property.propertyId] = propertyV`
     selectedProperty.value[property.propertyId] = propertyValueIdArray[index]
-    // [zh] for 循环
     for (const prop of property.propertyValues) {
-      // [zh] 条件判断 if
       if (prop.propertyCover) {
-        // [zh] TypeScript/JS 语句：`propertyImageMap.value[prop.propertyValueId] = prop.pro`
         propertyImageMap.value[prop.propertyValueId] = prop.propertyCover
         
-        // [zh] 条件判断 if
         if (initSelect == null) {
-          // [zh] TypeScript/JS 语句：`selectImage(prop.propertyCover)`
           selectImage(prop.propertyCover)
-        // [zh] 语法符号
         }
-        // [zh] TypeScript/JS 语句：`initSelect = prop.propertyCover`
         initSelect = prop.propertyCover
-      // [zh] 语法符号
       }
-    // [zh] 语法符号
     }
-  // [zh] 语法符号
   }
-// [zh] 语法符号
 }
 
 
-// [zh] 声明变量 `selectProperty`
 const selectProperty = (property, propertyValue) => {
-  // [zh] 声明变量 `tempSelectedProperty`
   const tempSelectedProperty = { ...selectedProperty.value }
-  // [zh] TypeScript/JS 语句：`tempSelectedProperty[property.propertyId] = propertyVal`
   tempSelectedProperty[property.propertyId] = propertyValue.propertyValueId
   
-  // [zh] 声明变量 `selectedPropertyValueIds`
   const selectedPropertyValueIds = productPropertyList.value
-    // [zh] TypeScript/JS 语句：`.map((prop) => tempSelectedProperty[prop.propertyId])`
     .map((prop) => tempSelectedProperty[prop.propertyId])
-    // [zh] TypeScript/JS 语句：`.join('-')`
     .join('-')
-  // [zh] 声明变量 `matchedSku`
   const matchedSku = skuList.value.find(
-    // [zh] TypeScript/JS 语句：`(sku) => sku.propertyValueIds === selectedPropertyValue`
     (sku) => sku.propertyValueIds === selectedPropertyValueIds
-  // [zh] 语法符号
   )
-  // [zh] 条件判断 if
   if (!matchedSku) {
-    // [zh] TypeScript/JS 语句：`proxy.Message.warning('sku不存在')`
     proxy.Message.warning('sku不存在')
-    // [zh] TypeScript/JS 语句：`return`
     return
-  // [zh] 语法符号
   }
-  // [zh] 条件判断 if
   if (matchedSku.stock === 0) {
-    // [zh] TypeScript/JS 语句：`proxy.Message.warning('sku对应的库存为0')`
     proxy.Message.warning('sku对应的库存为0')
-    // [zh] TypeScript/JS 语句：`return`
     return
-  // [zh] 语法符号
   }
-  // [zh] TypeScript/JS 语句：`selectedProperty.value[property.propertyId] = propertyV`
   selectedProperty.value[property.propertyId] = propertyValue.propertyValueId
-  // [zh] TypeScript/JS 语句：`selectedSku.value = matchedSku`
   selectedSku.value = matchedSku
   
-  // [zh] 声明变量 `image`
   const image = propertyImageMap.value[propertyValue.propertyValueId]
-  // [zh] 条件判断 if
   if (image) {
-    // [zh] TypeScript/JS 语句：`selectImage(image)`
     selectImage(image)
-  // [zh] 语法符号
   }
-// [zh] 语法符号
 }
-// [zh] 代码块开始
 defineExpose({
-  // [zh] TypeScript/JS 语句：`show,`
   show,
-// [zh] TypeScript/JS 语句：`})`
 })
 </script>
 

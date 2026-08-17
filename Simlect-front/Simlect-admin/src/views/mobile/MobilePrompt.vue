@@ -49,126 +49,69 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `vue`
 import { ref, getCurrentInstance, onMounted } from 'vue'
 
-// [zh] TypeScript/JS 语句：`const { proxy } = getCurrentInstance()`
 const { proxy } = getCurrentInstance()
-// [zh] 声明变量 `activeName`
 const activeName = ref('')
-// [zh] 声明变量 `formData`
 const formData = ref({ prompt: '' })
-// [zh] 声明变量 `promptList`
 const promptList = ref([])
 
-// [zh] 声明变量 `getPromptDetail`
 const getPromptDetail = async () => {
-  // [zh] 条件判断 if
   if (!activeName.value) return
-  // [zh] 声明变量 `result`
   const result = await proxy.Request({
-    // [zh] TypeScript/JS 语句：`url: proxy.Api.getPromptDetail,`
     url: proxy.Api.getPromptDetail,
-    // [zh] TypeScript/JS 语句：`params: { key: activeName.value },`
     params: { key: activeName.value },
-  // [zh] TypeScript/JS 语句：`})`
   })
-  // [zh] 条件判断 if
   if (!result) return
-  // [zh] TypeScript/JS 语句：`formData.value.prompt = result.data || ''`
   formData.value.prompt = result.data || ''
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `switchPrompt`
 const switchPrompt = async (key) => {
-  // [zh] TypeScript/JS 语句：`activeName.value = key`
   activeName.value = key
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await getPromptDetail()
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `loadPrompt`
 const loadPrompt = async () => {
-  // [zh] 声明变量 `result`
   const result = await proxy.Request({ url: proxy.Api.loadPromptList })
-  // [zh] 条件判断 if
   if (!result) return
-  // [zh] TypeScript/JS 语句：`promptList.value = result.data || []`
   promptList.value = result.data || []
-  // [zh] 条件判断 if
   if (promptList.value.length) {
-    // [zh] TypeScript/JS 语句：`activeName.value = promptList.value[0].key`
     activeName.value = promptList.value[0].key
-    // [zh] await 等待 Promise（类比 CompletableFuture.get）
     await getPromptDetail()
-  // [zh] 语法符号
   }
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `savePrompt`
 const savePrompt = async () => {
-  // [zh] 条件判断 if
   if (!formData.value.prompt?.trim()) {
-    // [zh] TypeScript/JS 语句：`proxy.Message.warning('请输入提示词')`
     proxy.Message.warning('请输入提示词')
-    // [zh] TypeScript/JS 语句：`return`
     return
-  // [zh] 语法符号
   }
-  // [zh] 声明变量 `result`
   const result = await proxy.Request({
-    // [zh] TypeScript/JS 语句：`url: proxy.Api.savePrompt,`
     url: proxy.Api.savePrompt,
-    // [zh] TypeScript/JS 语句：`params: { key: activeName.value, prompt: formData.value`
     params: { key: activeName.value, prompt: formData.value.prompt },
-    // [zh] TypeScript/JS 语句：`showLoading: true,`
     showLoading: true,
-  // [zh] TypeScript/JS 语句：`})`
   })
-  // [zh] 条件判断 if
   if (!result) return
-  // [zh] TypeScript/JS 语句：`proxy.Message.success('保存成功')`
   proxy.Message.success('保存成功')
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `cleanPrompt`
 const cleanPrompt = () => {
-  // [zh] 代码块开始
   proxy.Confirm({
-    // [zh] TypeScript/JS 语句：`message: '确定要清空缓存吗？清空后将使用系统默认提示词',`
     message: '确定要清空缓存吗？清空后将使用系统默认提示词',
-    // [zh] 代码块开始
     okfun: async () => {
-      // [zh] 声明变量 `result`
       const result = await proxy.Request({
-        // [zh] TypeScript/JS 语句：`url: proxy.Api.cleanPromptCache,`
         url: proxy.Api.cleanPromptCache,
-        // [zh] TypeScript/JS 语句：`params: { key: activeName.value },`
         params: { key: activeName.value },
-        // [zh] TypeScript/JS 语句：`showLoading: true,`
         showLoading: true,
-      // [zh] TypeScript/JS 语句：`})`
       })
-      // [zh] 条件判断 if
       if (!result) return
-      // [zh] TypeScript/JS 语句：`proxy.Message.success('清空缓存成功')`
       proxy.Message.success('清空缓存成功')
-      // [zh] TypeScript/JS 语句：`getPromptDetail()`
       getPromptDetail()
-    // [zh] TypeScript/JS 语句：`},`
     },
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 
-// [zh] TypeScript/JS 语句：`onMounted(loadPrompt)`
 onMounted(loadPrompt)
 </script>
 

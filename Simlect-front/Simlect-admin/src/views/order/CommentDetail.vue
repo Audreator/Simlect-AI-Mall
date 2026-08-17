@@ -63,30 +63,18 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `vue`
 import { ref, reactive, getCurrentInstance, nextTick } from 'vue'
-// [zh] 导入 `vue-router`
 import { useRouter, useRoute } from 'vue-router'
-// [zh] TypeScript/JS 语句：`const { proxy } = getCurrentInstance()`
 const { proxy } = getCurrentInstance()
-// [zh] 声明变量 `router`
 const router = useRouter()
-// [zh] 声明变量 `route`
 const route = useRoute()
 
-// [zh] 声明变量 `props`
 const props = defineProps({
-  // [zh] 代码块开始
   data: {
-    // [zh] TypeScript/JS 语句：`type: Object,`
     type: Object,
-    // [zh] TypeScript/JS 语句：`default: {},`
     default: {},
-  // [zh] TypeScript/JS 语句：`},`
   },
-// [zh] TypeScript/JS 语句：`})`
 })
 </script>
 

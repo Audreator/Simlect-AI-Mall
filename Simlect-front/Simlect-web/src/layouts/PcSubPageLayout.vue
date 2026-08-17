@@ -6,10 +6,7 @@
     <RouterView v-slot="{ Component }">
       <!-- [zh] 开始标签 `<Transition>` -->
       <Transition name="page-fade" mode="out-in">
-        <!-- [zh] 开始标签 `<component>` -->
-        <component :is="Component" />
-      <!-- [zh] 闭合标签 `</Transition>` -->
-      </Transition>
+        <component :is="Component" /></Transition>
     <!-- [zh] 闭合标签 `</RouterView>` -->
     </RouterView>
   <!-- [zh] 闭合标签 `</PcAuthShell>` -->
@@ -45,10 +42,7 @@
             <RouterView v-slot="{ Component }">
               <!-- [zh] 开始标签 `<Transition>` -->
               <Transition name="page-fade" mode="out-in">
-                <!-- [zh] 开始标签 `<component>` -->
-                <component :is="Component" />
-              <!-- [zh] 闭合标签 `</Transition>` -->
-              </Transition>
+                <component :is="Component" /></Transition>
             <!-- [zh] 闭合标签 `</RouterView>` -->
             </RouterView>
           <!-- [zh] 闭合标签 `</div>` -->
@@ -68,7 +62,6 @@
           <RouterView v-slot="{ Component }">
             <!-- [zh] 开始标签 `<Transition>` -->
             <Transition name="page-fade" mode="out-in">
-              <!-- [zh] 开始标签 `<div>` -->
               <div
                 class="pc-plain-body"
                 :class="{
@@ -76,11 +69,8 @@
                   'is-product-detail': isProductDetailPage
                 }"
               >
-                <!-- [zh] 开始标签 `<component>` -->
                 <component :is="Component" />
-              <!-- [zh] 闭合标签 `</div>` -->
               </div>
-            <!-- [zh] 闭合标签 `</Transition>` -->
             </Transition>
           <!-- [zh] 闭合标签 `</RouterView>` -->
           </RouterView>
@@ -93,75 +83,42 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed, onMounted } from 'vue';
-// [zh] 导入 `vue-router`
 import { RouterView, useRoute, useRouter } from 'vue-router';
-// [zh] 导入 `@/components/layout/AppFooter.vue`
 import AppFooter from '@/components/layout/AppFooter.vue';
-// [zh] 导入 `@/components/business/NotificationPopup.vue`
 import NotificationPopup from '@/components/business/NotificationPopup.vue';
-// [zh] 导入 `@/composables/useUnreadCount`
 import { useUnreadCount } from '@/composables/useUnreadCount';
-// [zh] 导入 `@/utils/notification`
 import { navigateNotification, type NotificationData } from '@/utils/notification';
-// [zh] 导入 `@/components/layout/PcAuthShell.vue`
 import PcAuthShell from '@/components/layout/PcAuthShell.vue';
-// [zh] 导入 `@/components/layout/PcFloatToolbar.vue`
 import PcFloatToolbar from '@/components/layout/PcFloatToolbar.vue';
-// [zh] 导入 `@/components/layout/PcUserSidebar.vue`
 import PcUserSidebar from '@/components/layout/PcUserSidebar.vue';
-// [zh] 导入 `@/components/layout/SiteHeader.vue`
 import SiteHeader from '@/components/layout/SiteHeader.vue';
-// [zh] 导入 `@/constants/pcUserNav`
 import { resolvePcLayoutMode } from '@/constants/pcUserNav';
-// [zh] 导入 `@/stores/auth`
 import { useAuthStore } from '@/stores/auth';
-// [zh] 导入 `@/stores/cart`
 import { useCartStore } from '@/stores/cart';
 
-// [zh] 声明变量 `route`
 const route = useRoute();
-// [zh] 声明变量 `router`
 const router = useRouter();
-// [zh] 声明变量 `authStore`
 const authStore = useAuthStore();
-// [zh] 声明变量 `cartStore`
 const cartStore = useCartStore();
-// [zh] 语句
 const { refreshUnreadCount } = useUnreadCount();
 
-// [zh] 声明变量 `pcLayout`
 const pcLayout = computed(() => resolvePcLayoutMode(route.path));
-// [zh] 声明变量 `pageTitle`
 const pageTitle = computed(() => String(route.meta.title || ''));
-// [zh] 声明变量 `isProductDetailPage`
 const isProductDetailPage = computed(
-  // [zh] TypeScript/JS 语句：`() => /^\/product\/[^/]+$/.test(route.path) && !route.p`
   () => /^\/product\/[^/]+$/.test(route.path) && !route.path.endsWith('/comments')
-// [zh] 语句
 );
-// [zh] 声明变量 `showPlainPageHead`
 const showPlainPageHead = computed(
-  // [zh] TypeScript/JS 语句：`() => !!pageTitle.value && !route.meta.hidePcPageHead &`
   () => !!pageTitle.value && !route.meta.hidePcPageHead && !isProductDetailPage.value
-// [zh] 语句
 );
 
-// [zh] 代码块开始
 onMounted(() => {
-  // [zh] 条件判断 if
   if (authStore.isLoggedIn) cartStore.fetchCartCount();
-// [zh] 语句
 });
 
-// [zh] 声明变量 `handleNotificationClick`
 const handleNotificationClick = (notification: NotificationData) => {
-  // [zh] 语句
   void navigateNotification(router, notification, { refreshUnread: refreshUnreadCount });
-// [zh] 语句
 };
 </script>
 

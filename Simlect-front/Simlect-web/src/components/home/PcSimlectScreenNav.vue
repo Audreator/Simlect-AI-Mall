@@ -20,30 +20,18 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue-router`
 import { RouterLink } from 'vue-router';
 
 
-// [zh] 声明变量 `navLinks`
 const navLinks = [
-  // [zh] TypeScript/JS 语句：`{ label: '精选好物', path: '/' },`
   { label: '精选好物', path: '/' },
-  // [zh] TypeScript/JS 语句：`{ label: '全部分类', path: '/search' },`
   { label: '全部分类', path: '/search' },
-  // [zh] TypeScript/JS 语句：`{ label: '优惠券', path: '/coupons' },`
   { label: '优惠券', path: '/coupons' },
-  // [zh] TypeScript/JS 语句：`{ label: '签到有礼', path: '/sign' },`
   { label: '签到有礼', path: '/sign' },
-  // [zh] TypeScript/JS 语句：`{ label: '会员中心', path: '/member-center' },`
   { label: '会员中心', path: '/member-center' },
-  // [zh] TypeScript/JS 语句：`{ label: '我的收藏', path: '/wishlist' },`
   { label: '我的收藏', path: '/wishlist' },
-  // [zh] TypeScript/JS 语句：`{ label: '我的订单', path: '/orders' },`
   { label: '我的订单', path: '/orders' },
-  // [zh] TypeScript/JS 语句：`{ label: '智能客服', path: '/ai-assistant' }`
   { label: '智能客服', path: '/ai-assistant' }
-// [zh] 语句
 ];
 </script>

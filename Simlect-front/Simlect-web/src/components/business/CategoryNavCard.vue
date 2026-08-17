@@ -22,70 +22,40 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { ref, computed, onMounted } from 'vue';
-// [zh] 导入 `vue-router`
 import { useRouter } from 'vue-router';
-// [zh] 导入 `@/api/modules`
 import { productApi } from '@/api/modules';
-// [zh] 导入 `@/utils/category`
 import { normalizeCategoryTree } from '@/utils/category';
 
-// [zh] 声明变量 `router`
 const router = useRouter();
-// [zh] 声明变量 `categories`
 const categories = ref<any[]>([]);
 
-// [zh] 声明变量 `displayCategories`
 const displayCategories = computed(() => {
-  // [zh] 声明变量 `flat`
   const flat: { categoryId: string; categoryName: string }[] = [];
-  // [zh] 声明变量 `walk`
   const walk = (nodes: any[]) => {
-    // [zh] for 循环
     for (const n of nodes) {
-      // [zh] 语句
       flat.push({ categoryId: n.categoryId, categoryName: n.categoryName });
-      // [zh] 条件判断 if
       if (flat.length >= 12) return;
-      // [zh] 条件判断 if
       if (n.children?.length) walk(n.children);
-      // [zh] 条件判断 if
       if (flat.length >= 12) return;
-    // [zh] 语法符号
     }
-  // [zh] 语句
   };
-  // [zh] 语句
   walk(categories.value);
-  // [zh] return 返回
   return flat.slice(0, 12);
-// [zh] 语句
 });
 
-// [zh] 声明变量 `goCategory`
 const goCategory = (cat: { categoryId: string }) => {
-  // [zh] 语句
   router.push(`/category/${cat.categoryId}`);
-// [zh] 语句
 };
 
-// [zh] 代码块开始
 onMounted(async () => {
-  // [zh] 代码块开始
   try {
-    // [zh] 声明变量 `cats`
     const cats = await productApi.loadCategory();
-    // [zh] 语句
     categories.value = normalizeCategoryTree(cats || []);
-  // [zh] 代码块开始
   } catch {
 
-  // [zh] 语法符号
   }
-// [zh] 语句
 });
 </script>
 

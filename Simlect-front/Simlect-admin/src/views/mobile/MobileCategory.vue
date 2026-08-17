@@ -56,103 +56,57 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `@/views/product/CategoryEdit.vue`
 import CategoryEdit from '@/views/product/CategoryEdit.vue'
-// [zh] 导入 `vue`
 import { ref, getCurrentInstance, onMounted } from 'vue'
 
-// [zh] TypeScript/JS 语句：`const { proxy } = getCurrentInstance()`
 const { proxy } = getCurrentInstance()
-// [zh] 声明变量 `categoryList`
 const categoryList = ref([])
-// [zh] 声明变量 `categoryEditRef`
 const categoryEditRef = ref(null)
 
-// [zh] 声明变量 `normalizeCategoryTree`
 const normalizeCategoryTree = (nodes) => {
-  // [zh] 条件判断 if
   if (!Array.isArray(nodes)) return []
-  // [zh] return 返回
   return nodes.map((node) => {
-    // [zh] 声明变量 `pCategoryId`
     const pCategoryId =
-      // [zh] TypeScript/JS 语句：`node.pCategoryId === null || node.pCategoryId === undef`
       node.pCategoryId === null || node.pCategoryId === undefined || node.pCategoryId === ''
-        // [zh] TypeScript/JS 语句：`? '0'`
         ? '0'
-        // [zh] TypeScript/JS 语句：`: String(node.pCategoryId)`
         : String(node.pCategoryId)
-    // [zh] return 返回
     return {
-      // [zh] TypeScript/JS 语句：`...node,`
       ...node,
-      // [zh] TypeScript/JS 语句：`pCategoryId,`
       pCategoryId,
-      // [zh] TypeScript/JS 语句：`children: normalizeCategoryTree(node.children || []),`
       children: normalizeCategoryTree(node.children || []),
-    // [zh] 语法符号
     }
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `loadCategory`
 const loadCategory = async () => {
-  // [zh] 声明变量 `result`
   const result = await proxy.Request({
-    // [zh] TypeScript/JS 语句：`url: proxy.Api.loadCategory,`
     url: proxy.Api.loadCategory,
-    // [zh] TypeScript/JS 语句：`params: { querySku: false },`
     params: { querySku: false },
-  // [zh] TypeScript/JS 语句：`})`
   })
-  // [zh] 条件判断 if
   if (!result) return
-  // [zh] TypeScript/JS 语句：`categoryList.value = normalizeCategoryTree(result.data `
   categoryList.value = normalizeCategoryTree(result.data || [])
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `showEdit`
 const showEdit = (data = {}) => {
-  // [zh] TypeScript/JS 语句：`categoryEditRef.value.show(data)`
   categoryEditRef.value.show(data)
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `delCategory`
 const delCategory = (data) => {
-  // [zh] 代码块开始
   proxy.Confirm({
-    // [zh] TypeScript/JS 语句：`message: `确定要删除【${data.categoryName}】吗?`,`
     message: `确定要删除【${data.categoryName}】吗?`,
-    // [zh] 代码块开始
     okfun: async () => {
-      // [zh] 声明变量 `result`
       const result = await proxy.Request({
-        // [zh] TypeScript/JS 语句：`url: proxy.Api.delCategory,`
         url: proxy.Api.delCategory,
-        // [zh] TypeScript/JS 语句：`params: { categoryId: data.categoryId },`
         params: { categoryId: data.categoryId },
-      // [zh] TypeScript/JS 语句：`})`
       })
-      // [zh] 条件判断 if
       if (!result) return
-      // [zh] TypeScript/JS 语句：`proxy.Message.success('已删除')`
       proxy.Message.success('已删除')
-      // [zh] TypeScript/JS 语句：`loadCategory()`
       loadCategory()
-    // [zh] TypeScript/JS 语句：`},`
     },
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 
-// [zh] TypeScript/JS 语句：`onMounted(loadCategory)`
 onMounted(loadCategory)
 </script>
 

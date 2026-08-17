@@ -70,45 +70,27 @@
   </aside>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { onMounted } from 'vue';
-// [zh] 导入 `vue-router`
 import { RouterLink } from 'vue-router';
-// [zh] 导入 `@element-plus/icons-vue`
 import { Bell, ChatDotRound, Clock, ShoppingCart, Star, Top, User } from '@element-plus/icons-vue';
-// [zh] 导入 `@/composables/useUnreadCount`
 import { useUnreadCount } from '@/composables/useUnreadCount';
-// [zh] 导入 `@/composables/useOpenAgent`
 import { useOpenAgent } from '@/composables/useOpenAgent';
-// [zh] 导入 `@/stores/auth`
 import { useAuthStore } from '@/stores/auth';
-// [zh] 导入 `@/stores/cart`
 import { useCartStore } from '@/stores/cart';
 
-// [zh] 语句
 const { openAgent } = useOpenAgent();
 
-// [zh] 声明变量 `authStore`
 const authStore = useAuthStore();
-// [zh] 声明变量 `cartStore`
 const cartStore = useCartStore();
-// [zh] 语句
 const { unreadCount } = useUnreadCount();
 
-// [zh] 声明变量 `scrollTop`
 const scrollTop = () => {
-  // [zh] 语句
   window.scrollTo({ top: 0, behavior: 'smooth' });
-// [zh] 语句
 };
 
-// [zh] 代码块开始
 onMounted(() => {
-  // [zh] 条件判断 if
   if (authStore.isLoggedIn) cartStore.fetchCartCount();
-// [zh] 语句
 });
 </script>
 

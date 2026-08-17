@@ -19,255 +19,138 @@
           <span class="stat-yesterday">
             <!-- [zh] 模板内容：`昨日 {{ proxy.Utils.formatNumber(item.yesterday` -->
             昨日 {{ proxy.Utils.formatNumber(item.yesterday, item.amount) }}
-            <!-- [zh] 开始标签 `<em>` -->
             <em :class="riseClass(item.increase)">{{ formatPercent(item.increase) }}</em>
-          <!-- [zh] 闭合标签 `</span>` -->
           </span>
-        <!-- [zh] 闭合标签 `</div>` -->
         </div>
-      <!-- [zh] 闭合标签 `</div>` -->
       </div>
-    <!-- [zh] 闭合标签 `</section>` -->
     </section>
 
-    <!-- [zh] 开始标签 `<section>` -->
     <section class="glass-card m-quick">
-      <!-- [zh] 开始标签 `<h3>` -->
       <h3 class="m-block-title">快捷操作</h3>
-      <!-- [zh] 开始标签 `<div>` -->
       <div class="quick-grid">
-        <!-- [zh] 开始标签 `<button>` -->
         <button v-for="q in quickEntries" :key="q.path" type="button" class="quick-item" @click="go(q.path)">
-          <!-- [zh] 开始标签 `<span>` -->
           <span class="iconfont quick-icon" :class="`icon-${q.icon}`"></span>
-          <!-- [zh] 开始标签 `<span>` -->
           <span class="quick-label">{{ q.label }}</span>
-        <!-- [zh] 闭合标签 `</button>` -->
         </button>
-      <!-- [zh] 闭合标签 `</div>` -->
       </div>
-    <!-- [zh] 闭合标签 `</section>` -->
     </section>
 
-    <!-- [zh] 开始标签 `<section>` -->
     <section class="glass-card m-weekly">
-      <!-- [zh] 开始标签 `<h3>` -->
       <h3 class="m-block-title">近 7 日销售</h3>
-      <!-- [zh] 开始标签 `<div>` -->
       <div v-if="weekly.length" class="weekly-chart">
-        <!-- [zh] 开始标签 `<div>` -->
         <div v-for="(d, i) in weekly" :key="i" class="weekly-col">
-          <!-- [zh] 开始标签 `<div>` -->
           <div class="bar-track">
-            <!-- [zh] 开始标签 `<div>` -->
             <div class="bar-fill" :style="{ height: barHeight(d.amount) }"></div>
-          <!-- [zh] 闭合标签 `</div>` -->
           </div>
-          <!-- [zh] 开始标签 `<span>` -->
           <span class="bar-amount">{{ shortAmount(d.amount) }}</span>
-          <!-- [zh] 开始标签 `<span>` -->
           <span class="bar-day">{{ d.label }}</span>
-        <!-- [zh] 闭合标签 `</div>` -->
         </div>
-      <!-- [zh] 闭合标签 `</div>` -->
       </div>
-      <!-- [zh] 开始标签 `<p>` -->
       <p v-else class="m-empty-tip">暂无统计数据</p>
-    <!-- [zh] 闭合标签 `</section>` -->
     </section>
 
-    <!-- [zh] 开始标签 `<section>` -->
     <section class="glass-card m-stock">
-      <!-- [zh] 开始标签 `<div>` -->
       <div class="m-block-head">
-        <!-- [zh] 开始标签 `<h3>` -->
         <h3 class="m-block-title">库存预警</h3>
-        <!-- [zh] 开始标签 `<button>` -->
         <button type="button" class="link-more" @click="go('/m/product')">去管理</button>
-      <!-- [zh] 闭合标签 `</div>` -->
       </div>
-      <!-- [zh] 开始标签 `<div>` -->
       <div v-if="lessStock.length" class="stock-list">
-        <!-- [zh] 开始标签 `<div>` -->
         <div v-for="row in lessStock" :key="row.productId + (row.propertyValueIdHash || '')" class="stock-row">
-          <!-- [zh] 开始标签 `<Cover>` -->
           <Cover :source="firstImg(row.productCover)" :width="48" border-radius="10px"></Cover>
-          <!-- [zh] 开始标签 `<div>` -->
           <div class="stock-info">
-            <!-- [zh] 开始标签 `<span>` -->
             <span class="stock-name">{{ row.productName }}</span>
-            <!-- [zh] 开始标签 `<span>` -->
             <span class="stock-prop">{{ propText(row.propertyData) }}</span>
-          <!-- [zh] 闭合标签 `</div>` -->
           </div>
-          <!-- [zh] 开始标签 `<span>` -->
           <span class="stock-num" :class="{ danger: row.stock <= 5 }">剩 {{ row.stock }}</span>
-        <!-- [zh] 闭合标签 `</div>` -->
         </div>
-      <!-- [zh] 闭合标签 `</div>` -->
       </div>
-      <!-- [zh] 开始标签 `<p>` -->
       <p v-else class="m-empty-tip">暂无库存预警</p>
-    <!-- [zh] 闭合标签 `</section>` -->
     </section>
-  <!-- [zh] 闭合标签 `</div>` -->
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `vue`
 import { ref, getCurrentInstance, onMounted } from 'vue'
-// [zh] 导入 `vue-router`
 import { useRouter } from 'vue-router'
 
-// [zh] TypeScript/JS 语句：`const { proxy } = getCurrentInstance()`
 const { proxy } = getCurrentInstance()
-// [zh] 声明变量 `router`
 const router = useRouter()
 
-// [zh] 声明变量 `todayFields`
 const todayFields = ref([
-  // [zh] TypeScript/JS 语句：`{ key: 'orderAmount', name: '今日销售额', icon: 'sale-amount`
   { key: 'orderAmount', name: '今日销售额', icon: 'sale-amount', amount: true, value: 0, yesterday: 0, increase: 0 },
-  // [zh] TypeScript/JS 语句：`{ key: 'orderCount', name: '今日订单', icon: 'order-count',`
   { key: 'orderCount', name: '今日订单', icon: 'order-count', amount: false, value: 0, yesterday: 0, increase: 0 },
-  // [zh] TypeScript/JS 语句：`{ key: 'userCount', name: '新增用户', icon: 'user-add', amo`
   { key: 'userCount', name: '新增用户', icon: 'user-add', amount: false, value: 0, yesterday: 0, increase: 0 },
-  // [zh] TypeScript/JS 语句：`{ key: 'refundAmount', name: '今日退款', icon: 'refund-amou`
   { key: 'refundAmount', name: '今日退款', icon: 'refund-amount', amount: true, value: 0, yesterday: 0, increase: 0 }
-// [zh] TypeScript/JS 语句：`])`
 ])
 
-// [zh] 声明变量 `weekly`
 const weekly = ref([])
-// [zh] 声明变量 `lessStock`
 const lessStock = ref([])
-// [zh] 声明变量 `maxAmount`
 const maxAmount = ref(1)
 
-// [zh] 声明变量 `quickEntries`
 const quickEntries = [
-  // [zh] TypeScript/JS 语句：`{ label: '发布商品', path: '/m/product/edit', icon: 'add' }`
   { label: '发布商品', path: '/m/product/edit', icon: 'add' },
-  // [zh] TypeScript/JS 语句：`{ label: '待发货', path: '/m/order?status=1', icon: 'order`
   { label: '待发货', path: '/m/order?status=1', icon: 'order' },
-  // [zh] TypeScript/JS 语句：`{ label: '评价回复', path: '/m/order/comment', icon: 'comme`
   { label: '评价回复', path: '/m/order/comment', icon: 'commend' },
-  // [zh] TypeScript/JS 语句：`{ label: 'MQ补偿日志', path: '/m/more/mqLog', icon: 'settin`
   { label: 'MQ补偿日志', path: '/m/more/mqLog', icon: 'setting' },
-  // [zh] TypeScript/JS 语句：`{ label: '客服记录', path: '/m/more/agent', icon: 'robot' }`
   { label: '客服记录', path: '/m/more/agent', icon: 'robot' },
-// [zh] TypeScript/JS 语句：`]`
 ]
 
-// [zh] 声明变量 `riseClass`
 const riseClass = (v) => (v > 0 ? 'rise' : v < 0 ? 'decline' : 'flat')
-// [zh] 声明变量 `formatPercent`
 const formatPercent = (v) => `${v > 0 ? '+' : ''}${(Number(v) || 0).toFixed(1)}%`
-// [zh] 声明变量 `firstImg`
 const firstImg = (cover) => (cover ? String(cover).split(',')[0] : '')
-// [zh] 声明变量 `propText`
 const propText = (arr) =>
-  // [zh] TypeScript/JS 语句：`Array.isArray(arr) ? arr.map((p) => `${p.propertyName}:`
   Array.isArray(arr) ? arr.map((p) => `${p.propertyName}:${p.propertyValue}`).join(' / ') : ''
 
-// [zh] 声明变量 `shortAmount`
 const shortAmount = (v) => {
-  // [zh] 声明变量 `n`
   const n = Number(v) || 0
-  // [zh] 条件判断 if
   if (n >= 10000) return (n / 10000).toFixed(1) + 'w'
-  // [zh] 条件判断 if
   if (n >= 1000) return (n / 1000).toFixed(1) + 'k'
-  // [zh] return 返回
   return String(Math.round(n))
-// [zh] 语法符号
 }
-// [zh] 声明变量 `barHeight`
 const barHeight = (v) => {
-  // [zh] 声明变量 `ratio`
   const ratio = maxAmount.value > 0 ? (Number(v) || 0) / maxAmount.value : 0
-  // [zh] return 返回
   return Math.max(4, Math.round(ratio * 100)) + '%'
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `getToday`
 const getToday = async () => {
-  // [zh] 声明变量 `result`
   const result = await proxy.Request({ url: proxy.Api.getTodayData, showLoading: false })
-  // [zh] 条件判断 if
   if (!result) return
-  // [zh] 声明变量 `map`
   const map = new Map(result.data.map((it) => [it.type, it]))
-  // [zh] 代码块开始
   todayFields.value = todayFields.value.map((it) => {
-    // [zh] 声明变量 `d`
     const d = map.get(it.key) || {}
-    // [zh] return 返回
     return { ...it, value: d.todayValue || 0, yesterday: d.yesterdayValue || 0, increase: d.increase || 0 }
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `getWeekly`
 const getWeekly = async () => {
-  // [zh] 声明变量 `result`
   const result = await proxy.Request({ url: proxy.Api.loadWeeklyStatisticsData, showLoading: false })
-  // [zh] 条件判断 if
   if (!result || !Array.isArray(result.data)) return
-  // [zh] 声明变量 `saleAmount`
   const saleAmount = result.data.find(d => d.dataType === 1)
-  // [zh] 条件判断 if
   if (!saleAmount) return
-  // [zh] 声明变量 `list`
   const list = (saleAmount.dateList || []).map((date, i) => ({
-    // [zh] TypeScript/JS 语句：`label: String(date).slice(5),`
     label: String(date).slice(5),
-    // [zh] TypeScript/JS 语句：`amount: Number(saleAmount.dataList[i] || 0)`
     amount: Number(saleAmount.dataList[i] || 0)
-  // [zh] TypeScript/JS 语句：`}))`
   }))
-  // [zh] TypeScript/JS 语句：`weekly.value = list.slice(-7)`
   weekly.value = list.slice(-7)
-  // [zh] TypeScript/JS 语句：`maxAmount.value = Math.max(1, ...weekly.value.map((d) =`
   maxAmount.value = Math.max(1, ...weekly.value.map((d) => d.amount))
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `getLessStock`
 const getLessStock = async () => {
-  // [zh] 声明变量 `result`
   const result = await proxy.Request({
-    // [zh] TypeScript/JS 语句：`url: proxy.Api.loadLessStockProduct,`
     url: proxy.Api.loadLessStockProduct,
-    // [zh] TypeScript/JS 语句：`params: { pageNo: 1, pageSize: 6 },`
     params: { pageNo: 1, pageSize: 6 },
-    // [zh] TypeScript/JS 语句：`showLoading: false`
     showLoading: false
-  // [zh] TypeScript/JS 语句：`})`
   })
-  // [zh] 条件判断 if
   if (!result) return
-  // [zh] TypeScript/JS 语句：`lessStock.value = (result.data && result.data.list) || `
   lessStock.value = (result.data && result.data.list) || []
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `go`
 const go = (path) => router.push(path)
 
-// [zh] 代码块开始
 onMounted(() => {
-  // [zh] TypeScript/JS 语句：`getToday()`
   getToday()
-  // [zh] TypeScript/JS 语句：`getWeekly()`
   getWeekly()
-  // [zh] TypeScript/JS 语句：`getLessStock()`
   getLessStock()
-// [zh] TypeScript/JS 语句：`})`
 })
 </script>
 

@@ -209,355 +209,191 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
-// [zh] 导入 `vue-router`
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router';
-// [zh] 导入 `@element-plus/icons-vue`
 import { ArrowDown, Bell, ChatDotRound, Menu, Search, Setting, ShoppingCart } from '@element-plus/icons-vue';
-// [zh] 导入 `@/stores/auth`
 import { useAuthStore } from '@/stores/auth';
-// [zh] 导入 `@/stores/cart`
 import { useCartStore } from '@/stores/cart';
-// [zh] 导入 `@/api/modules`
 import { productApi } from '@/api/modules';
-// [zh] 导入 `@/composables/useUnreadCount`
 import { useUnreadCount } from '@/composables/useUnreadCount';
-// [zh] 导入 `@/components/layout/AppFooter.vue`
 import AppFooter from '@/components/layout/AppFooter.vue';
-// [zh] 导入 `@/components/layout/MobileTabBar.vue`
 import MobileTabBar from '@/components/layout/MobileTabBar.vue';
-// [zh] 导入 `@/components/layout/PageBackBar.vue`
 import PageBackBar from '@/components/layout/PageBackBar.vue';
-// [zh] 导入 `@/components/layout/TabPageHeader.vue`
 import TabPageHeader from '@/components/layout/TabPageHeader.vue';
-// [zh] 导入 `@/components/agent/AgentServiceEntry.vue`
 import AgentServiceEntry from '@/components/agent/AgentServiceEntry.vue';
-// [zh] 导入 `@/components/common/BrandMark.vue`
 import BrandMark from '@/components/common/BrandMark.vue';
-// [zh] 导入 `@/components/layout/HomeSearchHeader.vue`
 import HomeSearchHeader from '@/components/layout/HomeSearchHeader.vue';
-// [zh] 导入 `@/components/common/PullRefreshHost.vue`
 import PullRefreshHost from '@/components/common/PullRefreshHost.vue';
-// [zh] 导入 `@/components/business/NotificationPopup.vue`
 import NotificationPopup from '@/components/business/NotificationPopup.vue';
-// [zh] 导入 `@/constants/tabPages`
 import { isPrimaryTabPath } from '@/constants/tabPages';
-// [zh] 导入 `@/utils/image`
 import { resolveAvatarUrl } from '@/utils/image';
-// [zh] 导入 `@/stores/search`
 import { useSearchStore } from '@/stores/search';
-// [zh] 导入 `@/utils/category`
 import { flattenCategoryOptions, normalizeCategoryTree } from '@/utils/category';
-// [zh] 导入 `@/utils/confirm`
 import { confirmAction } from '@/utils/confirm';
-// [zh] 导入 `@/utils/scrollMemory`
 import { restoreScrollForPath, saveScrollForPath } from '@/utils/scrollMemory';
-// [zh] 导入 `@/utils/notification`
 import { navigateNotification, type NotificationData } from '@/utils/notification';
-// [zh] 导入 `@/utils/toast`
 import { toast } from '@/utils/toast';
 
-// [zh] 声明变量 `router`
 const router = useRouter();
-// [zh] 声明变量 `searchStore`
 const searchStore = useSearchStore();
-// [zh] 声明变量 `route`
 const route = useRoute();
-// [zh] 声明变量 `authStore`
 const authStore = useAuthStore();
-// [zh] 声明变量 `cartStore`
 const cartStore = useCartStore();
 
-// [zh] 声明变量 `keyword`
 const keyword = ref('');
-// [zh] 声明变量 `searchCategoryId`
 const searchCategoryId = ref('');
-// [zh] 声明变量 `categoryList`
 const categoryList = ref<any[]>([]);
-// [zh] 声明变量 `mobileMenuOpen`
 const mobileMenuOpen = ref(false);
-// [zh] 声明变量 `isMobile`
 const isMobile = ref(false);
-// [zh] 语句
 const { unreadCount, refreshUnreadCount } = useUnreadCount();
 
-// [zh] 声明变量 `isHomeTab`
 const isHomeTab = computed(() => route.path === '/');
-// [zh] 声明变量 `isPrimaryTab`
 const isPrimaryTab = computed(() => isPrimaryTabPath(route.path));
 
-// [zh] 声明变量 `showSiteHeader`
 const showSiteHeader = computed(() => false);
 
-// [zh] 声明变量 `tabHeader`
 const tabHeader = computed(() => {
-  // [zh] 条件判断 if
   if (!isPrimaryTab.value || isHomeTab.value) return null;
-  // [zh] 代码块开始
   switch (route.path) {
-    // [zh] TypeScript/JS 语句：`case '/search':`
     case '/search':
-      // [zh] 条件判断 if
       if (isMobile.value) return null;
-      // [zh] return 返回
       return { title: '分类' };
-    // [zh] TypeScript/JS 语句：`case '/cart':`
     case '/cart':
-      // [zh] return 返回
       return {
-        // [zh] TypeScript/JS 语句：`title:`
         title:
-          // [zh] TypeScript/JS 语句：`cartStore.cartCount > 0 ? `购物车(${cartStore.cartCount})``
           cartStore.cartCount > 0 ? `购物车(${cartStore.cartCount})` : '购物车'
-      // [zh] 语句
       };
-    // [zh] TypeScript/JS 语句：`case '/account':`
     case '/account':
-      // [zh] 条件判断 if
       if (isMobile.value) return null;
-      // [zh] return 返回
       return { title: '我的' };
-    // [zh] TypeScript/JS 语句：`default:`
     default:
-      // [zh] return 返回
       return null;
-  // [zh] 语法符号
   }
-// [zh] 语句
 });
 
-// [zh] 声明变量 `layoutClasses`
 const layoutClasses = computed(() => ({
-  // [zh] TypeScript/JS 语句：`'is-mobile': isMobile.value,`
   'is-mobile': isMobile.value,
-  // [zh] TypeScript/JS 语句：`'is-home-page': isHomeTab.value,`
   'is-home-page': isHomeTab.value,
-  // [zh] TypeScript/JS 语句：`'is-tab-page': !!tabHeader.value,`
   'is-tab-page': !!tabHeader.value,
-  // [zh] TypeScript/JS 语句：`'is-primary-tab': isMobile.value && isPrimaryTab.value,`
   'is-primary-tab': isMobile.value && isPrimaryTab.value,
-  // [zh] TypeScript/JS 语句：`'is-account-tab': isMobile.value && route.path === '/ac`
   'is-account-tab': isMobile.value && route.path === '/account',
-  // [zh] TypeScript/JS 语句：`'is-cate-tab': isMobile.value && route.path === '/searc`
   'is-cate-tab': isMobile.value && route.path === '/search'
-// [zh] 语句
 }));
 
-// [zh] 声明变量 `showFooter`
 const showFooter = computed(() => true);
 
-// [zh] 声明变量 `showPageBack`
 const showPageBack = computed(() => {
-  // [zh] 条件判断 if
   if (route.meta.level === 1 || isPrimaryTab.value) return false;
-  // [zh] return 返回
   return route.meta.showBack === true;
-// [zh] 语句
 });
 
-// [zh] 声明变量 `avatarUrl`
 const avatarUrl = computed(() => resolveAvatarUrl(authStore.userInfo?.avatar));
 
-// [zh] 声明变量 `checkMobile`
 const checkMobile = () => {
-  // [zh] 语句
   isMobile.value = window.innerWidth < 768;
-// [zh] 语句
 };
 
-// [zh] 声明变量 `openSearchPortal`
 const openSearchPortal = () => {
-  // [zh] 声明变量 `keyWords`
   const keyWords = keyword.value.trim();
-  // [zh] 条件判断 if
   if (keyWords) {
-    // [zh] 代码块开始
     searchStore.setSearch({
-      // [zh] TypeScript/JS 语句：`keyWords,`
       keyWords,
-      // [zh] TypeScript/JS 语句：`categoryId: searchCategoryId.value || ''`
       categoryId: searchCategoryId.value || ''
-    // [zh] 语句
     });
-  // [zh] 语法符号
   }
-  // [zh] 语句
   router.push('/search-portal');
-// [zh] 语句
 };
 
-// [zh] 声明变量 `goSearch`
 const goSearch = () => {
-  // [zh] 声明变量 `keyWords`
   const keyWords = keyword.value.trim();
-  // [zh] 条件判断 if
   if (!keyWords) {
-    // [zh] 语句
     openSearchPortal();
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
-  // [zh] 代码块开始
   searchStore.setSearch({
-    // [zh] TypeScript/JS 语句：`keyWords,`
     keyWords,
-    // [zh] TypeScript/JS 语句：`categoryId: searchCategoryId.value || ''`
     categoryId: searchCategoryId.value || ''
-  // [zh] 语句
   });
-  // [zh] 语句
   router.push({ path: '/search-result', query: { q: keyWords } });
-// [zh] 语句
 };
 
-// [zh] 声明变量 `navAndClose`
 const navAndClose = (path: string) => {
-  // [zh] 语句
   router.push(path);
-  // [zh] 语句
   mobileMenuOpen.value = false;
-// [zh] 语句
 };
 
-// [zh] 声明变量 `logout`
 const logout = async () => {
-  // [zh] 声明变量 `ok`
   const ok = await confirmAction('确定要退出当前账号吗？', {
-    // [zh] TypeScript/JS 语句：`title: '退出登录',`
     title: '退出登录',
-    // [zh] TypeScript/JS 语句：`confirmButtonText: '退出'`
     confirmButtonText: '退出'
-  // [zh] 语句
   });
-  // [zh] 条件判断 if
   if (!ok) return;
-  // [zh] 语句
   authStore.prepareLogoutNavigation();
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await authStore.logout();
-  // [zh] 语句
   toast.success('已退出登录');
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await router.replace({ path: '/login', query: {} });
-// [zh] 语句
 };
 
-// [zh] 声明变量 `handleNotificationClick`
 const handleNotificationClick = (notification: NotificationData) => {
-  // [zh] 语句
   void navigateNotification(router, notification, { refreshUnread: refreshUnreadCount });
-// [zh] 语句
 };
 
-// [zh] TypeScript/JS 语句：`watch(`
 watch(
-  // [zh] TypeScript/JS 语句：`() => route.path,`
   () => route.path,
-  // [zh] 代码块开始
   (path) => {
-    // [zh] 条件判断 if
     if (path === '/cart' && authStore.isLoggedIn) {
-      // [zh] 语句
       cartStore.fetchCartCount();
-    // [zh] 语法符号
     }
-    // [zh] 条件判断 if
     if (path === '/notifications' || path === '/account') {
-      // [zh] 语句
       refreshUnreadCount();
-    // [zh] 语法符号
     }
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] TypeScript/JS 语句：`{ immediate: true }`
   { immediate: true }
-// [zh] 语句
 );
 
-// [zh] TypeScript/JS 语句：`watch(`
 watch(
-  // [zh] TypeScript/JS 语句：`() => authStore.isLoggedIn,`
   () => authStore.isLoggedIn,
-  // [zh] 代码块开始
   (loggedIn) => {
-    // [zh] 条件判断 if
     if (loggedIn) {
-      // [zh] 语句
       refreshUnreadCount();
-    // [zh] 代码块开始
     } else {
-      // [zh] 语句
       unreadCount.value = 0;
-    // [zh] 语法符号
     }
-  // [zh] 语法符号
   }
-// [zh] 语句
 );
 
-// [zh] 代码块开始
 onMounted(async () => {
-  // [zh] 语句
   checkMobile();
-  // [zh] 语句
   window.addEventListener('resize', checkMobile);
-  // [zh] 声明变量 `cats`
   const cats = await productApi.loadCategory();
-  // [zh] 语句
   categoryList.value = flattenCategoryOptions(normalizeCategoryTree(cats || []));
-  // [zh] 条件判断 if
   if (authStore.isLoggedIn) {
-    // [zh] 语句
     cartStore.fetchCartCount();
-    // [zh] 语句
     refreshUnreadCount();
-  // [zh] 语法符号
   }
-// [zh] 语句
 });
 
-// [zh] 语句
 onUnmounted(() => window.removeEventListener('resize', checkMobile));
 
-// [zh] 代码块开始
 router.beforeEach((to, from) => {
-  // [zh] 条件判断 if
   if (!from.fullPath || to.fullPath === from.fullPath) return;
-  // [zh] 声明变量 `tabSwitch`
   const tabSwitch = isPrimaryTabPath(from.path) && isPrimaryTabPath(to.path);
-  // [zh] 条件判断 if
   if (!tabSwitch) saveScrollForPath(from.fullPath);
-// [zh] 语句
 });
 
-// [zh] 声明变量 `restoreScrollPosition`
 const restoreScrollPosition = (path = route.fullPath) => {
-  // [zh] 语句
   restoreScrollForPath(path);
-// [zh] 语句
 };
 
-// [zh] 代码块开始
 onMounted(() => {
-  // [zh] 代码块开始
   router.afterEach((to, from) => {
-    // [zh] 声明变量 `tabSwitch`
     const tabSwitch =
-      // [zh] 语句
       isPrimaryTabPath(to.path) && isPrimaryTabPath(from.path);
-    // [zh] 条件判断 if
     if (tabSwitch) return;
-    // [zh] 语句
     nextTick(() => restoreScrollPosition(to.fullPath));
-  // [zh] 语句
   });
-  // [zh] 语句
   restoreScrollPosition();
-// [zh] 语句
 });
 </script>
 
@@ -584,14 +420,12 @@ onMounted(() => {
 
   /* [zh] 样式规则 `&.is-tab-page .main-wrap {` */
   &.is-tab-page .main-wrap {
-    /* [zh] 样式规则 `padding-top: calc(#{$tab-header-height} ` */
     padding-top: calc(#{$tab-header-height} + env(safe-area-inset-top, 0));
   /* [zh] 样式规则 `}` */
   }
 
   /* [zh] 样式规则 `&.is-home-page .main-wrap {` */
   &.is-home-page .main-wrap {
-    /* [zh] 样式规则 `padding-top: calc(#{$home-search-bar-hei` */
     padding-top: calc(#{$home-search-bar-height} + env(safe-area-inset-top, 0));
   /* [zh] 样式规则 `}` */
   }
@@ -1183,7 +1017,6 @@ onMounted(() => {
 .main-wrap {
   /* [zh] 样式规则 `padding-top: 16px;` */
   padding-top: 16px;
-  /* [zh] 样式规则 `min-height: calc(100vh - #{$footer-heigh` */
   min-height: calc(100vh - #{$footer-height});
 /* [zh] 样式规则 `}` */
 }

@@ -124,442 +124,239 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
-// [zh] 导入 `vue-router`
 import { useRouter } from 'vue-router';
-// [zh] 导入 `模块`
 import {
-  // [zh] TypeScript/JS 语句：`ArrowRight,`
   ArrowRight,
-  // [zh] TypeScript/JS 语句：`ChatDotRound,`
   ChatDotRound,
-  // [zh] TypeScript/JS 语句：`Grid,`
   Grid,
-  // [zh] TypeScript/JS 语句：`List,`
   List,
-  // [zh] TypeScript/JS 语句：`Present,`
   Present,
-  // [zh] TypeScript/JS 语句：`Ticket`
   Ticket
-// [zh] 语句
 } from '@element-plus/icons-vue';
-// [zh] 导入 `@/components/business/ProductCard.vue`
 import ProductCard from '@/components/business/ProductCard.vue';
-// [zh] 导入 `@/components/common/ProductImage.vue`
 import ProductImage from '@/components/common/ProductImage.vue';
-// [zh] 导入 `@/components/business/AIGuideCard.vue`
 import AIGuideCard from '@/components/business/AIGuideCard.vue';
-// [zh] 导入 `@/components/business/HomeFeatureCards.vue`
 import HomeFeatureCards from '@/components/business/HomeFeatureCards.vue';
-// [zh] 导入 `@/api/modules`
 import { productApi } from '@/api/modules';
-// [zh] 导入 `@/composables/pullRefresh`
 import { usePageRefresh } from '@/composables/pullRefresh';
-// [zh] 导入 `@/utils/standalone`
 import { isStandaloneDisplay } from '@/utils/standalone';
-// [zh] 导入 `@/utils/product`
 import { filterOnSaleProducts } from '@/utils/product';
-// [zh] 导入 `@/integrations/featureRegistry`
 import { isFeatureSupported } from '@/integrations/featureRegistry';
-// [zh] 导入 `@/stores/auth`
 import { useAuthStore } from '@/stores/auth';
-// [zh] 导入 `模块`
 import {
-  // [zh] TypeScript/JS 语句：`applyScroll,`
   applyScroll,
-  // [zh] TypeScript/JS 语句：`getScrollForPath,`
   getScrollForPath,
-  // [zh] TypeScript/JS 语句：`restoreScrollForPath,`
   restoreScrollForPath,
-  // [zh] TypeScript/JS 语句：`saveScrollForPath`
   saveScrollForPath
-// [zh] 语句
 } from '@/utils/scrollMemory';
-// [zh] 导入 `模块`
 import {
-  // [zh] TypeScript/JS 语句：`clearHomeBootstrap,`
   clearHomeBootstrap,
-  // [zh] TypeScript/JS 语句：`prefetchHomeBootstrap,`
   prefetchHomeBootstrap,
-  // [zh] TypeScript/JS 语句：`signalHomeSplashPaintReady,`
   signalHomeSplashPaintReady,
-  // [zh] TypeScript/JS 语句：`takeHomeBootstrap,`
   takeHomeBootstrap,
-  // [zh] TypeScript/JS 语句：`waitForHomeVisibleImagesInDom`
   waitForHomeVisibleImagesInDom
-// [zh] 语句
 } from '@/utils/homeBootstrap';
 
-// [zh] 声明变量 `router`
 const router = useRouter();
-// [zh] 声明变量 `authStore`
 const authStore = useAuthStore();
-// [zh] 声明变量 `loading`
 const loading = ref(true);
-// [zh] 声明变量 `feedLoadError`
 const feedLoadError = ref(false);
-// [zh] 声明变量 `products`
 const products = ref<any[]>([]);
-// [zh] 声明变量 `hotProductsList`
 const hotProductsList = ref<any[]>([]);
-// [zh] 声明变量 `homeScrollRef`
 const homeScrollRef = ref<HTMLElement | null>(null);
 
-// [zh] 声明变量 `menuIconStyle`
 const menuIconStyle = computed(() => {
-  // [zh] 声明变量 `level`
   const level = authStore.memberLevelCode;
-  // [zh] 条件判断 if
   if (level >= 3) {
-    // [zh] return 返回
     return { color: '#B8860B' };
-  // [zh] 语法符号
   }
-  // [zh] 条件判断 if
   if (level >= 2) {
-    // [zh] return 返回
     return { color: '#757575' };
-  // [zh] 语法符号
   }
-  // [zh] return 返回
   return { color: '#1D1D1F' };
-// [zh] 语句
 });
 
-// [zh] 声明变量 `feedSentinel`
 const feedSentinel = ref<HTMLElement | null>(null);
-// [zh] 声明变量 `feedPageNo`
 const feedPageNo = ref(0);
-// [zh] 声明变量 `feedPageTotal`
 const feedPageTotal = ref(1);
-// [zh] 声明变量 `feedLoading`
 const feedLoading = ref(false);
-// [zh] 声明变量 `feedFinished`
 const feedFinished = ref(false);
-// [zh] 声明变量 `MAX_PRODUCTS`
 const MAX_PRODUCTS = 120;
-// [zh] 声明变量 `feedObserver`
 let feedObserver: IntersectionObserver | null = null;
 
-// [zh] 声明变量 `menuItems`
 const menuItems = computed(() => {
 
-  // [zh] 声明变量 `all`
   const all = [
-    // [zh] TypeScript/JS 语句：`{ label: '全部分类', icon: Grid, path: '/search', feature: `
     { label: '全部分类', icon: Grid, path: '/search', feature: 'category_tree' as const },
-    // [zh] TypeScript/JS 语句：`{ label: '优惠券', icon: Ticket, path: '/coupons', feature`
     { label: '优惠券', icon: Ticket, path: '/coupons', feature: 'coupon_plaza' as const },
-    // [zh] TypeScript/JS 语句：`{ label: '我的订单', icon: List, path: '/orders', feature: `
     { label: '我的订单', icon: List, path: '/orders', feature: 'order_list' as const },
-    // [zh] TypeScript/JS 语句：`{ label: '签到有礼', icon: Present, path: '/sign', feature:`
     { label: '签到有礼', icon: Present, path: '/sign', feature: 'sign_in' as const },
-    // [zh] TypeScript/JS 语句：`{ label: '智能客服', icon: ChatDotRound, path: '/ai-assista`
     { label: '智能客服', icon: ChatDotRound, path: '/ai-assistant', feature: 'agent_chat' as const }
-  // [zh] 语句
   ];
-  // [zh] return 返回
   return all.filter((m) => isFeatureSupported(m.feature));
-// [zh] 语句
 });
 
-// [zh] 声明变量 `editorPicks`
 const editorPicks = computed(() => hotProductsList.value.slice(0, 4));
 
-// [zh] 声明变量 `formatPrice`
 const formatPrice = (price: any): string => {
-  // [zh] 声明变量 `n`
   const n = Number(price);
-  // [zh] 条件判断 if
   if (isNaN(n)) return '--';
-  // [zh] return 返回
   return n.toFixed(2);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `displayProducts`
 const displayProducts = computed(() => {
-  // [zh] 条件判断 if
   if (products.value.length === 0) return [];
 
-  // [zh] 声明变量 `result`
   const result: { product: any; displayIndex: number }[] = [];
-  // [zh] 声明变量 `sourceLength`
   const sourceLength = products.value.length;
 
-  // [zh] for 循环
   for (let i = 0; i < MAX_PRODUCTS; i++) {
-    // [zh] 声明变量 `sourceIndex`
     const sourceIndex = i % sourceLength;
-    // [zh] 语句
     result.push({ product: products.value[sourceIndex], displayIndex: i });
-  // [zh] 语法符号
   }
 
-  // [zh] return 返回
   return result;
-// [zh] 语句
 });
 
-// [zh] 声明变量 `loadFeed`
 const loadFeed = async (reset = false) => {
-  // [zh] 条件判断 if
   if (feedLoading.value) return;
 
-  // [zh] 条件判断 if
   if (reset) {
-    // [zh] 语句
     feedPageNo.value = 0;
-    // [zh] 语句
     feedPageTotal.value = 1;
-    // [zh] 语句
     feedFinished.value = false;
-    // [zh] 语句
     products.value = [];
-  // [zh] 语法符号
   }
 
-  // [zh] 条件判断 if
   if (feedFinished.value) return;
 
-  // [zh] 语句
   feedLoading.value = true;
-  // [zh] 语句
   feedLoadError.value = false;
-  // [zh] 代码块开始
   try {
-    // [zh] 声明变量 `next`
     const next = feedPageNo.value + 1;
-    // [zh] 声明变量 `page`
     const page = await productApi.loadProduct({ pageNo: next });
-    // [zh] 声明变量 `chunk`
     const chunk = filterOnSaleProducts(page?.list);
 
-    // [zh] 条件判断 if
     if (chunk.length > 0) {
-      // [zh] 声明变量 `existingIds`
       const existingIds = new Set(products.value.map(p => p.productId));
-      // [zh] 声明变量 `filtered`
       const filtered = chunk.filter(p => !existingIds.has(p.productId));
-      // [zh] 语句
       products.value = products.value.concat(filtered);
-    // [zh] 语法符号
     }
 
-    // [zh] 语句
     feedPageNo.value = Number(page?.pageNo) || next;
-    // [zh] 语句
     feedPageTotal.value = Number(page?.pageTotal) || feedPageNo.value;
 
-    // [zh] 声明变量 `hasMoreData`
     const hasMoreData = chunk.length > 0 && feedPageNo.value < feedPageTotal.value;
 
-    // [zh] 条件判断 if
     if (!hasMoreData) {
-      // [zh] 语句
       feedFinished.value = true;
-    // [zh] 语法符号
     }
-  // [zh] 代码块开始
   } catch (error) {
-    // [zh] 语句
     console.error('HomeView: loadFeed error', error);
-    // [zh] 语句
     feedLoadError.value = true;
-  // [zh] 代码块开始
   } finally {
-    // [zh] 语句
     feedLoading.value = false;
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 声明变量 `retryFeed`
 const retryFeed = () => {
-  // [zh] 语句
   void loadFeed(products.value.length === 0);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `resetHomeScroll`
 const resetHomeScroll = () => {
-  // [zh] 语句
   saveScrollForPath('/', { top: 0, target: 'window' });
-  // [zh] 语句
   applyScroll({ top: 0, target: 'window' });
-  // [zh] 条件判断 if
   if (homeScrollRef.value) homeScrollRef.value.scrollTop = 0;
-// [zh] 语句
 };
 
-// [zh] 声明变量 `load`
 const load = async (opts?: { prefetch?: boolean; fromPullRefresh?: boolean }) => {
-  // [zh] 语句
   loading.value = true;
-  // [zh] 代码块开始
   try {
-    // [zh] 声明变量 `commend`
     const commend = await productApi.loadCommendProduct();
-    // [zh] 语句
     hotProductsList.value = filterOnSaleProducts(Array.isArray(commend) ? commend : commend?.list);
-    // [zh] await 等待 Promise（类比 CompletableFuture.get）
     await loadFeed(true);
 
-    // [zh] 条件判断 if
     if (opts?.prefetch) {
-      // [zh] 代码块开始
       while (!feedFinished.value && products.value.length < MAX_PRODUCTS) {
-        // [zh] await 等待 Promise（类比 CompletableFuture.get）
         await loadFeed();
-      // [zh] 语法符号
       }
-    // [zh] 语法符号
     }
-  // [zh] 代码块开始
   } finally {
-    // [zh] 语句
     loading.value = false;
-    // [zh] 条件判断 if
     if (opts?.fromPullRefresh) {
-      // [zh] await 等待 Promise（类比 CompletableFuture.get）
       await nextTick();
-      // [zh] 语句
       resetHomeScroll();
-      // [zh] 语句
       requestAnimationFrame(resetHomeScroll);
-    // [zh] 语法符号
     }
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 声明变量 `goDetail`
 const goDetail = (p: any) => {
-  // [zh] 条件判断 if
   if (p?.productId) router.push(`/product/${p.productId}`);
-// [zh] 语句
 };
 
-// [zh] 代码块开始
 onMounted(async () => {
-  // [zh] 声明变量 `savedScroll`
   const savedScroll = getScrollForPath('/');
-  // [zh] 声明变量 `shouldPrefetch`
   const shouldPrefetch = !savedScroll || savedScroll.top > 0;
-  // [zh] 声明变量 `bootstrap`
   let bootstrap = takeHomeBootstrap();
-  // [zh] 条件判断 if
   if (!bootstrap) {
-    // [zh] 代码块开始
     try {
-      // [zh] 语句
       bootstrap = await prefetchHomeBootstrap(shouldPrefetch);
-    // [zh] 代码块开始
     } catch {
-      // [zh] 语句
       bootstrap = null;
-    // [zh] 语法符号
     }
-  // [zh] 语法符号
   }
 
-  // [zh] 条件判断 if
   if (bootstrap) {
-    // [zh] 语句
     hotProductsList.value = bootstrap.hotProducts;
-    // [zh] 语句
     products.value = bootstrap.products;
-    // [zh] 语句
     feedPageNo.value = bootstrap.feedPageNo;
-    // [zh] 语句
     feedPageTotal.value = bootstrap.feedPageTotal;
-    // [zh] 语句
     feedFinished.value = bootstrap.feedFinished;
-    // [zh] 语句
     loading.value = false;
-    // [zh] 条件判断 if
     if (shouldPrefetch && !bootstrap.feedFinished) {
-      // [zh] 代码块开始
       void (async () => {
-        // [zh] 代码块开始
         while (!feedFinished.value && products.value.length < MAX_PRODUCTS) {
-          // [zh] await 等待 Promise（类比 CompletableFuture.get）
           await loadFeed();
-        // [zh] 语法符号
         }
-      // [zh] 语句
       })();
-    // [zh] 语法符号
     }
-  // [zh] 代码块开始
   } else {
-    // [zh] await 等待 Promise（类比 CompletableFuture.get）
     await Promise.all([
-      // [zh] TypeScript/JS 语句：`authStore.loadMemberLevel(),`
       authStore.loadMemberLevel(),
-      // [zh] TypeScript/JS 语句：`load({ prefetch: shouldPrefetch })`
       load({ prefetch: shouldPrefetch })
-    // [zh] 语句
     ]);
-  // [zh] 语法符号
   }
 
-  // [zh] 条件判断 if
   if (savedScroll && savedScroll.top > 0) {
-    // [zh] await 等待 Promise（类比 CompletableFuture.get）
     await nextTick();
-    // [zh] 语句
     restoreScrollForPath('/');
-  // [zh] 语法符号
   }
 
-  // [zh] TypeScript/JS 语句：`feedObserver = new IntersectionObserver(`
   feedObserver = new IntersectionObserver(
-    // [zh] 代码块开始
     (entries) => {
-      // [zh] 条件判断 if
       if (entries.some((e) => e.isIntersecting)) loadFeed();
-    // [zh] TypeScript/JS 语句：`},`
     },
-    // [zh] TypeScript/JS 语句：`{ rootMargin: '400px 0px' }`
     { rootMargin: '400px 0px' }
-  // [zh] 语句
   );
-  // [zh] 条件判断 if
   if (feedSentinel.value) feedObserver.observe(feedSentinel.value);
 
-  // [zh] 条件判断 if
   if (isStandaloneDisplay()) {
-    // [zh] await 等待 Promise（类比 CompletableFuture.get）
     await waitForHomeVisibleImagesInDom(homeScrollRef.value);
-    // [zh] 语句
     signalHomeSplashPaintReady();
-  // [zh] 语法符号
   }
-// [zh] 语句
 });
 
-// [zh] 代码块开始
 onUnmounted(() => {
-  // [zh] 语句
   feedObserver?.disconnect();
-  // [zh] 语句
   feedObserver = null;
-// [zh] 语句
 });
 
-// [zh] 代码块开始
 usePageRefresh(() => {
-  // [zh] 语句
   clearHomeBootstrap();
-  // [zh] return 返回
   return load({ prefetch: false, fromPullRefresh: true });
-// [zh] 语句
 });
 </script>
 

@@ -51,207 +51,111 @@
   </Drawer>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `@/components/markdown/EditorMarkdown.vue`
 import EditorMarkdown from '@/components/markdown/EditorMarkdown.vue'
-// [zh] 导入 `vue`
 import { ref, reactive, getCurrentInstance, nextTick } from 'vue'
-// [zh] 导入 `vue-router`
 import { useRouter, useRoute } from 'vue-router'
-// [zh] TypeScript/JS 语句：`const { proxy } = getCurrentInstance()`
 const { proxy } = getCurrentInstance()
-// [zh] 声明变量 `router`
 const router = useRouter()
-// [zh] 声明变量 `route`
 const route = useRoute()
 
-// [zh] 声明变量 `dialogConfig`
 const dialogConfig = ref({
-  // [zh] TypeScript/JS 语句：`show: false,`
   show: false,
-  // [zh] TypeScript/JS 语句：`title: '编辑问题',`
   title: '编辑问题',
-  // [zh] TypeScript/JS 语句：`buttons: [`
   buttons: [
-    // [zh] 代码块开始
     {
-      // [zh] TypeScript/JS 语句：`type: 'primary',`
       type: 'primary',
-      // [zh] TypeScript/JS 语句：`text: '保存',`
       text: '保存',
-      // [zh] 代码块开始
       click: (e) => {
-        // [zh] TypeScript/JS 语句：`sumitForm()`
         sumitForm()
-      // [zh] TypeScript/JS 语句：`},`
       },
-    // [zh] TypeScript/JS 语句：`},`
     },
-  // [zh] 语法符号
   ],
-// [zh] TypeScript/JS 语句：`})`
 })
 
-// [zh] 声明变量 `show`
 const show = async (data = {}) => {
-  // [zh] TypeScript/JS 语句：`dialogConfig.value.show = true`
   dialogConfig.value.show = true
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await nextTick()
-  // [zh] TypeScript/JS 语句：`formDataRef.value.resetFields()`
   formDataRef.value.resetFields()
-  // [zh] TypeScript/JS 语句：`formData.value = { ...data }`
   formData.value = { ...data }
-  // [zh] 条件判断 if
   if (!formData.value.similarQuestion) {
-    // [zh] TypeScript/JS 语句：`formData.value.similarQuestion = []`
     formData.value.similarQuestion = []
-  // [zh] 语法符号
   }
-// [zh] 语法符号
 }
 
-// [zh] 代码块开始
 defineExpose({
-  // [zh] TypeScript/JS 语句：`show,`
   show,
-// [zh] TypeScript/JS 语句：`})`
 })
 
-// [zh] 声明变量 `formData`
 const formData = ref({
-  // [zh] TypeScript/JS 语句：`similarQuestion: [],`
   similarQuestion: [],
-// [zh] TypeScript/JS 语句：`})`
 })
 
-// [zh] 声明变量 `formDataRef`
 const formDataRef = ref()
-// [zh] 声明变量 `rules`
 const rules = {
-  // [zh] TypeScript/JS 语句：`question: [{ required: true, message: '请输入问题', trigger:`
   question: [{ required: true, message: '请输入问题', trigger: 'blur' }],
-  // [zh] TypeScript/JS 语句：`answer: [{ required: true, message: '请输入答案', trigger: '`
   answer: [{ required: true, message: '请输入答案', trigger: 'blur' }],
-  // [zh] TypeScript/JS 语句：`similarQuestion: [`
   similarQuestion: [
-    // [zh] 代码块开始
     {
-      // [zh] 代码块开始
       validator: (rule, value, callback) => {
-        // [zh] 条件判断 if
         if (value.length == 0) {
-          // [zh] TypeScript/JS 语句：`callback()`
           callback()
-          // [zh] TypeScript/JS 语句：`return`
           return
-        // [zh] 语法符号
         }
-        // [zh] 声明变量 `empty`
         const empty = value.find((item) => {
-          // [zh] return 返回
           return item.trim() === ''
-        // [zh] TypeScript/JS 语句：`})`
         })
-        // [zh] 条件判断 if
         if (empty != null) {
-          // [zh] TypeScript/JS 语句：`callback(new Error('相似问题不能为空'))`
           callback(new Error('相似问题不能为空'))
-          // [zh] TypeScript/JS 语句：`return`
           return
-        // [zh] 语法符号
         }
-        // [zh] 声明变量 `uniqueQuestions`
         const uniqueQuestions = [...new Set(value)]
-        // [zh] 条件判断 if
         if (uniqueQuestions.length !== value.length) {
-          // [zh] TypeScript/JS 语句：`callback(new Error('存在重复的相似问题'))`
           callback(new Error('存在重复的相似问题'))
-        // [zh] 代码块开始
         } else {
-          // [zh] TypeScript/JS 语句：`callback()`
           callback()
-        // [zh] 语法符号
         }
-      // [zh] TypeScript/JS 语句：`},`
       },
-      // [zh] TypeScript/JS 语句：`trigger: 'blur',`
       trigger: 'blur',
-    // [zh] TypeScript/JS 语句：`},`
     },
-  // [zh] 语法符号
   ],
-// [zh] 语法符号
 }
 
 
-// [zh] 声明变量 `addSimilarQuestion`
 const addSimilarQuestion = () => {
-  // [zh] TypeScript/JS 语句：`formData.value.similarQuestion.push('')`
   formData.value.similarQuestion.push('')
-// [zh] 语法符号
 }
 
 
-// [zh] 声明变量 `delSimilarQuestion`
 const delSimilarQuestion = (index) => {
-  // [zh] TypeScript/JS 语句：`formData.value.similarQuestion.splice(index, 1)`
   formData.value.similarQuestion.splice(index, 1)
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `emit`
 const emit = defineEmits(['reload'])
-// [zh] 声明变量 `sumitForm`
 const sumitForm = () => {
-  // [zh] 代码块开始
   formDataRef.value.validate(async (valid) => {
-    // [zh] 条件判断 if
     if (!valid) {
-      // [zh] TypeScript/JS 语句：`return`
       return
-    // [zh] 语法符号
     }
-    // [zh] 声明变量 `params`
     let params = {}
-    // [zh] TypeScript/JS 语句：`Object.assign(params, formData.value)`
     Object.assign(params, formData.value)
-    // [zh] 条件判断 if
     if (params.similarQuestion.length > 0) {
-      // [zh] TypeScript/JS 语句：`params.similarQuestion = JSON.stringify(params.similarQ`
       params.similarQuestion = JSON.stringify(params.similarQuestion)
-    // [zh] 代码块开始
     } else {
-      // [zh] TypeScript/JS 语句：`delete params.similarQuestion`
       delete params.similarQuestion
-    // [zh] 语法符号
     }
-    // [zh] 声明变量 `result`
     let result = await proxy.Request({
-      // [zh] TypeScript/JS 语句：`url: proxy.Api.saveRagQuestion,`
       url: proxy.Api.saveRagQuestion,
-      // [zh] TypeScript/JS 语句：`params,`
       params,
-    // [zh] TypeScript/JS 语句：`})`
     })
-    // [zh] 条件判断 if
     if (!result) {
-      // [zh] TypeScript/JS 语句：`return`
       return
-    // [zh] 语法符号
     }
-    // [zh] TypeScript/JS 语句：`dialogConfig.value.show = false`
     dialogConfig.value.show = false
-    // [zh] TypeScript/JS 语句：`proxy.Message.success('保存成功')`
     proxy.Message.success('保存成功')
-    // [zh] TypeScript/JS 语句：`emit('reload')`
     emit('reload')
-    // [zh] TypeScript/JS 语句：`return`
     return
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 </script>
 

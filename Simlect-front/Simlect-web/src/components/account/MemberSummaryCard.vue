@@ -28,141 +28,76 @@
   </RouterLink>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed } from 'vue';
-// [zh] 导入 `vue-router`
 import { RouterLink } from 'vue-router';
-// [zh] 导入 `@element-plus/icons-vue`
 import { ArrowRight } from '@element-plus/icons-vue';
-// [zh] 导入 `@/constants/member`
 import { calcMemberGrowthHint, calcMemberGrowthPercent } from '@/constants/member';
 
-// [zh] 声明变量 `props`
 const props = defineProps<{
-  // [zh] 语句
   profile?: Record<string, any> | null;
-  // [zh] 语句
   claimableCount?: number;
 
-  // [zh] 语句
   nextLevelGrowth?: number | null;
-  // [zh] 语句
   growthToNext?: number | null;
-// [zh] 语句
 }>();
 
-// [zh] 声明变量 `growthHints`
 const growthHints = computed(() => ({
-  // [zh] TypeScript/JS 语句：`nextLevelGrowth: props.nextLevelGrowth ?? null,`
   nextLevelGrowth: props.nextLevelGrowth ?? null,
-  // [zh] TypeScript/JS 语句：`growthToNext: props.growthToNext ?? null`
   growthToNext: props.growthToNext ?? null
-// [zh] 语句
 }));
-// [zh] 声明变量 `growthPercent`
 const growthPercent = computed(() =>
-  // [zh] TypeScript/JS 语句：`calcMemberGrowthPercent(props.profile?.growthValue ?? 0`
   calcMemberGrowthPercent(props.profile?.growthValue ?? 0, growthHints.value)
-// [zh] 语句
 );
-// [zh] 声明变量 `growthHint`
 const growthHint = computed(() =>
-  // [zh] TypeScript/JS 语句：`calcMemberGrowthHint(props.profile?.growthValue ?? 0, g`
   calcMemberGrowthHint(props.profile?.growthValue ?? 0, growthHints.value)
-// [zh] 语句
 );
-// [zh] 声明变量 `growthBarColor`
 const growthBarColor = computed(() => {
-  // [zh] 声明变量 `code`
   const code = Number(props.profile?.levelCode ?? 1);
-  // [zh] 条件判断 if
   if (code >= 3) return '#c9a962';
-  // [zh] 条件判断 if
   if (code >= 2) return '#a8a8ad';
-  // [zh] return 返回
   return '#c9a962';
-// [zh] 语句
 });
 
-// [zh] 声明变量 `cardLevelClass`
 const cardLevelClass = computed(() => {
-  // [zh] 声明变量 `code`
   const code = Number(props.profile?.levelCode ?? 1);
-  // [zh] 条件判断 if
   if (code >= 3) return 'level-gold';
-  // [zh] 条件判断 if
   if (code >= 2) return 'level-silver';
-  // [zh] return 返回
   return 'level-default';
-// [zh] 语句
 });
 
-// [zh] 声明变量 `badgeStyle`
 const badgeStyle = computed(() => {
-  // [zh] 声明变量 `code`
   const code = Number(props.profile?.levelCode ?? 1);
-  // [zh] 条件判断 if
   if (code >= 3) {
-    // [zh] return 返回
     return {
-      // [zh] TypeScript/JS 语句：`background: 'linear-gradient(135deg, #e8c96a 0%, #c9a96`
       background: 'linear-gradient(135deg, #e8c96a 0%, #c9a962 100%)',
-      // [zh] TypeScript/JS 语句：`color: '#fff',`
       color: '#fff',
-      // [zh] TypeScript/JS 语句：`border: '1px solid rgba(201, 169, 98, 0.45)'`
       border: '1px solid rgba(201, 169, 98, 0.45)'
-    // [zh] 语句
     };
-  // [zh] 语法符号
   }
-  // [zh] 条件判断 if
   if (code >= 2) {
-    // [zh] return 返回
     return {
-      // [zh] TypeScript/JS 语句：`background: 'linear-gradient(135deg, #d4d4d8 0%, #a8a8a`
       background: 'linear-gradient(135deg, #d4d4d8 0%, #a8a8ad 100%)',
-      // [zh] TypeScript/JS 语句：`color: '#fff',`
       color: '#fff',
-      // [zh] TypeScript/JS 语句：`border: '1px solid rgba(168, 168, 173, 0.4)'`
       border: '1px solid rgba(168, 168, 173, 0.4)'
-    // [zh] 语句
     };
-  // [zh] 语法符号
   }
-  // [zh] return 返回
   return {
-    // [zh] TypeScript/JS 语句：`background: 'var(--ios-fill-muted, #f5f5f7)',`
     background: 'var(--ios-fill-muted, #f5f5f7)',
-    // [zh] TypeScript/JS 语句：`color: '#3c3c43',`
     color: '#3c3c43',
-    // [zh] TypeScript/JS 语句：`border: '1px solid var(--ios-separator, rgba(60, 60, 67`
     border: '1px solid var(--ios-separator, rgba(60, 60, 67, 0.1))'
-  // [zh] 语句
   };
-// [zh] 语句
 });
 
-// [zh] 声明变量 `lvStyle`
 const lvStyle = computed(() => {
-  // [zh] 声明变量 `code`
   const code = Number(props.profile?.levelCode ?? 1);
-  // [zh] 条件判断 if
   if (code >= 3) {
-    // [zh] return 返回
     return { color: '#8b7355' };
-  // [zh] 语法符号
   }
-  // [zh] 条件判断 if
   if (code >= 2) {
-    // [zh] return 返回
     return { color: '#4a4a4f' };
-  // [zh] 语法符号
   }
-  // [zh] return 返回
   return { color: '#333333' };
-// [zh] 语句
 });
 </script>
 

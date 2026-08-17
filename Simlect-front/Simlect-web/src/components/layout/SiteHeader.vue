@@ -169,249 +169,135 @@
   </header>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed, onMounted, ref } from 'vue';
-// [zh] 导入 `vue-router`
 import { RouterLink, useRouter } from 'vue-router';
-// [zh] 导入 `@element-plus/icons-vue`
 import { ArrowDown, Bell, ShoppingCart } from '@element-plus/icons-vue';
-// [zh] 导入 `@/composables/useUnreadCount`
 import { useUnreadCount } from '@/composables/useUnreadCount';
-// [zh] 导入 `@/api/modules`
 import { productApi, searchApi } from '@/api/modules';
-// [zh] 导入 `@/constants/searchHotWords`
 import { DEFAULT_HOT_SEARCH_WORDS } from '@/constants/searchHotWords';
-// [zh] 导入 `@/utils/confirm`
 import { confirmAction } from '@/utils/confirm';
-// [zh] 导入 `@/stores/auth`
 import { useAuthStore } from '@/stores/auth';
-// [zh] 导入 `@/stores/cart`
 import { useCartStore } from '@/stores/cart';
-// [zh] 导入 `@/stores/search`
 import { useSearchStore } from '@/stores/search';
-// [zh] 导入 `@/utils/category`
 import { flattenCategoryOptions, normalizeCategoryTree } from '@/utils/category';
-// [zh] 导入 `@/utils/image`
 import { resolveAvatarUrl } from '@/utils/image';
-// [zh] 导入 `@/composables/useOpenAgent`
 import { useOpenAgent } from '@/composables/useOpenAgent';
-// [zh] 导入 `@/components/common/BrandMark.vue`
 import BrandMark from '@/components/common/BrandMark.vue';
-// [zh] 导入 `@/utils/toast`
 import { toast } from '@/utils/toast';
 
-// [zh] 声明变量 `props`
 const props = withDefaults(
-  // [zh] 代码块开始
   defineProps<{
-    // [zh] 语句
     simlectSearch?: boolean;
-  // [zh] TypeScript/JS 语句：`}>(),`
   }>(),
-  // [zh] TypeScript/JS 语句：`{ simlectSearch: false }`
   { simlectSearch: false }
-// [zh] 语句
 );
 
-// [zh] 声明变量 `router`
 const router = useRouter();
-// [zh] 语句
 const { openAgent } = useOpenAgent();
-// [zh] 声明变量 `searchStore`
 const searchStore = useSearchStore();
-// [zh] 声明变量 `authStore`
 const authStore = useAuthStore();
-// [zh] 声明变量 `cartStore`
 const cartStore = useCartStore();
-// [zh] 语句
 const { unreadCount } = useUnreadCount();
 
-// [zh] 声明变量 `keyword`
 const keyword = ref('');
-// [zh] 声明变量 `searchCategoryId`
 const searchCategoryId = ref('');
-// [zh] 声明变量 `categoryList`
 const categoryList = ref<any[]>([]);
-// [zh] 声明变量 `hotWords`
 const hotWords = ref<string[]>(DEFAULT_HOT_SEARCH_WORDS.slice(0, 8));
-// [zh] 声明变量 `recentWords`
 const recentWords = ref<string[]>([]);
-// [zh] 声明变量 `showRecentPanel`
 const showRecentPanel = ref(false);
 
-// [zh] 声明变量 `avatarUrl`
 const avatarUrl = computed(() => resolveAvatarUrl(authStore.userInfo?.avatar));
 
-// [zh] 声明变量 `refreshRecent`
 const refreshRecent = async () => {
-  // [zh] 条件判断 if
   if (!authStore.isLoggedIn) {
-    // [zh] 语句
     recentWords.value = [];
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
-  // [zh] 代码块开始
   try {
-    // [zh] 声明变量 `list`
     const list = await searchApi.loadRecentKeywords();
-    // [zh] 语句
     recentWords.value = Array.isArray(list) ? list.slice(0, 10) : [];
-  // [zh] 代码块开始
   } catch {
-    // [zh] 语句
     recentWords.value = [];
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 声明变量 `openRecentPanel`
 const openRecentPanel = async () => {
-  // [zh] 语句
   showRecentPanel.value = true;
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await refreshRecent();
-// [zh] 语句
 };
 
-// [zh] 声明变量 `closeRecentPanel`
 const closeRecentPanel = () => {
-  // [zh] 语句
   showRecentPanel.value = false;
-// [zh] 语句
 };
 
-// [zh] 声明变量 `onSearchBlur`
 const onSearchBlur = () => {
-  // [zh] 语句
   window.setTimeout(() => closeRecentPanel(), 180);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `goSearch`
 const goSearch = async () => {
-  // [zh] 声明变量 `keyWords`
   const keyWords = keyword.value.trim();
-  // [zh] 条件判断 if
   if (!keyWords) {
-    // [zh] 语句
     router.push('/search-portal');
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
-  // [zh] 条件判断 if
   if (authStore.isLoggedIn) {
-    // [zh] 代码块开始
     try {
-      // [zh] await 等待 Promise（类比 CompletableFuture.get）
       await searchApi.saveKeyword(keyWords);
-    // [zh] 代码块开始
     } catch {
 
-    // [zh] 语法符号
     }
-  // [zh] 语法符号
   }
-  // [zh] 语句
   showRecentPanel.value = false;
-  // [zh] 代码块开始
   searchStore.setSearch({
-    // [zh] TypeScript/JS 语句：`keyWords,`
     keyWords,
-    // [zh] TypeScript/JS 语句：`categoryId: searchCategoryId.value || ''`
     categoryId: searchCategoryId.value || ''
-  // [zh] 语句
   });
-  // [zh] 语句
   router.push({ path: '/search-result', query: { q: keyWords } });
-// [zh] 语句
 };
 
-// [zh] 声明变量 `searchByWord`
 const searchByWord = (word: string) => {
-  // [zh] 语句
   keyword.value = word;
-  // [zh] 语句
   goSearch();
-// [zh] 语句
 };
 
-// [zh] 声明变量 `clearRecent`
 const clearRecent = async () => {
-  // [zh] 声明变量 `ok`
   const ok = await confirmAction('确定要清空全部最近搜索记录吗？', {
-    // [zh] TypeScript/JS 语句：`title: '清空记录',`
     title: '清空记录',
-    // [zh] TypeScript/JS 语句：`confirmButtonText: '清空'`
     confirmButtonText: '清空'
-  // [zh] 语句
   });
-  // [zh] 条件判断 if
   if (!ok) return;
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await searchApi.clearRecentKeywords();
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await refreshRecent();
-// [zh] 语句
 };
 
-// [zh] 声明变量 `removeRecent`
 const removeRecent = async (word: string) => {
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await searchApi.removeRecentKeyword(word);
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await refreshRecent();
-// [zh] 语句
 };
 
-// [zh] 声明变量 `logout`
 const logout = async () => {
-  // [zh] 声明变量 `ok`
   const ok = await confirmAction('确定要退出当前账号吗？', {
-    // [zh] TypeScript/JS 语句：`title: '退出登录',`
     title: '退出登录',
-    // [zh] TypeScript/JS 语句：`confirmButtonText: '退出'`
     confirmButtonText: '退出'
-  // [zh] 语句
   });
-  // [zh] 条件判断 if
   if (!ok) return;
-  // [zh] 语句
   authStore.prepareLogoutNavigation();
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await authStore.logout();
-  // [zh] 语句
   toast.success('已退出登录');
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await router.replace({ path: '/login', query: {} });
-// [zh] 语句
 };
 
-// [zh] 代码块开始
 onMounted(async () => {
-  // [zh] 声明变量 `cats`
   const cats = await productApi.loadCategory();
-  // [zh] 语句
   categoryList.value = flattenCategoryOptions(normalizeCategoryTree(cats || []), 'child');
-  // [zh] 条件判断 if
   if (authStore.isLoggedIn) cartStore.fetchCartCount();
-  // [zh] 代码块开始
   try {
-    // [zh] 声明变量 `hot`
     const hot = await searchApi.loadHotKeywords();
-    // [zh] 条件判断 if
     if (Array.isArray(hot) && hot.length) hotWords.value = hot.slice(0, 8);
-  // [zh] 代码块开始
   } catch {
 
-  // [zh] 语法符号
   }
-// [zh] 语句
 });
 </script>
 
@@ -428,7 +314,6 @@ onMounted(async () => {
   top: 0;
   /* [zh] 样式规则 `z-index: 1000;` */
   z-index: 1000;
-  /* [zh] 样式规则 `background: var(--glass-bg-header, #{$co` */
   background: var(--glass-bg-header, #{$color-card});
   /* [zh] 样式规则 `-webkit-backdrop-filter: var(--glass-blu` */
   -webkit-backdrop-filter: var(--glass-blur);

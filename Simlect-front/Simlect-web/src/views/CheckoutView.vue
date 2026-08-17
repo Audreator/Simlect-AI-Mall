@@ -228,101 +228,54 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue-router`
 import { RouterLink, useRouter } from 'vue-router';
-// [zh] 导入 `@element-plus/icons-vue`
 import { Ticket } from '@element-plus/icons-vue';
-// [zh] 导入 `@/components/common/LiquidGlassSurface.vue`
 import LiquidGlassSurface from '@/components/common/LiquidGlassSurface.vue';
-// [zh] 导入 `@/components/business/AddressCardBody.vue`
 import AddressCardBody from '@/components/business/AddressCardBody.vue';
-// [zh] 导入 `@/components/common/ProductImage.vue`
 import ProductImage from '@/components/common/ProductImage.vue';
-// [zh] 导入 `@/composables/useCheckoutPage`
 import { useCheckoutPage } from '@/composables/useCheckoutPage';
 
-// [zh] 声明变量 `router`
 const router = useRouter();
 
-// [zh] 代码块开始
 const {
-  // [zh] TypeScript/JS 语句：`pageLoading,`
   pageLoading,
-  // [zh] TypeScript/JS 语句：`initError,`
   initError,
-  // [zh] TypeScript/JS 语句：`addressLoadError,`
   addressLoadError,
-  // [zh] TypeScript/JS 语句：`couponLoadError,`
   couponLoadError,
-  // [zh] TypeScript/JS 语句：`submitting,`
   submitting,
-  // [zh] TypeScript/JS 语句：`items,`
   items,
-  // [zh] TypeScript/JS 语句：`isCouponRush,`
   isCouponRush,
-  // [zh] TypeScript/JS 语句：`payCountdownMs,`
   payCountdownMs,
-  // [zh] TypeScript/JS 语句：`payCountdownText,`
   payCountdownText,
-  // [zh] TypeScript/JS 语句：`submitButtonText,`
   submitButtonText,
-  // [zh] TypeScript/JS 语句：`remark,`
   remark,
-  // [zh] TypeScript/JS 语句：`selectedAddress,`
   selectedAddress,
-  // [zh] TypeScript/JS 语句：`payMethod,`
   payMethod,
-  // [zh] TypeScript/JS 语句：`couponVisible,`
   couponVisible,
-  // [zh] TypeScript/JS 语句：`couponLoading,`
   couponLoading,
-  // [zh] TypeScript/JS 语句：`usableCoupons,`
   usableCoupons,
-  // [zh] TypeScript/JS 语句：`selectedUserCouponId,`
   selectedUserCouponId,
-  // [zh] TypeScript/JS 语句：`couponDiscount,`
   couponDiscount,
-  // [zh] TypeScript/JS 语句：`payableAmount,`
   payableAmount,
-  // [zh] TypeScript/JS 语句：`minPayAmountText,`
   minPayAmountText,
-  // [zh] TypeScript/JS 语句：`showMinPayTip,`
   showMinPayTip,
-  // [zh] TypeScript/JS 语句：`selectedCouponLabel,`
   selectedCouponLabel,
-  // [zh] TypeScript/JS 语句：`maxAvailableDiscount,`
   maxAvailableDiscount,
-  // [zh] TypeScript/JS 语句：`totalCount,`
   totalCount,
-  // [zh] TypeScript/JS 语句：`formatCouponEnd,`
   formatCouponEnd,
-  // [zh] TypeScript/JS 语句：`calcCouponDiscount,`
   calcCouponDiscount,
-  // [zh] TypeScript/JS 语句：`formatSkuText,`
   formatSkuText,
-  // [zh] TypeScript/JS 语句：`lineSubtotal,`
   lineSubtotal,
-  // [zh] TypeScript/JS 语句：`init,`
   init,
-  // [zh] TypeScript/JS 语句：`loadAddresses,`
   loadAddresses,
-  // [zh] TypeScript/JS 语句：`goSelectAddress,`
   goSelectAddress,
-  // [zh] TypeScript/JS 语句：`goAddAddress,`
   goAddAddress,
-  // [zh] TypeScript/JS 语句：`openCouponPicker,`
   openCouponPicker,
-  // [zh] TypeScript/JS 语句：`selectCoupon,`
   selectCoupon,
-  // [zh] TypeScript/JS 语句：`loadCoupons,`
   loadCoupons,
-  // [zh] TypeScript/JS 语句：`submit,`
   submit,
-  // [zh] TypeScript/JS 语句：`PAY_METHOD_ALIPAY_WAP`
   PAY_METHOD_ALIPAY_WAP
-// [zh] 语句
 } = useCheckoutPage('mobile');
 </script>
 

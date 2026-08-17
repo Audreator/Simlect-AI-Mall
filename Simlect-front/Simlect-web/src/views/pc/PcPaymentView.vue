@@ -180,50 +180,28 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue-router`
 import { RouterLink } from 'vue-router';
-// [zh] 导入 `@/composables/usePaymentPage`
 import { usePaymentPage } from '@/composables/usePaymentPage';
 
-// [zh] 代码块开始
 const {
-  // [zh] TypeScript/JS 语句：`orderInfo,`
   orderInfo,
-  // [zh] TypeScript/JS 语句：`payAmount,`
   payAmount,
-  // [zh] TypeScript/JS 语句：`payLaunched,`
   payLaunched,
-  // [zh] TypeScript/JS 语句：`paySuccess,`
   paySuccess,
-  // [zh] TypeScript/JS 语句：`launching,`
   launching,
-  // [zh] TypeScript/JS 语句：`reopening,`
   reopening,
-  // [zh] TypeScript/JS 语句：`checking,`
   checking,
-  // [zh] TypeScript/JS 语句：`loadError,`
   loadError,
-  // [zh] TypeScript/JS 语句：`isProcessing,`
   isProcessing,
-  // [zh] TypeScript/JS 语句：`payOrderId,`
   payOrderId,
-  // [zh] TypeScript/JS 语句：`formatMoney,`
   formatMoney,
-  // [zh] TypeScript/JS 语句：`orderStatusLabel,`
   orderStatusLabel,
-  // [zh] TypeScript/JS 语句：`startPay,`
   startPay,
-  // [zh] TypeScript/JS 语句：`reopenPayPage,`
   reopenPayPage,
-  // [zh] TypeScript/JS 语句：`goOrders,`
   goOrders,
-  // [zh] TypeScript/JS 语句：`goHome,`
   goHome,
-  // [zh] TypeScript/JS 语句：`checkPay`
   checkPay
-// [zh] 语句
 } = usePaymentPage('desktop');
 </script>
 

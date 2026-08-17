@@ -75,25 +75,21 @@
       <span class="quality-badge gold">
         <!-- [zh] 开始标签 `<BrandMark>` -->
         <BrandMark class="badge-icon" />简选自营
-      <!-- [zh] 闭合标签 `</span>` -->
       </span>
       <!-- [zh] 开始标签 `<span>` -->
       <span class="quality-badge">
         <!-- [zh] 开始标签 `<i>` -->
         <i class="badge-dot"></i>正品保证
-      <!-- [zh] 闭合标签 `</span>` -->
       </span>
       <!-- [zh] 开始标签 `<span>` -->
       <span class="quality-badge">
         <!-- [zh] 开始标签 `<i>` -->
         <i class="badge-dot"></i>品质溯源
-      <!-- [zh] 闭合标签 `</span>` -->
       </span>
       <!-- [zh] 开始标签 `<span>` -->
       <span class="quality-badge">
         <!-- [zh] 开始标签 `<i>` -->
         <i class="badge-dot"></i>售后无忧
-      <!-- [zh] 闭合标签 `</span>` -->
       </span>
     <!-- [zh] 闭合标签 `</section>` -->
     </section>
@@ -232,67 +228,39 @@
         <button type="button" class="link-all" @click="goAllComments">
           <!-- [zh] 模板内容：`查看全部{{ commentTotal > 0 ? `(${commentTotal})`` -->
           查看全部{{ commentTotal > 0 ? `(${commentTotal})` : '' }}
-          <!-- [zh] 开始标签 `<el-icon>` -->
           <el-icon><ArrowRight /></el-icon>
-        <!-- [zh] 闭合标签 `</button>` -->
         </button>
-      <!-- [zh] 闭合标签 `</div>` -->
       </div>
-      <!-- [zh] 开始标签 `<div>` -->
       <div v-if="previewComments.length" class="comment-preview-list">
-        <!-- [zh] 开始标签 `<article>` -->
         <article v-for="c in previewComments" :key="c.orderId" class="comment-preview-item">
-          <!-- [zh] 开始标签 `<div>` -->
           <div class="preview-head">
-            <!-- [zh] 开始标签 `<span>` -->
             <span class="user">{{ maskCommenterName(c.nickName) }}</span>
-            <!-- [zh] 开始标签 `<span>` -->
             <span v-if="getCommentLevel(c.userId)" class="comment-level-tag" :class="commentLevelTagClass(getCommentLevel(c.userId)!.levelCode)">
-              <!-- [zh] Mustache 插值表达式 -->
               {{ getCommentLevel(c.userId)!.levelName }}
-            <!-- [zh] 闭合标签 `</span>` -->
             </span>
-            <!-- [zh] 开始标签 `<el-rate>` -->
             <el-rate v-if="c.star" :model-value="c.star" disabled size="small" />
-          <!-- [zh] 闭合标签 `</div>` -->
           </div>
-          <!-- [zh] 开始标签 `<p>` -->
           <p class="text">{{ c.commentContent }}</p>
-          <!-- [zh] 开始标签 `<button>` -->
           <button
             type="button"
             class="report-btn"
             @click="openReport({ orderId: c.orderId, commentContent: c.commentContent })"
           >
-            <!-- [zh] 模板内容：`举报` -->
             举报
-          <!-- [zh] 闭合标签 `</button>` -->
           </button>
-        <!-- [zh] 闭合标签 `</article>` -->
         </article>
-      <!-- [zh] 闭合标签 `</div>` -->
       </div>
-      <!-- [zh] 开始标签 `<p>` -->
       <p v-else class="empty-tip">暂无评价，快来抢沙发吧</p>
-    <!-- [zh] 闭合标签 `</section>` -->
     </section>
 
-    <!-- [zh] 开始标签 `<section>` -->
     <section class="block desc-block">
-      <!-- [zh] 开始标签 `<h3>` -->
       <h3 class="block-title">图文详情</h3>
-      <!-- [zh] 开始标签 `<MarkdownContent>` -->
       <MarkdownContent :content="productInfo.productDesc" class="desc-body" />
-    <!-- [zh] 闭合标签 `</section>` -->
     </section>
 
-    <!-- [zh] 开始标签 `<section>` -->
     <section class="block similar-block">
-      <!-- [zh] 开始标签 `<h3>` -->
       <h3 class="block-title">看了又看</h3>
-      <!-- [zh] 开始标签 `<div>` -->
       <div v-if="similarProducts.length" class="similar-grid">
-        <!-- [zh] 开始标签 `<button>` -->
         <button
           v-for="item in similarProducts"
           :key="item.productId"
@@ -300,35 +268,23 @@
           class="similar-item"
           @click="goDetail(item)"
         >
-          <!-- [zh] 开始标签 `<ProductImage>` -->
           <ProductImage :product="item" fit="cover" width="100%" height="100%" class="similar-img" />
-          <!-- [zh] 开始标签 `<p>` -->
           <p class="similar-name">{{ item.productName }}</p>
-          <!-- [zh] 开始标签 `<p>` -->
           <p class="similar-price">¥{{ formatPrice(item.price ?? item.salePrice ?? item.minPrice) }}</p>
-        <!-- [zh] 闭合标签 `</button>` -->
         </button>
-      <!-- [zh] 闭合标签 `</div>` -->
       </div>
-      <!-- [zh] 开始标签 `<p>` -->
       <p v-if="loadingMore" class="load-tip">加载中…</p>
-      <!-- [zh] 开始标签 `<p>` -->
       <p v-else-if="finished && similarProducts.length" class="load-tip">已展示全部推荐商品</p>
-      <!-- [zh] 开始标签 `<p>` -->
       <p v-else-if="!similarProducts.length && !loadingMore" class="similar-empty">暂无推荐</p>
-    <!-- [zh] 闭合标签 `</section>` -->
     </section>
 
-    <!-- [zh] 开始标签 `<LiquidGlassSurface>` -->
     <LiquidGlassSurface tag="footer" intensity="medium" class="detail-footer ignore">
-      <!-- [zh] 开始标签 `<AgentServiceEntry>` -->
       <AgentServiceEntry
         class="footer-agent"
         :compact="false"
         show-label
         :consult-product="agentConsultProduct"
       />
-      <!-- [zh] 开始标签 `<button>` -->
       <button
         type="button"
         class="footer-fav"
@@ -337,347 +293,186 @@
         aria-label="收藏"
         @click="toggleFavorite"
       >
-        <!-- [zh] 开始标签 `<el-icon>` -->
         <el-icon :size="22">
-          <!-- [zh] 开始标签 `<StarFilled>` -->
           <StarFilled v-if="favorited" />
-          <!-- [zh] 开始标签 `<Star>` -->
           <Star v-else />
-        <!-- [zh] 闭合标签 `</el-icon>` -->
         </el-icon>
-        <!-- [zh] 开始标签 `<span>` -->
         <span class="label">{{ favorited ? '已收藏' : '收藏' }}</span>
-      <!-- [zh] 闭合标签 `</button>` -->
       </button>
-      <!-- [zh] 开始标签 `<el-button>` -->
       <el-button class="btn-cart" type="primary" plain round @click="openAddCartSheet">加入购物车</el-button>
-      <!-- [zh] 开始标签 `<el-button>` -->
       <el-button class="btn-buy" type="primary" round @click="buyNow">立即购买</el-button>
-    <!-- [zh] 闭合标签 `</LiquidGlassSurface>` -->
     </LiquidGlassSurface>
-  <!-- [zh] 闭合标签 `</div>` -->
   </div>
-  <!-- [zh] 开始标签 `<div>` -->
   <div v-else-if="loading" class="detail-loading card">
-    <!-- [zh] 开始标签 `<el-skeleton>` -->
     <el-skeleton animated :rows="10" />
-  <!-- [zh] 闭合标签 `</div>` -->
   </div>
-  <!-- [zh] 开始标签 `<div>` -->
   <div v-else class="detail-error card">
-    <!-- [zh] 开始标签 `<el-empty>` -->
     <el-empty :description="loadError ? '商品加载失败' : '商品不存在或已下架'">
-      <!-- [zh] 开始标签 `<el-button>` -->
       <el-button type="primary" round @click="load">重试</el-button>
-      <!-- [zh] 开始标签 `<el-button>` -->
       <el-button round @click="router.push('/')">返回首页</el-button>
-    <!-- [zh] 闭合标签 `</el-empty>` -->
     </el-empty>
-  <!-- [zh] 闭合标签 `</div>` -->
   </div>
-  <!-- [zh] 开始标签 `<CommentReportDialog>` -->
   <CommentReportDialog ref="reportDialogRef" />
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { ref, watch, onMounted, onUnmounted } from 'vue';
-// [zh] 导入 `vue-router`
 import { useRoute, useRouter } from 'vue-router';
-// [zh] 导入 `@element-plus/icons-vue`
 import { ArrowRight, Star, StarFilled } from '@element-plus/icons-vue';
-// [zh] 导入 `@/components/agent/AgentServiceEntry.vue`
 import AgentServiceEntry from '@/components/agent/AgentServiceEntry.vue';
-// [zh] 导入 `@/components/common/LiquidGlassSurface.vue`
 import LiquidGlassSurface from '@/components/common/LiquidGlassSurface.vue';
-// [zh] 导入 `@/components/common/ProductImage.vue`
 import ProductImage from '@/components/common/ProductImage.vue';
-// [zh] 导入 `@/components/common/MarkdownContent.vue`
 import MarkdownContent from '@/components/common/MarkdownContent.vue';
-// [zh] 导入 `@/components/common/BrandMark.vue`
 import BrandMark from '@/components/common/BrandMark.vue';
-// [zh] 导入 `@/components/business/CommentReportDialog.vue`
 import CommentReportDialog from '@/components/business/CommentReportDialog.vue';
-// [zh] 导入 `@/composables/useProductDetailPage`
 import { useProductDetailPage } from '@/composables/useProductDetailPage';
-// [zh] 导入 `@/utils/comment`
 import { maskCommenterName } from '@/utils/comment';
-// [zh] 导入 `@/api/modules`
 import { userMemberApi, productApi } from '@/api/modules';
 
-// [zh] 声明变量 `route`
 const route = useRoute();
-// [zh] 声明变量 `router`
 const router = useRouter();
 
-// [zh] 代码块开始
 const {
-  // [zh] TypeScript/JS 语句：`loading,`
   loading,
-  // [zh] TypeScript/JS 语句：`loadError,`
   loadError,
-  // [zh] TypeScript/JS 语句：`load,`
   load,
-  // [zh] TypeScript/JS 语句：`productInfo,`
   productInfo,
-  // [zh] TypeScript/JS 语句：`productPropertyList,`
   productPropertyList,
-  // [zh] TypeScript/JS 语句：`quantity,`
   quantity,
-  // [zh] TypeScript/JS 语句：`selectedSku,`
   selectedSku,
-  // [zh] TypeScript/JS 语句：`selectedProperty,`
   selectedProperty,
-  // [zh] TypeScript/JS 语句：`activeImageIndex,`
   activeImageIndex,
-  // [zh] TypeScript/JS 语句：`favorited,`
   favorited,
-  // [zh] TypeScript/JS 语句：`favoriteLoading,`
   favoriteLoading,
-  // [zh] TypeScript/JS 语句：`galleryImages,`
   galleryImages,
-  // [zh] TypeScript/JS 语句：`displayPrice,`
   displayPrice,
-  // [zh] TypeScript/JS 语句：`agentConsultProduct,`
   agentConsultProduct,
-  // [zh] TypeScript/JS 语句：`previewComments,`
   previewComments,
-  // [zh] TypeScript/JS 语句：`commentTotal,`
   commentTotal,
-  // [zh] TypeScript/JS 语句：`commentGoodRate,`
   commentGoodRate,
-  // [zh] TypeScript/JS 语句：`commentImageCount,`
   commentImageCount,
-  // [zh] TypeScript/JS 语句：`maxBuy,`
   maxBuy,
-  // [zh] TypeScript/JS 语句：`onTouchStart,`
   onTouchStart,
-  // [zh] TypeScript/JS 语句：`onTouchMove,`
   onTouchMove,
-  // [zh] TypeScript/JS 语句：`onTouchEnd,`
   onTouchEnd,
-  // [zh] TypeScript/JS 语句：`onMouseDown,`
   onMouseDown,
-  // [zh] TypeScript/JS 语句：`onMouseMove,`
   onMouseMove,
-  // [zh] TypeScript/JS 语句：`onMouseUp,`
   onMouseUp,
-  // [zh] TypeScript/JS 语句：`selectProperty,`
   selectProperty,
-  // [zh] TypeScript/JS 语句：`toggleFavorite,`
   toggleFavorite,
-  // [zh] TypeScript/JS 语句：`goAllComments,`
   goAllComments,
-  // [zh] TypeScript/JS 语句：`openAddCartSheet,`
   openAddCartSheet,
-  // [zh] TypeScript/JS 语句：`buyNow`
   buyNow
-// [zh] 语句
 } = useProductDetailPage();
 
-// [zh] 声明变量 `commentLevelCache`
 const commentLevelCache = ref<Record<string, { levelCode: number; levelName: string }>>({});
 
-// [zh] 声明变量 `fetchCommentLevel`
 const fetchCommentLevel = (userId: string) => {
-  // [zh] 条件判断 if
   if (!userId || commentLevelCache.value[userId]) return;
-  // [zh] 代码块开始
   userMemberApi.getLevelBadge(userId).then((res: any) => {
-    // [zh] 条件判断 if
     if (res?.levelCode != null) {
-      // [zh] 语句
       commentLevelCache.value = { ...commentLevelCache.value, [userId]: res };
-    // [zh] 语法符号
     }
-  // [zh] 语句
   }).catch(() => {});
-// [zh] 语句
 };
 
-// [zh] 声明变量 `getCommentLevel`
 const getCommentLevel = (userId?: string) => (userId && commentLevelCache.value[userId]) || null;
 
-// [zh] 声明变量 `commentLevelTagClass`
 const commentLevelTagClass = (code: number) => {
-  // [zh] 条件判断 if
   if (code >= 3) return 'level-gold';
-  // [zh] 条件判断 if
   if (code >= 2) return 'level-silver';
-  // [zh] return 返回
   return 'level-default';
-// [zh] 语句
 };
 
-// [zh] 代码块开始
 watch(previewComments, () => {
-  // [zh] 代码块开始
   previewComments.value.forEach((c: any) => {
-    // [zh] 条件判断 if
     if (c.userId) fetchCommentLevel(c.userId);
-  // [zh] 语句
   });
-// [zh] 语句
 }, { immediate: true });
 
-// [zh] 声明变量 `reportDialogRef`
 const reportDialogRef = ref<InstanceType<typeof CommentReportDialog>>();
 
-// [zh] 声明变量 `similarProducts`
 const similarProducts = ref<any[]>([]);
-// [zh] 声明变量 `loadingMore`
 const loadingMore = ref(false);
-// [zh] 声明变量 `finished`
 const finished = ref(false);
-// [zh] 声明变量 `allSimilarProducts`
 const allSimilarProducts = ref<any[]>([]);
-// [zh] 声明变量 `displayCount`
 const displayCount = ref(6);
-// [zh] 声明变量 `PAGE_SIZE`
 const PAGE_SIZE = 6;
-// [zh] 声明变量 `maxSimilarProducts`
 const maxSimilarProducts = 12;
-// [zh] 声明变量 `scrollTicking`
 let scrollTicking = false;
 
-// [zh] 声明变量 `onScroll`
 const onScroll = () => {
-  // [zh] 条件判断 if
   if (scrollTicking || finished.value || loadingMore.value) return;
-  // [zh] 语句
   scrollTicking = true;
-  // [zh] 代码块开始
   requestAnimationFrame(() => {
-    // [zh] 语句
     scrollTicking = false;
-    // [zh] 声明变量 `st`
     const st = window.scrollY || document.documentElement.scrollTop;
-    // [zh] 声明变量 `sh`
     const sh = document.documentElement.scrollHeight;
-    // [zh] 声明变量 `ch`
     const ch = window.innerHeight;
-    // [zh] 条件判断 if
     if (sh - st - ch < 200) loadMore();
-  // [zh] 语句
   });
-// [zh] 语句
 };
 
-// [zh] 声明变量 `loadMore`
 const loadMore = () => {
-  // [zh] 条件判断 if
   if (finished.value || loadingMore.value) return;
-  // [zh] 条件判断 if
   if (displayCount.value >= allSimilarProducts.value.length) {
-    // [zh] 语句
     finished.value = true;
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
-  // [zh] 语句
   loadingMore.value = true;
-  // [zh] 代码块开始
   setTimeout(() => {
-    // [zh] 语句
     displayCount.value = Math.min(displayCount.value + PAGE_SIZE, maxSimilarProducts, allSimilarProducts.value.length);
-    // [zh] 语句
     similarProducts.value = allSimilarProducts.value.slice(0, displayCount.value);
-    // [zh] 条件判断 if
     if (displayCount.value >= allSimilarProducts.value.length) finished.value = true;
-    // [zh] 语句
     loadingMore.value = false;
-  // [zh] 语句
   }, 300);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `loadSimilarProducts`
 const loadSimilarProducts = async () => {
-  // [zh] 语句
   loadingMore.value = true;
-  // [zh] 代码块开始
   try {
-    // [zh] 声明变量 `data`
     const data = await productApi.loadCommendProduct();
-    // [zh] 声明变量 `list`
     const list = Array.isArray(data) ? data : data?.list || [];
-    // [zh] 条件判断 if
     if (!list.length) { finished.value = true; return; }
 
-    // [zh] 声明变量 `filled`
     let filled = [...list];
-    // [zh] 代码块开始
     while (filled.length < maxSimilarProducts) {
-      // [zh] 语句
       filled = filled.concat(list);
-    // [zh] 语法符号
     }
-    // [zh] 语句
     allSimilarProducts.value = filled.slice(0, maxSimilarProducts);
-    // [zh] 语句
     similarProducts.value = allSimilarProducts.value.slice(0, displayCount.value);
-    // [zh] 条件判断 if
     if (allSimilarProducts.value.length <= displayCount.value) finished.value = true;
-  // [zh] 代码块开始
   } catch (error) {
-    // [zh] 语句
     console.error('ProductDetailView: loadSimilarProducts error', error);
-    // [zh] 语句
     finished.value = true;
-  // [zh] 代码块开始
   } finally {
-    // [zh] 语句
     loadingMore.value = false;
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 声明变量 `formatPrice`
 const formatPrice = (price: any): string => {
-  // [zh] 声明变量 `n`
   const n = Number(price);
-  // [zh] 条件判断 if
   if (isNaN(n)) return '--';
-  // [zh] return 返回
   return n.toFixed(2);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `goDetail`
 const goDetail = (p: any) => {
-  // [zh] 条件判断 if
   if (p?.productId) router.push(`/product/${p.productId}`);
-// [zh] 语句
 };
 
-// [zh] 代码块开始
 onMounted(() => {
-  // [zh] 语句
   loadSimilarProducts();
-  // [zh] 语句
   window.addEventListener('scroll', onScroll, { passive: true });
-// [zh] 语句
 });
 
-// [zh] 语句
 onUnmounted(() => window.removeEventListener('scroll', onScroll));
 
-// [zh] 声明变量 `openReport`
 const openReport = (payload: { orderId: string; commentContent?: string }) => {
-  // [zh] 代码块开始
   reportDialogRef.value?.show({
-    // [zh] TypeScript/JS 语句：`orderId: payload.orderId,`
     orderId: payload.orderId,
-    // [zh] TypeScript/JS 语句：`productId: String(route.params.productId || ''),`
     productId: String(route.params.productId || ''),
-    // [zh] TypeScript/JS 语句：`commentContent: payload.commentContent`
     commentContent: payload.commentContent
-  // [zh] 语句
   });
-// [zh] 语句
 };
 </script>
 

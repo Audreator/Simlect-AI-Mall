@@ -90,181 +90,96 @@
   <HandleReport ref="handleRef" @reload="loadDataList"></HandleReport>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `./HandleReport.vue`
 import HandleReport from './HandleReport.vue'
-// [zh] 导入 `vue`
 import { ref, reactive, getCurrentInstance } from 'vue'
 
-// [zh] TypeScript/JS 语句：`const { proxy } = getCurrentInstance()`
 const { proxy } = getCurrentInstance()
 
-// [zh] 声明变量 `columns`
 const columns = [
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '订单号',`
     label: '订单号',
-    // [zh] TypeScript/JS 语句：`prop: 'orderId',`
     prop: 'orderId',
-    // [zh] TypeScript/JS 语句：`width: 180,`
     width: 180,
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '举报人',`
     label: '举报人',
-    // [zh] TypeScript/JS 语句：`prop: 'reporterUserId',`
     prop: 'reporterUserId',
-    // [zh] TypeScript/JS 语句：`width: 120,`
     width: 120,
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '举报理由',`
     label: '举报理由',
-    // [zh] TypeScript/JS 语句：`prop: 'reason',`
     prop: 'reason',
-    // [zh] TypeScript/JS 语句：`width: 120,`
     width: 120,
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '补充说明',`
     label: '补充说明',
-    // [zh] TypeScript/JS 语句：`prop: 'detail',`
     prop: 'detail',
-    // [zh] TypeScript/JS 语句：`width: 180,`
     width: 180,
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '评论快照',`
     label: '评论快照',
-    // [zh] TypeScript/JS 语句：`scopedSlots: 'slotCommentSnapshot',`
     scopedSlots: 'slotCommentSnapshot',
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '状态',`
     label: '状态',
-    // [zh] TypeScript/JS 语句：`prop: 'status',`
     prop: 'status',
-    // [zh] TypeScript/JS 语句：`scopedSlots: 'slotStatus',`
     scopedSlots: 'slotStatus',
-    // [zh] TypeScript/JS 语句：`width: 90,`
     width: 90,
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '举报时间',`
     label: '举报时间',
-    // [zh] TypeScript/JS 语句：`prop: 'reportTime',`
     prop: 'reportTime',
-    // [zh] TypeScript/JS 语句：`width: 160,`
     width: 160,
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '操作',`
     label: '操作',
-    // [zh] TypeScript/JS 语句：`prop: 'operation',`
     prop: 'operation',
-    // [zh] TypeScript/JS 语句：`width: 120,`
     width: 120,
-    // [zh] TypeScript/JS 语句：`scopedSlots: 'slotOperation',`
     scopedSlots: 'slotOperation',
-  // [zh] TypeScript/JS 语句：`},`
   },
-// [zh] TypeScript/JS 语句：`]`
 ]
 
-// [zh] 声明变量 `tableInfoRef`
 const tableInfoRef = ref()
-// [zh] 声明变量 `searchForm`
 const searchForm = reactive({
-  // [zh] TypeScript/JS 语句：`reasonFuzzy: '',`
   reasonFuzzy: '',
-  // [zh] TypeScript/JS 语句：`status: undefined,`
   status: undefined,
-// [zh] TypeScript/JS 语句：`})`
 })
-// [zh] 声明变量 `tableData`
 const tableData = ref({})
 
-// [zh] 声明变量 `loadDataList`
 const loadDataList = async () => {
-  // [zh] 声明变量 `params`
   let params = {
-    // [zh] TypeScript/JS 语句：`pageNo: tableData.value.pageNo,`
     pageNo: tableData.value.pageNo,
-    // [zh] TypeScript/JS 语句：`pageSize: tableData.value.pageSize,`
     pageSize: tableData.value.pageSize,
-  // [zh] 语法符号
   }
-  // [zh] 条件判断 if
   if (searchForm.reasonFuzzy) params.reasonFuzzy = searchForm.reasonFuzzy
-  // [zh] 条件判断 if
   if (searchForm.status !== undefined && searchForm.status !== '') params.status = searchForm.status
-  // [zh] 声明变量 `result`
   let result = await proxy.Request({
-    // [zh] TypeScript/JS 语句：`url: proxy.Api.loadCommentReport,`
     url: proxy.Api.loadCommentReport,
-    // [zh] TypeScript/JS 语句：`params: params,`
     params: params,
-  // [zh] TypeScript/JS 语句：`})`
   })
-  // [zh] 条件判断 if
   if (!result) return
-  // [zh] TypeScript/JS 语句：`Object.assign(tableData.value, result.data)`
   Object.assign(tableData.value, result.data)
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `handleRef`
 const handleRef = ref()
-// [zh] 声明变量 `handleHandler`
 const handleHandler = (row) => {
-  // [zh] TypeScript/JS 语句：`handleRef.value.show(row)`
   handleRef.value.show(row)
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `delReport`
 const delReport = (row) => {
-  // [zh] 代码块开始
   proxy.Confirm({
-    // [zh] TypeScript/JS 语句：`message: `确定要删除该举报记录吗？`,`
     message: `确定要删除该举报记录吗？`,
-    // [zh] 代码块开始
     okfun: async () => {
-      // [zh] 声明变量 `result`
       let result = await proxy.Request({
-        // [zh] TypeScript/JS 语句：`url: proxy.Api.deleteCommentReport,`
         url: proxy.Api.deleteCommentReport,
-        // [zh] TypeScript/JS 语句：`params: { reportId: row.reportId },`
         params: { reportId: row.reportId },
-      // [zh] TypeScript/JS 语句：`})`
       })
-      // [zh] 条件判断 if
       if (!result) return
-      // [zh] TypeScript/JS 语句：`proxy.Message.success('操作成功')`
       proxy.Message.success('操作成功')
-      // [zh] TypeScript/JS 语句：`loadDataList()`
       loadDataList()
-    // [zh] TypeScript/JS 语句：`},`
     },
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 </script>
 

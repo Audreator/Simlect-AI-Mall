@@ -156,6 +156,37 @@ Agent 不直连业务库改写；读/写工具由 **MCP Server** 实现，经 Ga
 
 ---
 
+## 界面预览
+
+**PC 端**
+
+| C 端首页 | 管理后台 | AI 智能客服 |
+|---|---|---|
+| ![C 端首页](docs/screenshots/web-home.png) | ![管理后台](docs/screenshots/admin-home.png) | ![AI 智能客服](docs/screenshots/ai-assistant.png) |
+
+**手机端**
+
+| C 端首页 | AI 智能客服 | 管理后台（手机版） |
+|---|---|---|
+| ![手机端首页](docs/screenshots/mobile-home.png) | ![手机端 AI 客服](docs/screenshots/mobile-ai.png) | ![手机版管理后台](docs/screenshots/mobile-admin.png) |
+
+---
+
+## 测试与质量保障
+
+**测试全覆盖**：全量回归在每次变更后执行，当前状态全部通过。
+
+| 范围 | 覆盖内容 | 规模 |
+|---|---|---|
+| Java 单元/集成测试 | 26 个 Maven 模块：`mvn test` 全绿（含 Mockito 单测、控制器/服务/组件/任务/工具类全覆盖，安全敏感项均有专项用例，如退款幂等锚点、MCP 令牌、网关 IP/Origin、Redis Lua、MQ 幂等/补偿/死信） | 150 个测试类 · **1327 个用例** |
+| Python 测试 | Agent 79 个源文件语法校验 0 错误；集成用例覆盖：pending 提案 confirm 五场景（CAS 落定/delete 失败/业务回滚/系统异常保持/CAS 拒绝）、ws_token 废弃分支、checkpoint 签名与脏 key 清理、MCP 中间件令牌矩阵 | 多组场景用例 |
+| 前端构建校验 | 311 个 Vue/TS/JS 文件全部通过 esbuild 与 `@vue/compiler-sfc` 编译（含 style 块 SCSS） | 311 文件 0 失败 |
+| 真实环境冒烟 | 全中间件 + 11 个微服务 + Agent + 双端前端联调：管理端登录跳转、C 端登录、AI 客服对话（商品搜索/物流查询/订单查询/退款与评价提案卡）、支付与订单状态机 | 全链路 |
+
+> 关键链路均有配套回归：退款"远端成功+本地回滚"重试、pending 写操作防重复执行（Lua CAS）、MCP 带/不带令牌、通知死信有限重投、签到并发、秒杀券广播大列表。
+
+---
+
 ## 仓库结构
 
 ```text

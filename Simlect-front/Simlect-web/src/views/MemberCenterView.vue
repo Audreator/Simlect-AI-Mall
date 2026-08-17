@@ -101,129 +101,70 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed, onMounted, ref } from 'vue';
-// [zh] 导入 `vue-router`
 import { RouterLink } from 'vue-router';
-// [zh] 导入 `@/api/modules`
 import { userMemberApi } from '@/api/modules';
-// [zh] 导入 `@/stores/auth`
 import { useAuthStore } from '@/stores/auth';
-// [zh] 导入 `@/constants/member`
 import { calcMemberGrowthHint, calcMemberGrowthPercent } from '@/constants/member';
-// [zh] 导入 `@/utils/confirm`
 import { confirmAction } from '@/utils/confirm';
-// [zh] 导入 `@/utils/toast`
 import { toast } from '@/utils/toast';
 
-// [zh] 声明变量 `authStore`
 const authStore = useAuthStore();
-// [zh] 声明变量 `center`
 const center = ref<any>(null);
-// [zh] 声明变量 `claiming`
 const claiming = ref<number | null>(null);
 
-// [zh] 声明变量 `growthHints`
 const growthHints = computed(() => ({
-  // [zh] TypeScript/JS 语句：`nextLevelGrowth: center.value?.nextLevelGrowth ?? null,`
   nextLevelGrowth: center.value?.nextLevelGrowth ?? null,
-  // [zh] TypeScript/JS 语句：`growthToNext: center.value?.growthToNext ?? null`
   growthToNext: center.value?.growthToNext ?? null
-// [zh] 语句
 }));
-// [zh] 声明变量 `growthPercent`
 const growthPercent = computed(() =>
-  // [zh] TypeScript/JS 语句：`calcMemberGrowthPercent(center.value?.profile?.growthVa`
   calcMemberGrowthPercent(center.value?.profile?.growthValue ?? 0, growthHints.value)
-// [zh] 语句
 );
-// [zh] 声明变量 `growthHint`
 const growthHint = computed(() =>
-  // [zh] TypeScript/JS 语句：`calcMemberGrowthHint(center.value?.profile?.growthValue`
   calcMemberGrowthHint(center.value?.profile?.growthValue ?? 0, growthHints.value)
-// [zh] 语句
 );
-// [zh] 声明变量 `growthBarColor`
 const growthBarColor = computed(() => {
-  // [zh] 声明变量 `code`
   const code = Number(center.value?.profile?.levelCode ?? 1);
-  // [zh] 条件判断 if
   if (code >= 3) return '#c9a962';
-  // [zh] 条件判断 if
   if (code >= 2) return '#a8a8ad';
-  // [zh] return 返回
   return '#c9a962';
-// [zh] 语句
 });
 
-// [zh] 声明变量 `cardLevelClass`
 const cardLevelClass = computed(() => {
-  // [zh] 声明变量 `code`
   const code = Number(center.value?.profile?.levelCode ?? 1);
-  // [zh] 条件判断 if
   if (code >= 3) return 'level-gold';
-  // [zh] 条件判断 if
   if (code >= 2) return 'level-silver';
-  // [zh] return 返回
   return 'level-default';
-// [zh] 语句
 });
 
-// [zh] 声明变量 `load`
 const load = async () => {
-  // [zh] 语句
   center.value = await authStore.loadMemberCenter();
-// [zh] 语句
 };
 
-// [zh] 声明变量 `onClaim`
 const onClaim = async (levelCode: number) => {
-  // [zh] 声明变量 `reward`
   const reward = center.value?.rewards?.find((r: any) => r.levelCode === levelCode);
-  // [zh] 条件判断 if
   if (!reward) return;
-  // [zh] 声明变量 `ok`
   const ok = await confirmAction(
-    // [zh] TypeScript/JS 语句：``领取「${reward.rewardTitle}」\n${reward.rewardDesc}\n确定要领取`
     `领取「${reward.rewardTitle}」\n${reward.rewardDesc}\n确定要领取吗？`,
-    // [zh] 代码块开始
     {
-      // [zh] TypeScript/JS 语句：`title: '领取升级礼',`
       title: '领取升级礼',
-      // [zh] TypeScript/JS 语句：`confirmButtonText: '确定领取'`
       confirmButtonText: '确定领取'
-    // [zh] 语法符号
     }
-  // [zh] 语句
   );
-  // [zh] 条件判断 if
   if (!ok) return;
-  // [zh] 语句
   claiming.value = levelCode;
-  // [zh] 代码块开始
   try {
-    // [zh] await 等待 Promise（类比 CompletableFuture.get）
     await userMemberApi.claimLevelReward(levelCode);
-    // [zh] 语句
     center.value = await authStore.loadMemberCenter(true);
-    // [zh] 语句
     toast.success('领取成功');
-  // [zh] 代码块开始
   } catch (e: any) {
-    // [zh] 语句
     toast.error(e?.info || e?.message || '领取失败');
-  // [zh] 代码块开始
   } finally {
-    // [zh] 语句
     claiming.value = null;
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 语句
 onMounted(load);
 </script>
 

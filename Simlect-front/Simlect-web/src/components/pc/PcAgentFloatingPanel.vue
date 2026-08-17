@@ -4,7 +4,6 @@
   <Teleport to="body">
     <!-- [zh] 开始标签 `<Transition>` -->
     <Transition name="pc-agent-fade">
-      <!-- [zh] 开始标签 `<div>` -->
       <div
         v-if="pcAgentPanel.visible"
         class="pc-agent-float-root ignore"
@@ -12,98 +11,55 @@
         aria-label="智能客服"
         @click.self="pcAgentPanel.close()"
       >
-        <!-- [zh] 开始标签 `<section>` -->
         <section class="pc-agent-float-panel agent-page" @click.stop>
-          <!-- [zh] 开始标签 `<header>` -->
           <header class="pc-agent-float-head">
-            <!-- [zh] 开始标签 `<div>` -->
             <div class="head-title">
-              <!-- [zh] 开始标签 `<el-icon>` -->
               <el-icon class="head-icon" :size="18"><ChatDotRound /></el-icon>
-              <!-- [zh] 开始标签 `<span>` -->
               <span>智能客服</span>
-            <!-- [zh] 闭合标签 `</div>` -->
             </div>
-            <!-- [zh] 开始标签 `<button>` -->
             <button type="button" class="btn-close" aria-label="关闭" @click="pcAgentPanel.close()">
-              <!-- [zh] 开始标签 `<el-icon>` -->
               <el-icon :size="18"><Close /></el-icon>
-            <!-- [zh] 闭合标签 `</button>` -->
             </button>
-          <!-- [zh] 闭合标签 `</header>` -->
           </header>
-          <!-- [zh] 开始标签 `<div>` -->
           <div v-if="sessionReady" class="pc-agent-float-body">
-            <!-- [zh] 开始标签 `<AgentChatList>` -->
             <AgentChatList />
-            <!-- [zh] 开始标签 `<AgentSendPanel>` -->
             <AgentSendPanel />
-          <!-- [zh] 闭合标签 `</div>` -->
           </div>
-          <!-- [zh] 开始标签 `<div>` -->
           <div v-else class="pc-agent-float-loading" v-loading="true" />
-        <!-- [zh] 闭合标签 `</section>` -->
         </section>
-      <!-- [zh] 闭合标签 `</div>` -->
       </div>
-    <!-- [zh] 闭合标签 `</Transition>` -->
     </Transition>
   <!-- [zh] 闭合标签 `</Teleport>` -->
   </Teleport>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { provide, ref, watch } from 'vue';
-// [zh] 导入 `@/composables/agentEmbed`
 import { agentComposerEmbeddedKey } from '@/composables/agentEmbed';
-// [zh] 导入 `@element-plus/icons-vue`
 import { ChatDotRound, Close } from '@element-plus/icons-vue';
-// [zh] 导入 `@/views/agent/AgentChatList.vue`
 import AgentChatList from '@/views/agent/AgentChatList.vue';
-// [zh] 导入 `@/views/agent/AgentSendPanel.vue`
 import AgentSendPanel from '@/views/agent/AgentSendPanel.vue';
-// [zh] 导入 `@/composables/useAgentSession`
 import { useAgentSession } from '@/composables/useAgentSession';
-// [zh] 导入 `@/stores/pcAgentPanel`
 import { usePcAgentPanelStore } from '@/stores/pcAgentPanel';
 
-// [zh] 语句
 provide(agentComposerEmbeddedKey, true);
 
-// [zh] 声明变量 `pcAgentPanel`
 const pcAgentPanel = usePcAgentPanelStore();
-// [zh] 语句
 const { start, stop } = useAgentSession();
-// [zh] 声明变量 `sessionReady`
 const sessionReady = ref(false);
 
-// [zh] TypeScript/JS 语句：`watch(`
 watch(
-  // [zh] TypeScript/JS 语句：`() => pcAgentPanel.visible,`
   () => pcAgentPanel.visible,
-  // [zh] 代码块开始
   async (open) => {
-    // [zh] 条件判断 if
     if (open) {
-      // [zh] 语句
       sessionReady.value = false;
-      // [zh] await 等待 Promise（类比 CompletableFuture.get）
       await start();
-      // [zh] 语句
       sessionReady.value = true;
-    // [zh] 代码块开始
     } else {
-      // [zh] 语句
       sessionReady.value = false;
-      // [zh] 语句
       stop();
-    // [zh] 语法符号
     }
-  // [zh] 语法符号
   }
-// [zh] 语句
 );
 </script>
 

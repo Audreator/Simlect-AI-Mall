@@ -13,106 +13,59 @@
   <p v-else class="markdown-empty">{{ emptyText }}</p>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed, ref } from 'vue';
-// [zh] 导入 `markdown-it`
 import MarkdownIt from 'markdown-it';
-// [zh] 导入 `@/composables/imagePreview`
 import { openImagePreview } from '@/composables/imagePreview';
-// [zh] 导入 `@/utils/agentMessageRender`
 import { renderAgentMessageHtml } from '@/utils/agentMessageRender';
-// [zh] 导入 `@/utils/productDesc`
 import { normalizeProductDesc } from '@/utils/productDesc';
 
-// [zh] 声明变量 `props`
 const props = withDefaults(
-  // [zh] 代码块开始
   defineProps<{
-    // [zh] 语句
     content?: string | null;
-    // [zh] 语句
     emptyText?: string;
 
-    // [zh] 语句
     agentRich?: boolean;
 
-    // [zh] 语句
     centerImages?: boolean;
-  // [zh] TypeScript/JS 语句：`}>(),`
   }>(),
-  // [zh] TypeScript/JS 语句：`{ emptyText: '暂无详情', agentRich: false, centerImages: fa`
   { emptyText: '暂无详情', agentRich: false, centerImages: false }
-// [zh] 语句
 );
 
-// [zh] 声明变量 `md`
 const md = new MarkdownIt({
-  // [zh] TypeScript/JS 语句：`html: false,`
   html: false,
-  // [zh] TypeScript/JS 语句：`breaks: true,`
   breaks: true,
-  // [zh] TypeScript/JS 语句：`linkify: true`
   linkify: true
-// [zh] 语句
 });
 
-// [zh] 声明变量 `html`
 const html = computed(() => {
-  // [zh] 声明变量 `normalized`
   const normalized = normalizeProductDesc(props.content);
-  // [zh] 条件判断 if
   if (!normalized) return '';
-  // [zh] 代码块开始
   try {
-    // [zh] 条件判断 if
     if (props.agentRich) return renderAgentMessageHtml(normalized);
-    // [zh] return 返回
     return md.render(normalized);
-  // [zh] 代码块开始
   } catch (err) {
-    // [zh] 语句
     console.warn('Markdown 渲染失败，已降级为纯文本', err);
-    // [zh] return 返回
     return normalized
-      // [zh] TypeScript/JS 语句：`.replace(/&/g, '&amp;')`
       .replace(/&/g, '&amp;')
-      // [zh] TypeScript/JS 语句：`.replace(/</g, '&lt;')`
       .replace(/</g, '&lt;')
-      // [zh] TypeScript/JS 语句：`.replace(/>/g, '&gt;')`
       .replace(/>/g, '&gt;')
-      // [zh] 语句
       .replace(/\n/g, '<br>');
-  // [zh] 语法符号
   }
-// [zh] 语句
 });
 
-// [zh] 声明变量 `rootRef`
 const rootRef = ref<HTMLElement>();
 
-// [zh] 声明变量 `onContentClick`
 const onContentClick = (event: MouseEvent) => {
-  // [zh] 声明变量 `target`
   const target = event.target;
-  // [zh] 条件判断 if
   if (!(target instanceof Element)) return;
-  // [zh] 声明变量 `img`
   const img = target.closest('img');
-  // [zh] 条件判断 if
   if (!(img instanceof HTMLImageElement) || !img.src) return;
-  // [zh] 语句
   event.preventDefault();
-  // [zh] 声明变量 `images`
   const images = rootRef.value?.querySelectorAll('img');
-  // [zh] 声明变量 `urls`
   const urls = images ? Array.from(images).map((node) => node.src).filter(Boolean) : [img.src];
-  // [zh] 声明变量 `index`
   const index = urls.indexOf(img.src);
-  // [zh] 语句
   openImagePreview(urls, index >= 0 ? index : 0);
-// [zh] 语句
 };
 </script>
 

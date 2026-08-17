@@ -114,9 +114,7 @@
                 class="qty-btn"
                 aria-label="增加数量"
                 :disabled="!row.productOnSale || updatingCartId === row.cartId || getQty(row) >= MAX_CART_QTY"
-                <!-- [zh] 模板内容：`@click="increaseQty(row)"` -->
                 @click="increaseQty(row)"
-              <!-- [zh] 模板内容：`>` -->
               >
                 <!-- [zh] 模板内容：`+` -->
                 +
@@ -207,536 +205,290 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed, onMounted, ref, watch } from 'vue';
-// [zh] 导入 `vue-router`
 import { useRouter } from 'vue-router';
-// [zh] 导入 `@/components/common/LiquidGlassSurface.vue`
 import LiquidGlassSurface from '@/components/common/LiquidGlassSurface.vue';
-// [zh] 导入 `@/components/business/SwipeDeleteRow.vue`
 import SwipeDeleteRow from '@/components/business/SwipeDeleteRow.vue';
-// [zh] 导入 `@/components/common/ProductImage.vue`
 import ProductImage from '@/components/common/ProductImage.vue';
-// [zh] 导入 `@/components/business/ProductCard.vue`
 import ProductCard from '@/components/business/ProductCard.vue';
-// [zh] 导入 `@/components/pc/PcProductTile.vue`
 import PcProductTile from '@/components/pc/PcProductTile.vue';
-// [zh] 导入 `@/composables/useDevice`
 import { useDevice } from '@/composables/useDevice';
-// [zh] 导入 `@/utils/confirm`
 import { confirmAction } from '@/utils/confirm';
-// [zh] 导入 `@/utils/toast`
 import { toast } from '@/utils/toast';
-// [zh] 导入 `@/utils/checkout`
 import { saveCheckoutSession, type CheckoutLineItem } from '@/utils/checkout';
-// [zh] 导入 `@/constants/validation`
 import { MAX_CART_QTY } from '@/constants/validation';
-// [zh] 导入 `@/api/modules`
 import { cartApi, productApi } from '@/api/modules';
-// [zh] 导入 `@/utils/product`
 import { filterOnSaleProducts } from '@/utils/product';
-// [zh] 导入 `@/stores/cart`
 import { useCartStore } from '@/stores/cart';
-// [zh] 导入 `@/stores/auth`
 import { useAuthStore } from '@/stores/auth';
-// [zh] 导入 `@/composables/pullRefresh`
 import { usePageRefresh } from '@/composables/pullRefresh';
 
-// [zh] 声明变量 `router`
 const router = useRouter();
-// [zh] 声明变量 `cartStore`
 const cartStore = useCartStore();
-// [zh] 声明变量 `authStore`
 const authStore = useAuthStore();
-// [zh] 语句
 const { isDesktop } = useDevice();
-// [zh] 声明变量 `list`
 const list = ref<any[]>([]);
-// [zh] 声明变量 `pageLoading`
 const pageLoading = ref(true);
-// [zh] 声明变量 `loadError`
 const loadError = ref('');
-// [zh] 声明变量 `recommendProducts`
 const recommendProducts = ref<any[]>([]);
-// [zh] 声明变量 `selectedIds`
 const selectedIds = ref<Set<string>>(new Set());
-// [zh] 声明变量 `updatingCartId`
 const updatingCartId = ref<string | null>(null);
-// [zh] 声明变量 `openSwipeId`
 const openSwipeId = ref<string | null>(null);
 
-// [zh] 声明变量 `goProduct`
 const goProduct = (p: any) => {
-  // [zh] 条件判断 if
   if (p?.productId) router.push(`/product/${p.productId}`);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `loadRecommend`
 const loadRecommend = async () => {
-  // [zh] 条件判断 if
   if (recommendProducts.value.length) return;
-  // [zh] 代码块开始
   try {
-    // [zh] 声明变量 `commend`
     const commend = await productApi.loadCommendProduct();
-    // [zh] 声明变量 `arr`
     const arr = Array.isArray(commend) ? commend : commend?.list;
-    // [zh] 声明变量 `filtered`
     const filtered = filterOnSaleProducts(arr);
-    // [zh] 声明变量 `targetCount`
     const targetCount = isDesktop.value ? 12 : 6;
-    // [zh] 条件判断 if
     if (isDesktop.value && filtered.length < targetCount && filtered.length > 0) {
 
-      // [zh] 声明变量 `items`
       const items = [...filtered];
-      // [zh] 代码块开始
       while (items.length < targetCount) {
-        // [zh] 语句
         items.push(filtered[items.length % filtered.length]);
-      // [zh] 语法符号
       }
-      // [zh] 语句
       recommendProducts.value = items;
-    // [zh] 代码块开始
     } else {
-      // [zh] 语句
       recommendProducts.value = filtered.slice(0, targetCount);
-    // [zh] 语法符号
     }
-  // [zh] 代码块开始
   } catch {
 
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 声明变量 `onSwipeClose`
 const onSwipeClose = (cartId: string) => {
-  // [zh] 条件判断 if
   if (openSwipeId.value === cartId) openSwipeId.value = null;
-// [zh] 语句
 };
 
-// [zh] 声明变量 `qtySnapshot`
 const qtySnapshot = new Map<string, number>();
 
-// [zh] 声明变量 `getQty`
 const getQty = (row: { buyCount?: number }) => Math.max(1, Number(row.buyCount) || 1);
 
-// [zh] 声明变量 `formatUnitPrice`
 const formatUnitPrice = (row: { price?: number }) => Number(row.price || 0).toFixed(2);
 
-// [zh] 声明变量 `formatLineTotal`
 const formatLineTotal = (row: { price?: number; buyCount?: number }) =>
-  // [zh] 语句
   (Number(row.price || 0) * getQty(row)).toFixed(2);
 
-// [zh] 声明变量 `priceDiff`
 const priceDiff = (row: { price?: number; addPrice?: number }) => {
-  // [zh] 条件判断 if
   if (row.addPrice == null || row.price == null) return 0;
-  // [zh] return 返回
   return Number(row.price) - Number(row.addPrice);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `priceDeltaText`
 const priceDeltaText = (row: { price?: number; addPrice?: number }) => {
-  // [zh] 声明变量 `diff`
   const diff = priceDiff(row);
-  // [zh] 条件判断 if
   if (Math.abs(diff) < 0.005) return '';
-  // [zh] 声明变量 `abs`
   const abs = Math.abs(diff).toFixed(2);
-  // [zh] return 返回
   return diff > 0 ? `比添加时多了${abs}元` : `比添加时少了${abs}元`;
-// [zh] 语句
 };
 
-// [zh] 声明变量 `priceDeltaClass`
 const priceDeltaClass = (row: { price?: number; addPrice?: number }) => {
-  // [zh] 声明变量 `diff`
   const diff = priceDiff(row);
-  // [zh] 条件判断 if
   if (diff > 0) return 'up';
-  // [zh] 条件判断 if
   if (diff < 0) return 'down';
-  // [zh] return 返回
   return '';
-// [zh] 语句
 };
 
-// [zh] 声明变量 `normalizeCartRow`
 const normalizeCartRow = (row: Record<string, unknown>) => ({
-  // [zh] TypeScript/JS 语句：`...row,`
   ...row,
-  // [zh] TypeScript/JS 语句：`buyCount: Math.max(1, Math.floor(Number(row.buyCount) |`
   buyCount: Math.max(1, Math.floor(Number(row.buyCount) || 1))
-// [zh] 语句
 });
 
-// [zh] 声明变量 `selectableItems`
 const selectableItems = computed(() => list.value.filter((row) => row.productOnSale));
 
-// [zh] 声明变量 `selectedCount`
 const selectedCount = computed(() =>
-  // [zh] TypeScript/JS 语句：`selectableItems.value`
   selectableItems.value
-    // [zh] TypeScript/JS 语句：`.filter((row) => selectedIds.value.has(row.cartId))`
     .filter((row) => selectedIds.value.has(row.cartId))
-    // [zh] TypeScript/JS 语句：`.reduce((sum, row) => sum + (Number(row.buyCount) || 0)`
     .reduce((sum, row) => sum + (Number(row.buyCount) || 0), 0)
-// [zh] 语句
 );
 
-// [zh] 声明变量 `selectedAmount`
 const selectedAmount = computed(() => {
-  // [zh] 声明变量 `total`
   const total = selectableItems.value
-    // [zh] TypeScript/JS 语句：`.filter((row) => selectedIds.value.has(row.cartId))`
     .filter((row) => selectedIds.value.has(row.cartId))
-    // [zh] 语句
     .reduce((sum, row) => sum + Number(row.price) * (Number(row.buyCount) || 0), 0);
-  // [zh] return 返回
   return total.toFixed(2);
-// [zh] 语句
 });
 
-// [zh] 声明变量 `allSelectableChecked`
 const allSelectableChecked = computed(
-  // [zh] TypeScript/JS 语句：`() =>`
   () =>
-    // [zh] TypeScript/JS 语句：`selectableItems.value.length > 0 &&`
     selectableItems.value.length > 0 &&
-    // [zh] TypeScript/JS 语句：`selectableItems.value.every((row) => selectedIds.value.`
     selectableItems.value.every((row) => selectedIds.value.has(row.cartId))
-// [zh] 语句
 );
 
-// [zh] 声明变量 `isIndeterminate`
 const isIndeterminate = computed(() => {
-  // [zh] 声明变量 `selected`
   const selected = selectableItems.value.filter((row) => selectedIds.value.has(row.cartId)).length;
-  // [zh] return 返回
   return selected > 0 && selected < selectableItems.value.length;
-// [zh] 语句
 });
 
-// [zh] 声明变量 `syncDefaultSelection`
 const syncDefaultSelection = () => {
-  // [zh] 语句
   selectedIds.value = new Set(selectableItems.value.map((row) => row.cartId));
-// [zh] 语句
 };
 
-// [zh] 声明变量 `onItemCheckChange`
 const onItemCheckChange = (cartId: string, checked: boolean | string | number) => {
-  // [zh] 语句
   toggleItem(cartId, !!checked);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `toggleItem`
 const toggleItem = (cartId: string, checked: boolean) => {
-  // [zh] 声明变量 `next`
   const next = new Set(selectedIds.value);
-  // [zh] 条件判断 if
   if (checked) next.add(cartId);
-  // [zh] else 分支
   else next.delete(cartId);
-  // [zh] 语句
   selectedIds.value = next;
-// [zh] 语句
 };
 
-// [zh] 声明变量 `toggleAll`
 const toggleAll = (checked: boolean) => {
-  // [zh] 条件判断 if
   if (checked) syncDefaultSelection();
-  // [zh] else 分支
   else selectedIds.value = new Set();
-// [zh] 语句
 };
 
-// [zh] 声明变量 `load`
 const load = async () => {
-  // [zh] 语句
   pageLoading.value = true;
-  // [zh] 语句
   loadError.value = '';
-  // [zh] 代码块开始
   try {
-    // [zh] 声明变量 `ok`
     const ok = await authStore.ensureSession();
-    // [zh] 条件判断 if
     if (!ok) {
-      // [zh] 语句
       list.value = [];
-      // [zh] 语句
       selectedIds.value = new Set();
-      // [zh] 语句
       cartStore.resetCart();
-      // [zh] 语句
       return;
-    // [zh] 语法符号
     }
 
-    // [zh] 声明变量 `res`
     const res = await cartApi.loadProductCart({ pageNo: 1 });
-    // [zh] 声明变量 `rows`
     const rows = Array.isArray(res?.list) ? res.list : [];
-    // [zh] 语句
     list.value = rows.map((row: Record<string, unknown>) => normalizeCartRow(row));
-    // [zh] 语句
     syncDefaultSelection();
-    // [zh] await 等待 Promise（类比 CompletableFuture.get）
     await cartStore.fetchCartCount();
-  // [zh] 代码块开始
   } catch (e: any) {
-    // [zh] 语句
     loadError.value = e?.info || '购物车加载失败，请重试';
-    // [zh] 语句
     list.value = [];
-    // [zh] 语句
     selectedIds.value = new Set();
-  // [zh] 代码块开始
   } finally {
-    // [zh] 语句
     pageLoading.value = false;
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] TypeScript/JS 语句：`watch(`
 watch(
-  // [zh] TypeScript/JS 语句：`() => authStore.userInfo?.userId,`
   () => authStore.userInfo?.userId,
-  // [zh] 代码块开始
   (userId, prevUserId) => {
-    // [zh] 条件判断 if
     if (userId !== prevUserId) {
-      // [zh] 语句
       list.value = [];
-      // [zh] 语句
       selectedIds.value = new Set();
-      // [zh] 条件判断 if
       if (userId) void load();
-      // [zh] else 分支
       else cartStore.resetCart();
-    // [zh] 语法符号
     }
-  // [zh] 语法符号
   }
-// [zh] 语句
 );
 
-// [zh] 声明变量 `decreaseQty`
 const decreaseQty = (row: Record<string, any>) => {
-  // [zh] 语句
   void changeQty(row, getQty(row) - 1);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `increaseQty`
 const increaseQty = (row: Record<string, any>) => {
-  // [zh] 语句
   void changeQty(row, getQty(row) + 1);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `onQtyFocus`
 const onQtyFocus = (row: Record<string, any>) => {
-  // [zh] 语句
   qtySnapshot.set(String(row.cartId), getQty(row));
-// [zh] 语句
 };
 
-// [zh] 声明变量 `commitQtyInput`
 const commitQtyInput = (row: Record<string, any>) => {
-  // [zh] 声明变量 `cartId`
   const cartId = String(row.cartId);
-  // [zh] 声明变量 `prev`
   const prev = qtySnapshot.get(cartId) ?? getQty(row);
-  // [zh] 语句
   qtySnapshot.delete(cartId);
 
-  // [zh] 声明变量 `count`
   let count = Math.floor(Number(row.buyCount));
-  // [zh] 条件判断 if
   if (!Number.isFinite(count) || count < 1) {
-    // [zh] 语句
     row.buyCount = prev;
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
-  // [zh] 条件判断 if
   if (count > MAX_CART_QTY) {
-    // [zh] 语句
     count = MAX_CART_QTY;
-    // [zh] 语句
     toast.warning(`单个商品最多购买 ${MAX_CART_QTY} 件`);
-  // [zh] 语法符号
   }
-  // [zh] 语句
   row.buyCount = count;
-  // [zh] 语句
   void changeQty(row, count, prev);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `changeQty`
 const changeQty = async (
-  // [zh] TypeScript/JS 语句：`row: Record<string, any>,`
   row: Record<string, any>,
-  // [zh] TypeScript/JS 语句：`val: number | undefined,`
   val: number | undefined,
-  // [zh] TypeScript/JS 语句：`prevOverride?: number`
   prevOverride?: number
-// [zh] 代码块开始
 ) => {
-  // [zh] 条件判断 if
   if (!row.productOnSale || updatingCartId.value) return;
 
-  // [zh] 声明变量 `prev`
   const prev = prevOverride ?? (Number(row.buyCount) || 1);
-  // [zh] 声明变量 `count`
   let count = Math.floor(Number(val) || 0);
 
-  // [zh] 条件判断 if
   if (count < 1) count = 1;
-  // [zh] 条件判断 if
   if (count > MAX_CART_QTY) {
-    // [zh] 语句
     count = MAX_CART_QTY;
-    // [zh] 条件判断 if
     if (prev < MAX_CART_QTY) toast.warning(`单个商品最多购买 ${MAX_CART_QTY} 件`);
-  // [zh] 语法符号
   }
-  // [zh] 条件判断 if
   if (count === prev) {
-    // [zh] 语句
     row.buyCount = count;
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
 
-  // [zh] 声明变量 `delta`
   const delta = count - prev;
-  // [zh] 条件判断 if
   if (delta === 0) return;
 
-  // [zh] 语句
   updatingCartId.value = row.cartId;
-  // [zh] 代码块开始
   try {
-    // [zh] await 等待 Promise（类比 CompletableFuture.get）
     await cartApi.add2Cart({
-      // [zh] TypeScript/JS 语句：`productId: row.productId,`
       productId: row.productId,
-      // [zh] TypeScript/JS 语句：`propertyValueIds: row.propertyValueIds,`
       propertyValueIds: row.propertyValueIds,
-      // [zh] TypeScript/JS 语句：`buyCount: delta`
       buyCount: delta
-    // [zh] 语句
     });
-    // [zh] 语句
     row.buyCount = prev + delta;
-    // [zh] await 等待 Promise（类比 CompletableFuture.get）
     await cartStore.fetchCartCount();
-  // [zh] 代码块开始
   } catch {
-    // [zh] 语句
     row.buyCount = prev;
-  // [zh] 代码块开始
   } finally {
-    // [zh] 语句
     updatingCartId.value = null;
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 声明变量 `del`
 const del = async (id: string) => {
-  // [zh] 声明变量 `ok`
   const ok = await confirmAction('确定要将该商品移出购物车吗？', {
-    // [zh] TypeScript/JS 语句：`title: '移出购物车',`
     title: '移出购物车',
-    // [zh] TypeScript/JS 语句：`confirmButtonText: '移出'`
     confirmButtonText: '移出'
-  // [zh] 语句
   });
-  // [zh] 条件判断 if
   if (!ok) return;
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await cartApi.deleteCart(id);
-  // [zh] 条件判断 if
   if (openSwipeId.value === id) openSwipeId.value = null;
-  // [zh] 语句
   toast.success('已移出购物车');
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await load();
-// [zh] 语句
 };
 
-// [zh] 声明变量 `checkout`
 const checkout = () => {
-  // [zh] 声明变量 `rows`
   const rows = selectableItems.value.filter((row) => selectedIds.value.has(row.cartId));
-  // [zh] 条件判断 if
   if (!rows.length) {
-    // [zh] 语句
     toast.warning('请先勾选要结算的商品');
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
-  // [zh] 声明变量 `items`
   const items: CheckoutLineItem[] = rows.map((row) => ({
-    // [zh] TypeScript/JS 语句：`cartId: row.cartId,`
     cartId: row.cartId,
-    // [zh] TypeScript/JS 语句：`productId: row.productId,`
     productId: row.productId,
-    // [zh] TypeScript/JS 语句：`productName: row.productName,`
     productName: row.productName,
-    // [zh] TypeScript/JS 语句：`productCover: row.productCover,`
     productCover: row.productCover,
-    // [zh] TypeScript/JS 语句：`propertyValueIds: row.propertyValueIds,`
     propertyValueIds: row.propertyValueIds,
-    // [zh] TypeScript/JS 语句：`propertyValueIdHash: row.propertyValueIdHash,`
     propertyValueIdHash: row.propertyValueIdHash,
-    // [zh] TypeScript/JS 语句：`propertyData: row.propertyData,`
     propertyData: row.propertyData,
-    // [zh] TypeScript/JS 语句：`price: Number(row.price),`
     price: Number(row.price),
-    // [zh] TypeScript/JS 语句：`buyCount: Number(row.buyCount) || 1`
     buyCount: Number(row.buyCount) || 1
-  // [zh] 语句
   }));
-  // [zh] 语句
   saveCheckoutSession(items, 1);
-  // [zh] 语句
   router.push('/checkout');
-// [zh] 语句
 };
 
-// [zh] 代码块开始
 onMounted(() => {
-  // [zh] 语句
   load();
-  // [zh] 语句
   loadRecommend();
-// [zh] 语句
 });
-// [zh] 语句
 usePageRefresh(load);
 </script>
 

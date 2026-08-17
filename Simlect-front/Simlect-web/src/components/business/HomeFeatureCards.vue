@@ -30,77 +30,43 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed, ref } from 'vue';
-// [zh] 导入 `vue-router`
 import { useRouter } from 'vue-router';
-// [zh] 导入 `@/stores/auth`
 import { useAuthStore } from '@/stores/auth';
-// [zh] 导入 `@element-plus/icons-vue`
 import { Star, Medal, Check, Discount } from '@element-plus/icons-vue';
 
-// [zh] 声明变量 `router`
 const router = useRouter();
-// [zh] 声明变量 `authStore`
 const authStore = useAuthStore();
 
-// [zh] 声明变量 `featureItems`
 const featureItems = ref([
-  // [zh] TypeScript/JS 语句：`{ icon: Star, label: '猜你喜欢', path: '#recommend-section'`
   { icon: Star, label: '猜你喜欢', path: '#recommend-section', badge: '', isAnchor: true },
-  // [zh] TypeScript/JS 语句：`{ icon: Medal, label: '会员中心', path: '/member-center', b`
   { icon: Medal, label: '会员中心', path: '/member-center', badge: '', isAnchor: false },
-  // [zh] TypeScript/JS 语句：`{ icon: Check, label: '签到有礼', path: '/sign', badge: '',`
   { icon: Check, label: '签到有礼', path: '/sign', badge: '', isAnchor: false },
-  // [zh] TypeScript/JS 语句：`{ icon: Discount, label: '优惠券', path: '/coupons', badge`
   { icon: Discount, label: '优惠券', path: '/coupons', badge: '', isAnchor: false },
-// [zh] 语句
 ]);
 
-// [zh] 声明变量 `iconColor`
 const iconColor = computed(() => {
-  // [zh] 声明变量 `level`
   const level = authStore.memberLevelCode;
-  // [zh] 条件判断 if
   if (level >= 3) {
-    // [zh] return 返回
     return '#B8860B';
-  // [zh] 语法符号
   }
-  // [zh] 条件判断 if
   if (level >= 2) {
-    // [zh] return 返回
     return '#757575';
-  // [zh] 语法符号
   }
-  // [zh] return 返回
   return '#1D1D1F';
-// [zh] 语句
 });
 
-// [zh] 声明变量 `handleClick`
 const handleClick = (item: { path: string; isAnchor: boolean }) => {
-  // [zh] 条件判断 if
   if (item.isAnchor) {
-    // [zh] 声明变量 `element`
     const element = document.querySelector(item.path);
-    // [zh] 条件判断 if
     if (element) {
-      // [zh] 声明变量 `top`
       const top = element.getBoundingClientRect().top + window.scrollY - 60;
-      // [zh] 语句
       window.scrollTo({ top, behavior: 'smooth' });
-    // [zh] 语法符号
     }
-  // [zh] 代码块开始
   } else {
-    // [zh] 语句
     router.push(item.path);
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 </script>
 

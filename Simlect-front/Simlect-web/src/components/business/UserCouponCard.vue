@@ -30,24 +30,15 @@
   </article>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `模块`
 import {
-  // [zh] TypeScript/JS 语句：`USER_COUPON_STATUS_MAP,`
   USER_COUPON_STATUS_MAP,
-  // [zh] TypeScript/JS 语句：`couponConditionText,`
   couponConditionText,
-  // [zh] TypeScript/JS 语句：`couponMainValue,`
   couponMainValue,
-  // [zh] TypeScript/JS 语句：`couponTypeLabel,`
   couponTypeLabel,
-  // [zh] TypeScript/JS 语句：`formatCouponTime`
   formatCouponTime
-// [zh] 语句
 } from '@/utils/coupon';
 
-// [zh] 语句
 defineProps<{ coupon: Record<string, any> }>();
 </script>
 

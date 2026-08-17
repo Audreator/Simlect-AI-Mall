@@ -10,8 +10,6 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 语句
 defineProps<{ title: string; desc: string }>();
 </script>

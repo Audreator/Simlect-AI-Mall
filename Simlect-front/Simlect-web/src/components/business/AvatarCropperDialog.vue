@@ -4,15 +4,10 @@
   <Teleport to="body">
     <!-- [zh] 开始标签 `<Transition>` -->
     <Transition name="cropper-fade">
-      <!-- [zh] 开始标签 `<div>` -->
       <div v-if="visible" class="avatar-cropper-overlay" @click.self="cancel">
-        <!-- [zh] 开始标签 `<div>` -->
         <div class="avatar-cropper-panel">
-          <!-- [zh] 开始标签 `<p>` -->
           <p class="cropper-title">移动和缩放图片</p>
-          <!-- [zh] 开始标签 `<div>` -->
           <div class="cropper-viewport">
-            <!-- [zh] 开始标签 `<Cropper>` -->
             <Cropper
               ref="cropperRef"
               class="cropper-area"
@@ -24,255 +19,137 @@
               :max-zoom="3"
               background-class="cropper-bg"
             />
-          <!-- [zh] 闭合标签 `</div>` -->
           </div>
-          <!-- [zh] 开始标签 `<p>` -->
           <p class="cropper-hint">拖动图片调整位置，双指或滚轮缩放</p>
-          <!-- [zh] 开始标签 `<div>` -->
           <div class="cropper-actions">
-            <!-- [zh] 开始标签 `<el-button>` -->
             <el-button round @click="cancel">取消</el-button>
-            <!-- [zh] 开始标签 `<el-button>` -->
             <el-button type="primary" round :loading="confirming" @click="onConfirm">确定</el-button>
-          <!-- [zh] 闭合标签 `</div>` -->
           </div>
-        <!-- [zh] 闭合标签 `</div>` -->
         </div>
-      <!-- [zh] 闭合标签 `</div>` -->
       </div>
-    <!-- [zh] 闭合标签 `</Transition>` -->
     </Transition>
   <!-- [zh] 闭合标签 `</Teleport>` -->
   </Teleport>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { ref, shallowRef } from 'vue';
-// [zh] 导入 `vue-advanced-cropper`
 import { Cropper, CircleStencil } from 'vue-advanced-cropper';
-// [zh] 导入 `模块`
 import 'vue-advanced-cropper/dist/style.css';
 
-// [zh] 声明变量 `visible`
 const visible = ref(false);
-// [zh] 声明变量 `imgSrc`
 const imgSrc = ref('');
-// [zh] 声明变量 `confirming`
 const confirming = ref(false);
-// [zh] 声明变量 `cropperRef`
 const cropperRef = shallowRef<InstanceType<typeof Cropper> | null>(null);
 
-// [zh] 声明变量 `_resolve`
 let _resolve: ((blob: Blob) => void) | null = null;
-// [zh] 声明变量 `_reject`
 let _reject: (() => void) | null = null;
-// [zh] 声明变量 `settled`
 let settled = false;
 
-// [zh] 声明变量 `open`
 const open = (file: File): Promise<Blob> => {
-  // [zh] return 返回
   return new Promise((resolve, reject) => {
-    // [zh] 语句
     settled = false;
-    // [zh] 语句
     _resolve = resolve;
-    // [zh] 语句
     _reject = reject;
-    // [zh] 声明变量 `reader`
     const reader = new FileReader();
-    // [zh] 代码块开始
     reader.onload = (e) => {
-      // [zh] 声明变量 `result`
       const result = e.target?.result as string;
-      // [zh] 条件判断 if
       if (!result || result.length < 100) {
-        // [zh] 语句
         settled = true;
-        // [zh] 语句
         reject(new Error('文件读取不完整'));
-        // [zh] 语句
         return;
-      // [zh] 语法符号
       }
-      // [zh] 语句
       imgSrc.value = result;
-      // [zh] 语句
       visible.value = true;
-    // [zh] 语句
     };
-    // [zh] 代码块开始
     reader.onerror = () => {
-      // [zh] 语句
       settled = true;
-      // [zh] 语句
       reject(new Error('读取文件失败'));
-    // [zh] 语句
     };
-    // [zh] 代码块开始
     reader.onabort = () => {
-      // [zh] 语句
       settled = true;
-      // [zh] 语句
       reject(new Error('文件读取被中断'));
-    // [zh] 语句
     };
-    // [zh] 语句
     reader.readAsDataURL(file);
-  // [zh] 语句
   });
-// [zh] 语句
 };
 
-// [zh] 声明变量 `onConfirm`
 const onConfirm = () => {
-  // [zh] 条件判断 if
   if (!cropperRef.value || settled) return;
-  // [zh] 语句
   confirming.value = true;
-  // [zh] 代码块开始
   try {
-    // [zh] 声明变量 `result`
     const result = cropperRef.value.getResult();
-    // [zh] 声明变量 `srcCanvas`
     const srcCanvas = result?.canvas;
-    // [zh] 条件判断 if
     if (!srcCanvas || srcCanvas.width === 0 || srcCanvas.height === 0) {
-      // [zh] 语句
       settled = true;
-      // [zh] 语句
       visible.value = false;
-      // [zh] 语句
       _reject?.();
-      // [zh] 语句
       cleanup();
-      // [zh] 语句
       return;
-    // [zh] 语法符号
     }
 
-    // [zh] 声明变量 `SIZE`
     const SIZE = 256;
-    // [zh] 声明变量 `outCanvas`
     const outCanvas = document.createElement('canvas');
-    // [zh] 语句
     outCanvas.width = SIZE;
-    // [zh] 语句
     outCanvas.height = SIZE;
-    // [zh] 声明变量 `ctx`
     const ctx = outCanvas.getContext('2d');
-    // [zh] 条件判断 if
     if (!ctx) {
-      // [zh] 语句
       settled = true;
-      // [zh] 语句
       visible.value = false;
-      // [zh] 语句
       _reject?.();
-      // [zh] 语句
       cleanup();
-      // [zh] 语句
       return;
-    // [zh] 语法符号
     }
-    // [zh] 语句
     ctx.drawImage(srcCanvas, 0, 0, SIZE, SIZE);
 
-    // [zh] 代码块开始
     try {
 
-      // [zh] 声明变量 `dataUrl`
       const dataUrl = outCanvas.toDataURL('image/png');
-      // [zh] 声明变量 `parts`
       const parts = dataUrl.split(',');
-      // [zh] 条件判断 if
       if (parts.length !== 2 || !parts[1]) {
-        // [zh] 语句
         throw new Error('dataUrl 为空');
-      // [zh] 语法符号
       }
-      // [zh] 声明变量 `byteString`
       const byteString = atob(parts[1]);
-      // [zh] 条件判断 if
       if (!byteString || byteString.length === 0) {
-        // [zh] 语句
         throw new Error('解码后数据为空');
-      // [zh] 语法符号
       }
-      // [zh] 声明变量 `ab`
       const ab = new ArrayBuffer(byteString.length);
-      // [zh] 声明变量 `ia`
       const ia = new Uint8Array(ab);
-      // [zh] for 循环
       for (let i = 0; i < byteString.length; i++) {
-        // [zh] 语句
         ia[i] = byteString.charCodeAt(i);
-      // [zh] 语法符号
       }
-      // [zh] 声明变量 `blob`
       const blob = new Blob([ab], { type: 'image/png' });
-      // [zh] 条件判断 if
       if (blob.size === 0) {
-        // [zh] 语句
         throw new Error('生成的 blob 为空');
-      // [zh] 语法符号
       }
-      // [zh] 语句
       settled = true;
-      // [zh] 语句
       visible.value = false;
-      // [zh] 语句
       _resolve?.(blob);
-    // [zh] 代码块开始
     } catch (e) {
-      // [zh] 语句
       settled = true;
-      // [zh] 语句
       visible.value = false;
-      // [zh] 语句
       _reject?.();
-      // [zh] 语句
       cleanup();
-    // [zh] 语法符号
     }
-  // [zh] 代码块开始
   } finally {
-    // [zh] 语句
     confirming.value = false;
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 声明变量 `cancel`
 const cancel = () => {
-  // [zh] 条件判断 if
   if (settled) return;
-  // [zh] 语句
   settled = true;
-  // [zh] 语句
   visible.value = false;
-  // [zh] 语句
   _reject?.();
-  // [zh] 语句
   cleanup();
-// [zh] 语句
 };
 
-// [zh] 声明变量 `cleanup`
 const cleanup = () => {
-  // [zh] 语句
   imgSrc.value = '';
-  // [zh] 语句
   _resolve = null;
-  // [zh] 语句
   _reject = null;
-// [zh] 语句
 };
 
-// [zh] 语句
 defineExpose({ open });
 </script>
 

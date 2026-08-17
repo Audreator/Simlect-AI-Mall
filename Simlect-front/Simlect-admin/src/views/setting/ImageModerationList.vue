@@ -120,95 +120,53 @@
   <HandleImageModeration ref="handleRef" @reload="loadDataList" />
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `./HandleImageModeration.vue`
 import HandleImageModeration from './HandleImageModeration.vue'
-// [zh] 导入 `vue`
 import { ref, reactive, getCurrentInstance } from 'vue'
 
-// [zh] TypeScript/JS 语句：`const { proxy } = getCurrentInstance()`
 const { proxy } = getCurrentInstance()
 
-// [zh] 声明变量 `columns`
 const columns = [
-  // [zh] TypeScript/JS 语句：`{ label: 'ID', prop: 'recordId', width: 70 },`
   { label: 'ID', prop: 'recordId', width: 70 },
-  // [zh] TypeScript/JS 语句：`{ label: '用户ID', prop: 'userId', width: 120 },`
   { label: '用户ID', prop: 'userId', width: 120 },
-  // [zh] TypeScript/JS 语句：`{ label: 'IP', prop: 'userIp', width: 120 },`
   { label: 'IP', prop: 'userIp', width: 120 },
-  // [zh] TypeScript/JS 语句：`{ label: '场景', scopedSlots: 'slotScene', width: 80 },`
   { label: '场景', scopedSlots: 'slotScene', width: 80 },
-  // [zh] TypeScript/JS 语句：`{ label: '图片', scopedSlots: 'slotImage', width: 90 },`
   { label: '图片', scopedSlots: 'slotImage', width: 90 },
-  // [zh] TypeScript/JS 语句：`{ label: '百度结论', prop: 'conclusion', width: 160 },`
   { label: '百度结论', prop: 'conclusion', width: 160 },
-  // [zh] TypeScript/JS 语句：`{ label: '状态', scopedSlots: 'slotStatus', width: 90 },`
   { label: '状态', scopedSlots: 'slotStatus', width: 90 },
-  // [zh] TypeScript/JS 语句：`{ label: '上传时间', prop: 'createTime', width: 160 },`
   { label: '上传时间', prop: 'createTime', width: 160 },
-  // [zh] TypeScript/JS 语句：`{ label: '操作', scopedSlots: 'slotOperation', width: 80 `
   { label: '操作', scopedSlots: 'slotOperation', width: 80 }
-// [zh] TypeScript/JS 语句：`]`
 ]
 
-// [zh] 声明变量 `tableInfoRef`
 const tableInfoRef = ref()
-// [zh] 声明变量 `handleRef`
 const handleRef = ref()
-// [zh] 声明变量 `searchForm`
 const searchForm = reactive({
-  // [zh] TypeScript/JS 语句：`userIdFuzzy: '',`
   userIdFuzzy: '',
-  // [zh] TypeScript/JS 语句：`scene: '',`
   scene: '',
-  // [zh] TypeScript/JS 语句：`status: 0`
   status: 0
-// [zh] TypeScript/JS 语句：`})`
 })
-// [zh] 声明变量 `tableData`
 const tableData = ref({})
 
-// [zh] 声明变量 `imageUrl`
 const imageUrl = (path) => `${proxy.Api.sourcePath}${encodeURIComponent(path)}`
 
-// [zh] 声明变量 `loadDataList`
 const loadDataList = async () => {
-  // [zh] 声明变量 `params`
   const params = {
-    // [zh] TypeScript/JS 语句：`pageNo: tableData.value.pageNo,`
     pageNo: tableData.value.pageNo,
-    // [zh] TypeScript/JS 语句：`pageSize: tableData.value.pageSize`
     pageSize: tableData.value.pageSize
-  // [zh] 语法符号
   }
-  // [zh] 条件判断 if
   if (searchForm.userIdFuzzy) params.userIdFuzzy = searchForm.userIdFuzzy
-  // [zh] 条件判断 if
   if (searchForm.scene) params.scene = searchForm.scene
-  // [zh] 条件判断 if
   if (searchForm.status !== undefined && searchForm.status !== '') params.status = searchForm.status
-  // [zh] 声明变量 `result`
   const result = await proxy.Request({
-    // [zh] TypeScript/JS 语句：`url: proxy.Api.imageModerationLoadList,`
     url: proxy.Api.imageModerationLoadList,
-    // [zh] TypeScript/JS 语句：`params`
     params
-  // [zh] TypeScript/JS 语句：`})`
   })
-  // [zh] 条件判断 if
   if (!result) return
-  // [zh] TypeScript/JS 语句：`Object.assign(tableData.value, result.data)`
   Object.assign(tableData.value, result.data)
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `openHandle`
 const openHandle = (row) => {
-  // [zh] TypeScript/JS 语句：`handleRef.value?.show(row)`
   handleRef.value?.show(row)
-// [zh] 语法符号
 }
 </script>
 

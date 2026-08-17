@@ -65,43 +65,25 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `vue`
 import { getCurrentInstance } from 'vue'
 
-// [zh] TypeScript/JS 语句：`const { proxy } = getCurrentInstance()`
 const { proxy } = getCurrentInstance()
 
-// [zh] 声明变量 `runTool`
 const runTool = (apiKey, label, params = {}) => {
-  // [zh] 代码块开始
   proxy.Confirm({
-    // [zh] TypeScript/JS 语句：`message: `确定执行「${label}」吗？`,`
     message: `确定执行「${label}」吗？`,
-    // [zh] 代码块开始
     okfun: async () => {
-      // [zh] 声明变量 `result`
       const result = await proxy.Request({ url: proxy.Api[apiKey], params, showLoading: true })
-      // [zh] 条件判断 if
       if (!result) return
-      // [zh] 声明变量 `d`
       const d = result.data
-      // [zh] 条件判断 if
       if (d && typeof d.synced === 'number') {
-        // [zh] TypeScript/JS 语句：`proxy.Message.success(`同步 ${d.synced} 条，跳过 ${d.skipped `
         proxy.Message.success(`同步 ${d.synced} 条，跳过 ${d.skipped ?? 0} 条`)
-      // [zh] 代码块开始
       } else {
-        // [zh] TypeScript/JS 语句：`proxy.Message.success('操作成功')`
         proxy.Message.success('操作成功')
-      // [zh] 语法符号
       }
-    // [zh] TypeScript/JS 语句：`},`
     },
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 </script>
 

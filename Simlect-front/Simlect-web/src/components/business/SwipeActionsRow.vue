@@ -22,19 +22,12 @@
       <!-- [zh] 开始标签 `<div>` -->
       <div
         v-if="actionWidth > 0"
-        <!-- [zh] 模板内容：`class="swipe-actions"` -->
         class="swipe-actions"
-        <!-- [zh] 模板内容：`:style="{` -->
         :style="{
-          <!-- [zh] 模板内容：`width: `${actionWidth}px`,` -->
           width: `${actionWidth}px`,
-          <!-- [zh] 模板内容：`opacity: actionOpacity,` -->
           opacity: actionOpacity,
-          <!-- [zh] 模板内容：`transform: `scale(${actionScale})`` -->
           transform: `scale(${actionScale})`
-        <!-- [zh] 模板内容：`}"` -->
         }"
-      <!-- [zh] 模板内容：`>` -->
       >
         <!-- [zh] 开始标签 `<slot>` -->
         <slot name="actions" />
@@ -46,254 +39,139 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
-// [zh] 声明变量 `props`
 const props = withDefaults(
-  // [zh] 代码块开始
   defineProps<{
-    // [zh] 语句
     open?: boolean;
-    // [zh] 语句
     actionWidth?: number;
-  // [zh] TypeScript/JS 语句：`}>(),`
   }>(),
-  // [zh] TypeScript/JS 语句：`{ open: false, actionWidth: 148 }`
   { open: false, actionWidth: 148 }
-// [zh] 语句
 );
 
-// [zh] 声明变量 `emit`
 const emit = defineEmits<{
-  // [zh] 语句
   open: [];
-  // [zh] 语句
   close: [];
-// [zh] 语句
 }>();
 
-// [zh] 声明变量 `rootRef`
 const rootRef = ref<HTMLElement | null>(null);
-// [zh] 声明变量 `rowWidth`
 const rowWidth = ref(0);
-// [zh] 声明变量 `offsetX`
 const offsetX = ref(0);
-// [zh] 声明变量 `isDragging`
 const isDragging = ref(false);
 
-// [zh] 声明变量 `startX`
 let startX = 0;
-// [zh] 声明变量 `startOffset`
 let startOffset = 0;
-// [zh] 声明变量 `tracking`
 let tracking = false;
-// [zh] 声明变量 `resizeObserver`
 let resizeObserver: ResizeObserver | null = null;
 
-// [zh] 声明变量 `swipeProgress`
 const swipeProgress = computed(() => {
-  // [zh] 声明变量 `w`
   const w = props.actionWidth;
-  // [zh] 条件判断 if
   if (!w) return 0;
-  // [zh] return 返回
   return Math.min(1, Math.abs(offsetX.value) / w);
-// [zh] 语句
 });
 
-// [zh] 声明变量 `actionOpacity`
 const actionOpacity = computed(() => {
-  // [zh] 声明变量 `p`
   const p = swipeProgress.value;
-  // [zh] 条件判断 if
   if (p <= 0) return 0;
-  // [zh] return 返回
   return 0.35 + 0.65 * p;
-// [zh] 语句
 });
 
-// [zh] 声明变量 `actionScale`
 const actionScale = computed(() => 0.88 + 0.12 * swipeProgress.value);
 
-// [zh] 声明变量 `rowStyle`
 const rowStyle = computed(() => ({
-  // [zh] TypeScript/JS 语句：`'--swipe-row-w': rowWidth.value ? `${rowWidth.value}px``
   '--swipe-row-w': rowWidth.value ? `${rowWidth.value}px` : '100%',
-  // [zh] TypeScript/JS 语句：`'--swipe-action-w': `${props.actionWidth}px``
   '--swipe-action-w': `${props.actionWidth}px`
-// [zh] 语句
 }));
 
-// [zh] 声明变量 `clampOffset`
 const clampOffset = (x: number) => {
-  // [zh] 声明变量 `w`
   const w = props.actionWidth;
-  // [zh] 条件判断 if
   if (!w) return 0;
-  // [zh] return 返回
   return Math.min(0, Math.max(-w, x));
-// [zh] 语句
 };
 
-// [zh] 声明变量 `snap`
 const snap = () => {
-  // [zh] 声明变量 `w`
   const w = props.actionWidth;
-  // [zh] 条件判断 if
   if (!w) {
-    // [zh] 语句
     offsetX.value = 0;
-    // [zh] 语句
     emit('close');
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
-  // [zh] 条件判断 if
   if (Math.abs(offsetX.value) > w * 0.4) {
-    // [zh] 语句
     offsetX.value = -w;
-    // [zh] 语句
     emit('open');
-  // [zh] 代码块开始
   } else {
-    // [zh] 语句
     offsetX.value = 0;
-    // [zh] 语句
     emit('close');
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] TypeScript/JS 语句：`watch(`
 watch(
-  // [zh] TypeScript/JS 语句：`() => props.open,`
   () => props.open,
-  // [zh] 代码块开始
   (v) => {
-    // [zh] 语句
     offsetX.value = v ? -props.actionWidth : 0;
-  // [zh] 语法符号
   }
-// [zh] 语句
 );
 
-// [zh] 声明变量 `onTouchStart`
 const onTouchStart = (e: TouchEvent) => {
-  // [zh] 语句
   tracking = true;
-  // [zh] 语句
   isDragging.value = true;
-  // [zh] 语句
   startX = e.touches[0].clientX;
-  // [zh] 语句
   startOffset = offsetX.value;
-// [zh] 语句
 };
 
-// [zh] 声明变量 `onTouchMove`
 const onTouchMove = (e: TouchEvent) => {
-  // [zh] 条件判断 if
   if (!tracking) return;
-  // [zh] 声明变量 `dx`
   const dx = e.touches[0].clientX - startX;
-  // [zh] 语句
   offsetX.value = clampOffset(startOffset + dx);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `onTouchEnd`
 const onTouchEnd = () => {
-  // [zh] 条件判断 if
   if (!tracking) return;
-  // [zh] 语句
   tracking = false;
-  // [zh] 语句
   isDragging.value = false;
-  // [zh] 语句
   snap();
-// [zh] 语句
 };
 
-// [zh] 声明变量 `onMouseDown`
 const onMouseDown = (e: MouseEvent) => {
-  // [zh] 条件判断 if
   if (e.button !== 0) return;
-  // [zh] 语句
   tracking = true;
-  // [zh] 语句
   isDragging.value = true;
-  // [zh] 语句
   startX = e.clientX;
-  // [zh] 语句
   startOffset = offsetX.value;
-  // [zh] 语句
   document.addEventListener('mousemove', onMouseMove);
-  // [zh] 语句
   document.addEventListener('mouseup', onMouseUp);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `onMouseMove`
 const onMouseMove = (e: MouseEvent) => {
-  // [zh] 条件判断 if
   if (!tracking) return;
-  // [zh] 语句
   offsetX.value = clampOffset(startOffset + e.clientX - startX);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `onMouseUp`
 const onMouseUp = () => {
-  // [zh] 条件判断 if
   if (!tracking) return;
-  // [zh] 语句
   tracking = false;
-  // [zh] 语句
   isDragging.value = false;
-  // [zh] 语句
   document.removeEventListener('mousemove', onMouseMove);
-  // [zh] 语句
   document.removeEventListener('mouseup', onMouseUp);
-  // [zh] 语句
   snap();
-// [zh] 语句
 };
 
-// [zh] 代码块开始
 onMounted(() => {
-  // [zh] 声明变量 `el`
   const el = rootRef.value;
-  // [zh] 条件判断 if
   if (!el) return;
-  // [zh] 声明变量 `measure`
   const measure = () => {
-    // [zh] 语句
     rowWidth.value = el.clientWidth;
-  // [zh] 语句
   };
-  // [zh] 语句
   measure();
-  // [zh] 语句
   resizeObserver = new ResizeObserver(measure);
-  // [zh] 语句
   resizeObserver.observe(el);
-// [zh] 语句
 });
 
-// [zh] 代码块开始
 onBeforeUnmount(() => {
-  // [zh] 语句
   resizeObserver?.disconnect();
-  // [zh] 语句
   document.removeEventListener('mousemove', onMouseMove);
-  // [zh] 语句
   document.removeEventListener('mouseup', onMouseUp);
-// [zh] 语句
 });
 </script>
 

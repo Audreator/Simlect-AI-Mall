@@ -281,646 +281,346 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
-// [zh] 导入 `vue-router`
 import { useRouter } from 'vue-router';
-// [zh] 导入 `@/components/layout/PcUserSidebar.vue`
 import PcUserSidebar from '@/components/layout/PcUserSidebar.vue';
-// [zh] 导入 `@/composables/useDevice`
 import { useDevice } from '@/composables/useDevice';
-// [zh] 导入 `模块`
 import {
-  // [zh] TypeScript/JS 语句：`ArrowRight,`
   ArrowRight,
-  // [zh] TypeScript/JS 语句：`Bell,`
   Bell,
-  // [zh] TypeScript/JS 语句：`ChatDotRound,`
   ChatDotRound,
-  // [zh] TypeScript/JS 语句：`Location,`
   Location,
-  // [zh] TypeScript/JS 语句：`Medal,`
   Medal,
-  // [zh] TypeScript/JS 语句：`Present,`
   Present,
-  // [zh] TypeScript/JS 语句：`Setting,`
   Setting,
-  // [zh] TypeScript/JS 语句：`Ticket,`
   Ticket,
-  // [zh] TypeScript/JS 语句：`Wallet,`
   Wallet,
-  // [zh] TypeScript/JS 语句：`Box,`
   Box,
-  // [zh] TypeScript/JS 语句：`Van,`
   Van,
-  // [zh] TypeScript/JS 语句：`Star`
   Star
-// [zh] 语句
 } from '@element-plus/icons-vue';
-// [zh] 导入 `@/components/common/UserAvatar.vue`
 import UserAvatar from '@/components/common/UserAvatar.vue';
-// [zh] 导入 `@/components/account/MemberSummaryCard.vue`
 import MemberSummaryCard from '@/components/account/MemberSummaryCard.vue';
-// [zh] 导入 `@/components/business/ProductCard.vue`
 import ProductCard from '@/components/business/ProductCard.vue';
-// [zh] 导入 `@/components/pc/PcProductTile.vue`
 import PcProductTile from '@/components/pc/PcProductTile.vue';
-// [zh] 导入 `@/components/business/OrderCommentPreviewDialog.vue`
 import OrderCommentPreviewDialog from '@/components/business/OrderCommentPreviewDialog.vue';
-// [zh] 导入 `@/utils/image`
 import { resolveImageUrl, splitImagePaths } from '@/utils/image';
-// [zh] 导入 `@/api/modules`
 import { accountApi, commentApi, couponApi, favoriteApi, orderApi, productApi } from '@/api/modules';
-// [zh] 导入 `@/stores/auth`
 import { useAuthStore } from '@/stores/auth';
-// [zh] 导入 `@/utils/product`
 import { filterOnSaleProducts } from '@/utils/product';
-// [zh] 导入 `@/composables/pullRefresh`
 import { usePageRefresh } from '@/composables/pullRefresh';
-// [zh] 导入 `element-plus`
 import { ElMessageBox } from 'element-plus';
 
-// [zh] 声明变量 `router`
 const router = useRouter();
-// [zh] 语句
 const { isDesktop } = useDevice();
-// [zh] 声明变量 `authStore`
 const authStore = useAuthStore();
-// [zh] 声明变量 `user`
 const user = ref<Record<string, any>>({});
-// [zh] 声明变量 `countMap`
 const countMap = reactive<Record<string, number>>({});
-// [zh] 声明变量 `memberProfile`
 const memberProfile = ref<Record<string, any> | null>(null);
-// [zh] 声明变量 `memberClaimableCount`
 const memberClaimableCount = ref(0);
-// [zh] 声明变量 `memberNextLevelGrowth`
 const memberNextLevelGrowth = ref<number | null>(null);
-// [zh] 声明变量 `memberGrowthToNext`
 const memberGrowthToNext = ref<number | null>(null);
-// [zh] 声明变量 `wishlistCount`
 const wishlistCount = ref(0);
-// [zh] 声明变量 `couponCount`
 const couponCount = ref(0);
 
-// [zh] 声明变量 `discoverTab`
 const discoverTab = ref<'recommend' | 'reviews'>('recommend');
-// [zh] 声明变量 `discoverLoading`
 const discoverLoading = ref(false);
-// [zh] 声明变量 `recommendProducts`
 const recommendProducts = ref<any[]>([]);
-// [zh] 声明变量 `recommendSourceProducts`
 const recommendSourceProducts = ref<any[]>([]);
-// [zh] 声明变量 `recommendDisplayCount`
 const recommendDisplayCount = ref(0);
-// [zh] 声明变量 `MAX_RECOMMEND`
 const MAX_RECOMMEND = 90;
-// [zh] 声明变量 `recommendSentinel`
 const recommendSentinel = ref<HTMLElement | null>(null);
-// [zh] 声明变量 `recommendObserver`
 let recommendObserver: IntersectionObserver | null = null;
-// [zh] 声明变量 `myComments`
 const myComments = ref<any[]>([]);
-// [zh] 声明变量 `commentPageNo`
 const commentPageNo = ref(0);
-// [zh] 声明变量 `commentPageTotal`
 const commentPageTotal = ref(1);
-// [zh] 声明变量 `commentFinished`
 const commentFinished = ref(false);
-// [zh] 声明变量 `commentPreviewRef`
 const commentPreviewRef = ref<InstanceType<typeof OrderCommentPreviewDialog>>();
 
-// [zh] 声明变量 `splitCommentImages`
 const splitCommentImages = (val: unknown) => splitImagePaths(val as string | null);
 
-// [zh] 声明变量 `toCommentImg`
 const toCommentImg = (path: string) => resolveImageUrl(path, { useThumbnail: true }) || path;
 
-// [zh] 声明变量 `commentCover`
 const commentCover = (c: Record<string, unknown>) => {
-  // [zh] 声明变量 `cover`
   const cover = c.cover as string | undefined;
-  // [zh] return 返回
   return cover ? resolveImageUrl(cover, { useThumbnail: true }) : '';
-// [zh] 语句
 };
 
-// [zh] 声明变量 `commentThumbImages`
 const commentThumbImages = (c: Record<string, unknown>) => {
-  // [zh] 声明变量 `all`
   const all = [...splitCommentImages(c.commentImages), ...splitCommentImages(c.recommentImages)];
-  // [zh] return 返回
   return all.slice(0, 3);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `formatCommentTime`
 const formatCommentTime = (val: unknown) => {
-  // [zh] 条件判断 if
   if (!val) return '';
-  // [zh] 条件判断 if
   if (typeof val === 'string') return val.replace('T', ' ').slice(0, 19);
-  // [zh] 声明变量 `d`
   const d = new Date(val as string | number);
-  // [zh] 条件判断 if
   if (Number.isNaN(d.getTime())) return String(val);
-  // [zh] 声明变量 `pad`
   const pad = (n: number) => String(n).padStart(2, '0');
-  // [zh] return 返回
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-// [zh] 语句
 };
 
-// [zh] 声明变量 `commentSortTime`
 const commentSortTime = (c: Record<string, unknown>) => {
-  // [zh] 声明变量 `t`
   const t = (c.recommentTime as string) || (c.commentTime as string);
-  // [zh] return 返回
   return t ? new Date(t).getTime() : 0;
-// [zh] 语句
 };
 
-// [zh] 声明变量 `sortedComments`
 const sortedComments = computed(() =>
-  // [zh] TypeScript/JS 语句：`[...myComments.value].sort((a, b) => commentSortTime(b)`
   [...myComments.value].sort((a, b) => commentSortTime(b) - commentSortTime(a))
-// [zh] 语句
 );
 
-// [zh] 声明变量 `totalOrderCount`
 const totalOrderCount = computed(() => countMap['completed'] || 0);
 
-// [zh] 声明变量 `levelTagClass`
 const levelTagClass = computed(() => {
-  // [zh] 声明变量 `code`
   const code = Number(memberProfile.value?.levelCode ?? 1);
-  // [zh] 条件判断 if
   if (code >= 3) return 'level-gold';
-  // [zh] 条件判断 if
   if (code >= 2) return 'level-silver';
-  // [zh] return 返回
   return 'level-default';
-// [zh] 语句
 });
 
-// [zh] 声明变量 `nextLevelGrowth`
 const nextLevelGrowth = computed(() => {
-  // [zh] 声明变量 `current`
   const current = memberProfile.value?.growthValue ?? 0;
-  // [zh] 声明变量 `toNext`
   const toNext = memberGrowthToNext.value ?? 0;
-  // [zh] return 返回
   return current + toNext;
-// [zh] 语句
 });
 
-// [zh] 声明变量 `growthPercent`
 const growthPercent = computed(() => {
-  // [zh] 声明变量 `current`
   const current = memberProfile.value?.growthValue ?? 0;
-  // [zh] 声明变量 `total`
   const total = nextLevelGrowth.value;
-  // [zh] 条件判断 if
   if (total <= 0) return 0;
-  // [zh] return 返回
   return Math.min(Math.round((current / total) * 100), 100);
-// [zh] 语句
 });
 
-// [zh] 声明变量 `openCommentDetail`
 const openCommentDetail = (c: Record<string, unknown>) => {
-  // [zh] 语句
   commentPreviewRef.value?.show(c);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `showAllProducts`
 const showAllProducts = (row: Record<string, any>) => {
-  // [zh] 声明变量 `items`
   const items = row.orderItems || []
-  // [zh] 声明变量 `html`
   let html = '<div style="max-height:400px;overflow-y:auto;">'
-  // [zh] 代码块开始
   items.forEach((item: Record<string, any>, idx: number) => {
-    // [zh] 声明变量 `cover`
     const cover = item.cover ? `<img src="${resolveImageUrl(item.cover)}" style="width:60px;height:60px;object-fit:cover;border-radius:6px;flex-shrink:0;" />` : ''
-    // [zh] TypeScript/JS 语句：`html += `<div style="display:flex;gap:12px;padding:10px`
     html += `<div style="display:flex;gap:12px;padding:10px 0;${idx > 0 ? 'border-top:1px solid #eee;' : ''}">
-      // [zh] TypeScript/JS 语句：`${cover}`
       ${cover}
-      // [zh] TypeScript/JS 语句：`<div style="flex:1;min-width:0;">`
       <div style="flex:1;min-width:0;">
-        // [zh] TypeScript/JS 语句：`<div style="font-size:14px;font-weight:500;margin-botto`
         <div style="font-size:14px;font-weight:500;margin-bottom:4px;color:#333333;">${item.productName || ''}</div>
-        // [zh] TypeScript/JS 语句：`<div style="font-size:12px;color:#86868b;">${item.prope`
         <div style="font-size:12px;color:#86868b;">${item.propertyInfo || ''}</div>
-        // [zh] TypeScript/JS 语句：`<div style="font-size:12px;color:#86868b;margin-top:2px`
         <div style="font-size:12px;color:#86868b;margin-top:2px;">￥${item.itemAmount || 0} × ${item.buyCount || 0}</div>
-      // [zh] TypeScript/JS 语句：`</div>`
       </div>
-    // [zh] TypeScript/JS 语句：`</div>``
     </div>`
-  // [zh] TypeScript/JS 语句：`})`
   })
-  // [zh] TypeScript/JS 语句：`html += '</div>'`
   html += '</div>'
-  // [zh] 代码块开始
   try {
-    // [zh] 代码块开始
     ElMessageBox.alert(html, '该订单商品', {
-      // [zh] TypeScript/JS 语句：`dangerouslyUseHTMLString: true,`
       dangerouslyUseHTMLString: true,
-      // [zh] TypeScript/JS 语句：`confirmButtonText: '关闭',`
       confirmButtonText: '关闭',
-      // [zh] TypeScript/JS 语句：`showCancelButton: false,`
       showCancelButton: false,
-      // [zh] TypeScript/JS 语句：`closeOnClickModal: true,`
       closeOnClickModal: true,
-    // [zh] TypeScript/JS 语句：`})`
     })
-  // [zh] 代码块开始
   } catch (e) {
-    // [zh] TypeScript/JS 语句：`console.error(e)`
     console.error(e)
-  // [zh] 语法符号
   }
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `orderTabs`
 const orderTabs = [
-  // [zh] TypeScript/JS 语句：`{ code: 'pendingPayment', name: '待付款', status: '0', ico`
   { code: 'pendingPayment', name: '待付款', status: '0', icon: Wallet },
-  // [zh] TypeScript/JS 语句：`{ code: 'pendingShipment', name: '待发货', status: '1', ic`
   { code: 'pendingShipment', name: '待发货', status: '1', icon: Box },
-  // [zh] TypeScript/JS 语句：`{ code: 'pendingReceipt', name: '待收货', status: '2', ico`
   { code: 'pendingReceipt', name: '待收货', status: '2', icon: Van },
-  // [zh] TypeScript/JS 语句：`{ code: 'pendingComment', name: '待评价', status: '8', ico`
   { code: 'pendingComment', name: '待评价', status: '8', icon: Star },
-  // [zh] TypeScript/JS 语句：`{ code: 'afterSale', name: '售后', status: 'all', icon: C`
   { code: 'afterSale', name: '售后', status: 'all', icon: ChatDotRound }
-// [zh] 语句
 ];
 
-// [zh] 声明变量 `menus`
 const menus = [
-  // [zh] TypeScript/JS 语句：`{ label: '会员中心', path: '/member-center', icon: Medal },`
   { label: '会员中心', path: '/member-center', icon: Medal },
-  // [zh] TypeScript/JS 语句：`{ label: '消息中心', path: '/notifications', icon: Bell },`
   { label: '消息中心', path: '/notifications', icon: Bell },
-  // [zh] TypeScript/JS 语句：`{ label: '支付记录', path: '/pay-records', icon: Wallet },`
   { label: '支付记录', path: '/pay-records', icon: Wallet },
-  // [zh] TypeScript/JS 语句：`{ label: '收货地址', path: '/address', icon: Location },`
   { label: '收货地址', path: '/address', icon: Location },
-  // [zh] TypeScript/JS 语句：`{ label: '优惠券', path: '/my-coupons', icon: Ticket },`
   { label: '优惠券', path: '/my-coupons', icon: Ticket },
-  // [zh] TypeScript/JS 语句：`{ label: '收藏', path: '/wishlist', icon: Star },`
   { label: '收藏', path: '/wishlist', icon: Star },
-  // [zh] TypeScript/JS 语句：`{ label: '足迹', path: '/footprint', icon: Box },`
   { label: '足迹', path: '/footprint', icon: Box },
-  // [zh] TypeScript/JS 语句：`{ label: '签到中心', path: '/sign', icon: Present },`
   { label: '签到中心', path: '/sign', icon: Present },
-  // [zh] TypeScript/JS 语句：`{ label: '智能客服', path: '/ai-assistant', icon: ChatDotRo`
   { label: '智能客服', path: '/ai-assistant', icon: ChatDotRound }
-// [zh] 语句
 ];
 
-// [zh] 声明变量 `loadMember`
 const loadMember = async () => {
-  // [zh] 代码块开始
   try {
-    // [zh] 声明变量 `center`
     const center: any = await authStore.loadMemberCenter();
-    // [zh] 条件判断 if
     if (!center) return;
-    // [zh] 语句
     memberProfile.value = center?.profile ?? null;
-    // [zh] 声明变量 `rewards`
     const rewards = center?.rewards || [];
-    // [zh] 语句
     memberClaimableCount.value = rewards.filter((r: { claimable?: boolean }) => r.claimable).length;
-    // [zh] 语句
     memberNextLevelGrowth.value = center?.nextLevelGrowth ?? null;
-    // [zh] 语句
     memberGrowthToNext.value = center?.growthToNext ?? null;
-  // [zh] 代码块开始
   } catch {
-    // [zh] 语句
     memberProfile.value = null;
-    // [zh] 语句
     memberClaimableCount.value = 0;
-    // [zh] 语句
     memberNextLevelGrowth.value = null;
-    // [zh] 语句
     memberGrowthToNext.value = null;
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 声明变量 `load`
 const load = async () => {
-  // [zh] 语句
   user.value = (await accountApi.getUserInfo()) || authStore.userInfo || {};
-  // [zh] 语句
   authStore.userInfo = { ...authStore.userInfo, ...user.value };
-  // [zh] 声明变量 `counts`
   const counts = await orderApi.getOrderCountInfo();
-  // [zh] 条件判断 if
   if (Array.isArray(counts)) {
-    // [zh] 代码块开始
     counts.forEach((item: { code: string; count: number }) => {
-      // [zh] 语句
       countMap[item.code] = item.count ?? 0;
-    // [zh] 语句
     });
-  // [zh] 语法符号
   }
-  // [zh] 条件判断 if
   if (authStore.isLoggedIn) {
-    // [zh] await 等待 Promise（类比 CompletableFuture.get）
     await loadMember();
 
-    // [zh] 代码块开始
     try {
-      // [zh] TypeScript/JS 语句：`const [favRes, couponRes] = await Promise.all([`
       const [favRes, couponRes] = await Promise.all([
-        // [zh] TypeScript/JS 语句：`favoriteApi.loadFavorite({ pageNo: 1 }),`
         favoriteApi.loadFavorite({ pageNo: 1 }),
-        // [zh] TypeScript/JS 语句：`couponApi.loadUserCoupon({ pageNo: 1, status: 0 })`
         couponApi.loadUserCoupon({ pageNo: 1, status: 0 })
-      // [zh] 语句
       ]);
-      // [zh] 语句
       wishlistCount.value = favRes?.list?.length ?? 0;
-      // [zh] 语句
       couponCount.value = couponRes?.list?.length ?? 0;
-    // [zh] 代码块开始
     } catch {
-      // [zh] 语句
       wishlistCount.value = 0;
-      // [zh] 语句
       couponCount.value = 0;
-    // [zh] 语法符号
     }
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 声明变量 `loadRecommend`
 const loadRecommend = async () => {
-  // [zh] 语句
   discoverLoading.value = true;
-  // [zh] 代码块开始
   try {
-    // [zh] 声明变量 `commend`
     const commend = await productApi.loadCommendProduct();
-    // [zh] 声明变量 `list`
     const list = Array.isArray(commend) ? commend : commend?.list;
-    // [zh] 语句
     recommendSourceProducts.value = filterOnSaleProducts(list);
 
-    // [zh] 声明变量 `initialCount`
     const initialCount = isDesktop.value ? 12 : 8;
-    // [zh] 语句
     recommendDisplayCount.value = Math.min(initialCount, MAX_RECOMMEND);
-    // [zh] 语句
     updateRecommendDisplay();
-  // [zh] 代码块开始
   } finally {
-    // [zh] 语句
     discoverLoading.value = false;
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 声明变量 `updateRecommendDisplay`
 const updateRecommendDisplay = () => {
-  // [zh] 条件判断 if
   if (recommendSourceProducts.value.length === 0) {
-    // [zh] 语句
     recommendProducts.value = [];
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
 
-  // [zh] 声明变量 `result`
   const result: { product: any; displayIndex: number }[] = [];
-  // [zh] 声明变量 `sourceLength`
   const sourceLength = recommendSourceProducts.value.length;
 
-  // [zh] for 循环
   for (let i = 0; i < recommendDisplayCount.value; i++) {
-    // [zh] 声明变量 `sourceIndex`
     const sourceIndex = i % sourceLength;
-    // [zh] 语句
     result.push({ product: recommendSourceProducts.value[sourceIndex], displayIndex: i });
-  // [zh] 语法符号
   }
 
-  // [zh] 语句
   recommendProducts.value = result;
-// [zh] 语句
 };
 
-// [zh] 声明变量 `loadMoreRecommend`
 const loadMoreRecommend = () => {
-  // [zh] 条件判断 if
   if (recommendDisplayCount.value >= MAX_RECOMMEND) return;
 
-  // [zh] 声明变量 `increment`
   const increment = isDesktop.value ? 12 : 8;
-  // [zh] 语句
   recommendDisplayCount.value = Math.min(recommendDisplayCount.value + increment, MAX_RECOMMEND);
-  // [zh] 语句
   updateRecommendDisplay();
-// [zh] 语句
 };
 
-// [zh] 声明变量 `setupRecommendObserver`
 const setupRecommendObserver = () => {
-  // [zh] 条件判断 if
   if (recommendObserver) return;
 
-  // [zh] TypeScript/JS 语句：`recommendObserver = new IntersectionObserver(`
   recommendObserver = new IntersectionObserver(
-    // [zh] 代码块开始
     (entries) => {
-      // [zh] 声明变量 `entry`
       const entry = entries[0];
-      // [zh] 条件判断 if
       if (entry.isIntersecting && !discoverLoading.value && recommendDisplayCount.value < MAX_RECOMMEND) {
-        // [zh] 语句
         loadMoreRecommend();
-      // [zh] 语法符号
       }
-    // [zh] TypeScript/JS 语句：`},`
     },
-    // [zh] 代码块开始
     {
-      // [zh] TypeScript/JS 语句：`rootMargin: '200px',`
       rootMargin: '200px',
-      // [zh] TypeScript/JS 语句：`threshold: 0.1`
       threshold: 0.1
-    // [zh] 语法符号
     }
-  // [zh] 语句
   );
 
-  // [zh] 条件判断 if
   if (recommendSentinel.value) {
-    // [zh] 语句
     recommendObserver.observe(recommendSentinel.value);
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 声明变量 `cleanupRecommendObserver`
 const cleanupRecommendObserver = () => {
-  // [zh] 条件判断 if
   if (recommendObserver) {
-    // [zh] 语句
     recommendObserver.disconnect();
-    // [zh] 语句
     recommendObserver = null;
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 声明变量 `loadComments`
 const loadComments = async (reset = false) => {
-  // [zh] 条件判断 if
   if (reset) {
-    // [zh] 语句
     commentPageNo.value = 0;
-    // [zh] 语句
     commentPageTotal.value = 1;
-    // [zh] 语句
     commentFinished.value = false;
-    // [zh] 语句
     myComments.value = [];
-  // [zh] 语法符号
   }
-  // [zh] 条件判断 if
   if (commentFinished.value) return;
-  // [zh] 语句
   discoverLoading.value = true;
-  // [zh] 代码块开始
   try {
-    // [zh] 声明变量 `next`
     const next = commentPageNo.value + 1;
-    // [zh] 声明变量 `r`
     const r = await commentApi.loadMyComment({ pageNo: next });
-    // [zh] 声明变量 `chunk`
     const chunk = r?.list || [];
-    // [zh] 条件判断 if
     if (next === 1) myComments.value = chunk;
-    // [zh] else 分支
     else myComments.value = myComments.value.concat(chunk);
-    // [zh] 语句
     commentPageNo.value = r?.pageNo ?? next;
-    // [zh] 语句
     commentPageTotal.value = r?.pageTotal ?? commentPageNo.value;
-    // [zh] 语句
     commentFinished.value = commentPageNo.value >= commentPageTotal.value;
-  // [zh] 代码块开始
   } finally {
-    // [zh] 语句
     discoverLoading.value = false;
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 声明变量 `switchToReviews`
 const switchToReviews = () => {
-  // [zh] 语句
   discoverTab.value = 'reviews';
-  // [zh] 条件判断 if
   if (!myComments.value.length && !commentFinished.value) {
-    // [zh] 语句
     loadComments(true);
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 声明变量 `loadMoreComments`
 const loadMoreComments = () => loadComments(false);
 
-// [zh] 声明变量 `goProfile`
 const goProfile = () => router.push('/account/profile');
-// [zh] 声明变量 `goProduct`
 const goProduct = (p: any) => {
-  // [zh] 条件判断 if
   if (p?.productId) router.push(`/product/${p.productId}`);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `goOrders`
 const goOrders = (status: string) => {
-  // [zh] 条件判断 if
   if (status === 'all') {
-    // [zh] 语句
     router.push('/after-sale');
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
-  // [zh] 语句
   router.push({ path: '/orders', query: { status } });
-// [zh] 语句
 };
 
-// [zh] 声明变量 `refreshPage`
 const refreshPage = async () => {
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await load();
-  // [zh] 条件判断 if
   if (authStore.isLoggedIn) await loadMember();
-  // [zh] 条件判断 if
   if (discoverTab.value === 'reviews') {
-    // [zh] await 等待 Promise（类比 CompletableFuture.get）
     await loadComments(true);
-  // [zh] 代码块开始
   } else {
-    // [zh] await 等待 Promise（类比 CompletableFuture.get）
     await loadRecommend();
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 代码块开始
 onMounted(async () => {
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await load();
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await loadRecommend();
 
-  // [zh] 代码块开始
   setTimeout(() => {
-    // [zh] 语句
     setupRecommendObserver();
-  // [zh] 语句
   }, 100);
-// [zh] 语句
 });
 
-// [zh] 代码块开始
 onUnmounted(() => {
-  // [zh] 语句
   cleanupRecommendObserver();
-// [zh] 语句
 });
-// [zh] 语句
 usePageRefresh(refreshPage);
 </script>
 

@@ -51,127 +51,68 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `vue`
 import { getCurrentInstance } from 'vue'
-// [zh] 导入 `vue-router`
 import { useRouter } from 'vue-router'
 
-// [zh] TypeScript/JS 语句：`const { proxy } = getCurrentInstance()`
 const { proxy } = getCurrentInstance()
-// [zh] 声明变量 `router`
 const router = useRouter()
 
-// [zh] 声明变量 `groups`
 const groups = [
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`title: '订单与评价',`
     title: '订单与评价',
-    // [zh] TypeScript/JS 语句：`items: [`
     items: [
-      // [zh] TypeScript/JS 语句：`{ label: '评价管理', icon: 'commend', path: '/m/order/comme`
       { label: '评价管理', icon: 'commend', path: '/m/order/comment' },
-      // [zh] TypeScript/JS 语句：`{ label: '举报管理', icon: 'commend', path: '/m/order/repor`
       { label: '举报管理', icon: 'commend', path: '/m/order/report' },
-      // [zh] TypeScript/JS 语句：`{ label: '图片违规复核', icon: 'search', path: '/m/more/image`
       { label: '图片违规复核', icon: 'search', path: '/m/more/imageModeration' },
-      // [zh] TypeScript/JS 语句：`{ label: '客服记录', icon: 'robot', path: '/m/more/agent' }`
       { label: '客服记录', icon: 'robot', path: '/m/more/agent' }
-    // [zh] TypeScript/JS 语句：`]`
     ]
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`title: '营销',`
     title: '营销',
-    // [zh] TypeScript/JS 语句：`items: [`
     items: [
-      // [zh] TypeScript/JS 语句：`{ label: '优惠券', icon: 'cart', path: '/m/more/coupon' },`
       { label: '优惠券', icon: 'cart', path: '/m/more/coupon' },
-      // [zh] TypeScript/JS 语句：`{ label: '热搜词', icon: 'search', path: '/m/more/searchHo`
       { label: '热搜词', icon: 'search', path: '/m/more/searchHot' },
-      // [zh] TypeScript/JS 语句：`{ label: '签到发券', icon: 'commend', path: '/m/more/signRe`
       { label: '签到发券', icon: 'commend', path: '/m/more/signReward' },
-      // [zh] TypeScript/JS 语句：`{ label: '升级礼券', icon: 'account', path: '/m/more/member`
       { label: '升级礼券', icon: 'account', path: '/m/more/memberLevelReward' }
-    // [zh] TypeScript/JS 语句：`]`
     ]
-  // [zh] TypeScript/JS 语句：`},`
   },
-    // [zh] 代码块开始
     {
-      // [zh] TypeScript/JS 语句：`title: '数据',`
       title: '数据',
-      // [zh] TypeScript/JS 语句：`items: [`
       items: [
-        // [zh] TypeScript/JS 语句：`{ label: '统计明细', icon: 'order-count', path: '/m/more/st`
         { label: '统计明细', icon: 'order-count', path: '/m/more/statistics' },
-        // [zh] TypeScript/JS 语句：`{ label: 'MQ补偿日志', icon: 'setting', path: '/m/more/mqLo`
         { label: 'MQ补偿日志', icon: 'setting', path: '/m/more/mqLog' },
-        // [zh] TypeScript/JS 语句：`{ label: '收货地址', icon: 'folder', path: '/m/more/address`
         { label: '收货地址', icon: 'folder', path: '/m/more/address' }
-      // [zh] TypeScript/JS 语句：`]`
       ]
-    // [zh] TypeScript/JS 语句：`},`
     },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`title: '系统设置',`
     title: '系统设置',
-    // [zh] TypeScript/JS 语句：`items: [`
     items: [
-      // [zh] TypeScript/JS 语句：`{ label: '发货信息', icon: 'setting', path: '/m/more/logist`
       { label: '发货信息', icon: 'setting', path: '/m/more/logistics' },
-      // [zh] TypeScript/JS 语句：`{ label: '提示词', icon: 'edit', path: '/m/more/prompt' },`
       { label: '提示词', icon: 'edit', path: '/m/more/prompt' },
-      // [zh] TypeScript/JS 语句：`{ label: 'RAG 知识库', icon: 'folder', path: '/m/more/rag'`
       { label: 'RAG 知识库', icon: 'folder', path: '/m/more/rag' },
-      // [zh] TypeScript/JS 语句：`{ label: '敏感词', icon: 'search', path: '/m/more/sensitiv`
       { label: '敏感词', icon: 'search', path: '/m/more/sensitiveWord' },
-      // [zh] TypeScript/JS 语句：`{ label: '分类管理', icon: 'product', path: '/m/more/catego`
       { label: '分类管理', icon: 'product', path: '/m/more/category' },
-      // [zh] TypeScript/JS 语句：`{ label: '商品属性', icon: 'stock', path: '/m/more/productP`
       { label: '商品属性', icon: 'stock', path: '/m/more/productProperty' },
-      // [zh] TypeScript/JS 语句：`{ label: '运营工具', icon: 'setting', path: '/m/more/tools'`
       { label: '运营工具', icon: 'setting', path: '/m/more/tools' }
-    // [zh] TypeScript/JS 语句：`]`
     ]
-  // [zh] 语法符号
   }
-// [zh] TypeScript/JS 语句：`]`
 ]
 
-// [zh] 声明变量 `go`
 const go = (item) => {
-  // [zh] 条件判断 if
   if (item.path) {
-    // [zh] TypeScript/JS 语句：`router.push(item.path)`
     router.push(item.path)
-  // [zh] 语法符号
   }
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `logout`
 const logout = () => {
-  // [zh] 代码块开始
   proxy.Confirm({
-    // [zh] TypeScript/JS 语句：`message: '确定要退出登录吗?',`
     message: '确定要退出登录吗?',
-    // [zh] 代码块开始
     okfun: async () => {
-      // [zh] await 等待 Promise（类比 CompletableFuture.get）
       await proxy.Request({ url: proxy.Api.logout })
-      // [zh] TypeScript/JS 语句：`router.push('/login')`
       router.push('/login')
-    // [zh] 语法符号
     }
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 </script>
 

@@ -27,56 +27,31 @@
   </el-drawer>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 声明变量 `props`
 const props = defineProps({
-  // [zh] 代码块开始
   title: {
-    // [zh] TypeScript/JS 语句：`type: String,`
     type: String,
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   show: {
-    // [zh] TypeScript/JS 语句：`type: Boolean,`
     type: Boolean,
-    // [zh] TypeScript/JS 语句：`default: false,`
     default: false,
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   showCancel: {
-    // [zh] TypeScript/JS 语句：`type: Boolean,`
     type: Boolean,
-    // [zh] TypeScript/JS 语句：`default: true,`
     default: true,
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   width: {
-    // [zh] TypeScript/JS 语句：`type: String,`
     type: String,
-    // [zh] TypeScript/JS 语句：`default: '50%',`
     default: '50%',
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   buttons: {
-    // [zh] TypeScript/JS 语句：`type: Array,`
     type: Array,
-  // [zh] TypeScript/JS 语句：`},`
   },
-// [zh] TypeScript/JS 语句：`})`
 })
 
-// [zh] 声明变量 `emit`
 const emit = defineEmits()
-// [zh] 声明变量 `close`
 const close = () => {
-  // [zh] TypeScript/JS 语句：`emit('close')`
   emit('close')
-// [zh] 语法符号
 }
 </script>
 

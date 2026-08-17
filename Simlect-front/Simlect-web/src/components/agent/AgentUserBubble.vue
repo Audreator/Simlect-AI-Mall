@@ -18,23 +18,15 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed } from 'vue';
-// [zh] 导入 `@/components/agent/AgentConsultProductCard.vue`
 import AgentConsultProductCard from '@/components/agent/AgentConsultProductCard.vue';
-// [zh] 导入 `@/utils/agentProductConsult`
 import { parseProductConsultMessage } from '@/utils/agentProductConsult';
 
-// [zh] 声明变量 `props`
 const props = defineProps<{
-  // [zh] 语句
   userMessage?: string | null;
-// [zh] 语句
 }>();
 
-// [zh] 声明变量 `parsed`
 const parsed = computed(() => parseProductConsultMessage(props.userMessage));
 </script>
 

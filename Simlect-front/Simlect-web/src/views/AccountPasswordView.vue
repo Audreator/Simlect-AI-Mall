@@ -51,85 +51,46 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { reactive, ref } from 'vue';
-// [zh] 导入 `vue-router`
 import { useRouter } from 'vue-router';
-// [zh] 导入 `element-plus`
 import { ElMessage } from 'element-plus';
-// [zh] 导入 `@/api/modules`
 import { accountApi } from '@/api/modules';
-// [zh] 导入 `@/stores/auth`
 import { useAuthStore } from '@/stores/auth';
-// [zh] 导入 `@/constants/validation`
 import { isValidPassword, PASSWORD_FORMAT_HINT } from '@/constants/validation';
 
-// [zh] 声明变量 `router`
 const router = useRouter();
-// [zh] 声明变量 `authStore`
 const authStore = useAuthStore();
-// [zh] 声明变量 `pwd`
 const pwd = reactive({ oldPassword: '', password: '', confirmPassword: '' });
-// [zh] 声明变量 `error`
 const error = ref('');
-// [zh] 声明变量 `submitting`
 const submitting = ref(false);
 
-// [zh] 声明变量 `savePwd`
 const savePwd = async () => {
-  // [zh] 语句
   error.value = '';
-  // [zh] 条件判断 if
   if (!pwd.oldPassword?.trim()) {
-    // [zh] 语句
     ElMessage.warning('请输入旧密码');
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
-  // [zh] 条件判断 if
   if (!isValidPassword(pwd.password)) {
-    // [zh] 语句
     error.value = PASSWORD_FORMAT_HINT;
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
-  // [zh] 条件判断 if
   if (pwd.password !== pwd.confirmPassword) {
-    // [zh] 语句
     error.value = '两次新密码不一致';
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
-  // [zh] 语句
   submitting.value = true;
-  // [zh] 代码块开始
   try {
-    // [zh] await 等待 Promise（类比 CompletableFuture.get）
     await accountApi.updatePassword({ oldPassword: pwd.oldPassword, password: pwd.password });
-    // [zh] 语句
     ElMessage.success('密码已修改，请重新登录');
-    // [zh] 语句
     authStore.prepareLogoutNavigation();
-    // [zh] await 等待 Promise（类比 CompletableFuture.get）
     await authStore.logout(true);
-    // [zh] await 等待 Promise（类比 CompletableFuture.get）
     await router.replace({ path: '/login', query: {} });
-  // [zh] 代码块开始
   } catch (e: any) {
-    // [zh] 语句
     error.value = e?.info || e?.message || '密码修改失败，请稍后重试';
-  // [zh] 代码块开始
   } finally {
-    // [zh] 语句
     submitting.value = false;
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 </script>
 

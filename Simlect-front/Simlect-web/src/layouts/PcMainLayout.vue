@@ -36,10 +36,7 @@
         <RouterView v-slot="{ Component, route: viewRoute }">
           <!-- [zh] 开始标签 `<KeepAlive>` -->
           <KeepAlive :max="4">
-            <!-- [zh] 开始标签 `<component>` -->
-            <component :is="Component" :key="viewRoute.path" class="page-view-root" />
-          <!-- [zh] 闭合标签 `</KeepAlive>` -->
-          </KeepAlive>
+            <component :is="Component" :key="viewRoute.path" class="page-view-root" /></KeepAlive>
         <!-- [zh] 闭合标签 `</RouterView>` -->
         </RouterView>
       <!-- [zh] 闭合标签 `</div>` -->
@@ -56,85 +53,47 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed } from 'vue';
-// [zh] 导入 `模块`
 import {
-  // [zh] TypeScript/JS 语句：`Grid,`
   Grid,
-  // [zh] TypeScript/JS 语句：`HomeFilled,`
   HomeFilled,
-  // [zh] TypeScript/JS 语句：`List,`
   List,
-  // [zh] TypeScript/JS 语句：`ShoppingCart,`
   ShoppingCart,
-  // [zh] TypeScript/JS 语句：`Ticket,`
   Ticket,
-  // [zh] TypeScript/JS 语句：`User`
   User
-// [zh] 语句
 } from '@element-plus/icons-vue';
-// [zh] 导入 `vue-router`
 import { RouterLink, RouterView, useRoute } from 'vue-router';
-// [zh] 导入 `@/components/layout/AppFooter.vue`
 import AppFooter from '@/components/layout/AppFooter.vue';
-// [zh] 导入 `@/components/layout/PcFloatToolbar.vue`
 import PcFloatToolbar from '@/components/layout/PcFloatToolbar.vue';
-// [zh] 导入 `@/components/layout/SiteHeader.vue`
 import SiteHeader from '@/components/layout/SiteHeader.vue';
-// [zh] 导入 `@/components/home/PcSimlectScreenNav.vue`
 import PcSimlectScreenNav from '@/components/home/PcSimlectScreenNav.vue';
-// [zh] 导入 `@/components/business/NotificationPopup.vue`
 import NotificationPopup from '@/components/business/NotificationPopup.vue';
-// [zh] 导入 `vue-router`
 import { useRouter } from 'vue-router';
-// [zh] 导入 `@/composables/useUnreadCount`
 import { useUnreadCount } from '@/composables/useUnreadCount';
-// [zh] 导入 `@/utils/notification`
 import { navigateNotification, type NotificationData } from '@/utils/notification';
 
-// [zh] 声明变量 `route`
 const route = useRoute();
-// [zh] 声明变量 `router`
 const router = useRouter();
-// [zh] 语句
 const { refreshUnreadCount } = useUnreadCount();
-// [zh] 声明变量 `isHomePage`
 const isHomePage = computed(() => route.path === '/');
 
-// [zh] 声明变量 `navItems`
 const navItems = [
-  // [zh] TypeScript/JS 语句：`{ path: '/', label: '首页', icon: HomeFilled },`
   { path: '/', label: '首页', icon: HomeFilled },
-  // [zh] TypeScript/JS 语句：`{ path: '/search', label: '分类', icon: Grid },`
   { path: '/search', label: '分类', icon: Grid },
-  // [zh] TypeScript/JS 语句：`{ path: '/coupons', label: '优惠券', icon: Ticket },`
   { path: '/coupons', label: '优惠券', icon: Ticket },
-  // [zh] TypeScript/JS 语句：`{ path: '/cart', label: '购物车', icon: ShoppingCart },`
   { path: '/cart', label: '购物车', icon: ShoppingCart },
-  // [zh] TypeScript/JS 语句：`{ path: '/orders', label: '我的订单', icon: List },`
   { path: '/orders', label: '我的订单', icon: List },
-  // [zh] TypeScript/JS 语句：`{ path: '/account', label: '个人中心', icon: User }`
   { path: '/account', label: '个人中心', icon: User }
-// [zh] 语句
 ];
 
-// [zh] 声明变量 `isActive`
 const isActive = (path: string) => {
-  // [zh] 条件判断 if
   if (path === '/') return route.path === '/';
-  // [zh] return 返回
   return route.path === path || route.path.startsWith(`${path}/`);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `handleNotificationClick`
 const handleNotificationClick = (notification: NotificationData) => {
-  // [zh] 语句
   void navigateNotification(router, notification, { refreshUnread: refreshUnreadCount });
-// [zh] 语句
 };
 </script>
 

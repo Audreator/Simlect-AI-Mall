@@ -17,80 +17,44 @@
   <!-- [zh] 闭合标签 `</el-upload>` -->
   </el-upload>
 </template>
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `模块`
 import {
-  // [zh] TypeScript/JS 语句：`ref,`
   ref,
-  // [zh] TypeScript/JS 语句：`reactive,`
   reactive,
-  // [zh] TypeScript/JS 语句：`getCurrentInstance,`
   getCurrentInstance,
-  // [zh] TypeScript/JS 语句：`nextTick,`
   nextTick,
-  // [zh] TypeScript/JS 语句：`inject,`
   inject,
-  // [zh] TypeScript/JS 语句：`computed,`
   computed,
-// [zh] TypeScript/JS 语句：`} from 'vue'`
 } from 'vue'
-// [zh] TypeScript/JS 语句：`const { proxy } = getCurrentInstance()`
 const { proxy } = getCurrentInstance()
-// [zh] 导入 `vue-router`
 import { useRoute, useRouter } from 'vue-router'
-// [zh] 声明变量 `route`
 const route = useRoute()
-// [zh] 声明变量 `router`
 const router = useRouter()
 
-// [zh] 导入 `@/utils/Api.js`
 import { uploadImage } from '@/utils/Api.js'
 
-// [zh] 声明变量 `props`
 const props = defineProps({
-  // [zh] 代码块开始
   width: {
-    // [zh] TypeScript/JS 语句：`type: Number,`
     type: Number,
-    // [zh] TypeScript/JS 语句：`default: 100,`
     default: 100,
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   modelValue: {
-    // [zh] TypeScript/JS 语句：`type: [String, File],`
     type: [String, File],
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   cutWidth: {
-    // [zh] TypeScript/JS 语句：`type: Number,`
     type: Number,
-    // [zh] TypeScript/JS 语句：`default: 150,`
     default: 150,
-  // [zh] TypeScript/JS 语句：`},`
   },
   
-  // [zh] 代码块开始
   scale: {
-    // [zh] TypeScript/JS 语句：`type: Number,`
     type: Number,
-    // [zh] TypeScript/JS 语句：`default: 1,`
     default: 1,
-  // [zh] TypeScript/JS 语句：`},`
   },
-// [zh] TypeScript/JS 语句：`})`
 })
-// [zh] 声明变量 `emits`
 const emits = defineEmits(['update:modelValue'])
-// [zh] 声明变量 `selectImage`
 const selectImage = async (file) => {
-  // [zh] 声明变量 `result`
   const result = await uploadImage(file.file, true)
-  // [zh] TypeScript/JS 语句：`emits('update:modelValue', result)`
   emits('update:modelValue', result)
-// [zh] 语法符号
 }
 
 </script>

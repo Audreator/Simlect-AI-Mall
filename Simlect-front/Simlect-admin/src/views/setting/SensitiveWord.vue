@@ -85,168 +85,91 @@
   </el-card>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `vue`
 import { getCurrentInstance, reactive, ref } from 'vue'
 
-// [zh] TypeScript/JS 语句：`const { proxy } = getCurrentInstance()`
 const { proxy } = getCurrentInstance()
-// [zh] 声明变量 `tableData`
 const tableData = ref({ list: [], pageNo: 1, pageTotal: 1 })
-// [zh] 声明变量 `form`
 const form = reactive({ id: null, word: '', replaceWord: '', status: 1 })
 
-// [zh] 声明变量 `columns`
 const columns = [
-  // [zh] TypeScript/JS 语句：`{ label: '敏感词', prop: 'word' },`
   { label: '敏感词', prop: 'word' },
-  // [zh] TypeScript/JS 语句：`{ label: '替换词', prop: 'replaceWord', width: 120 },`
   { label: '替换词', prop: 'replaceWord', width: 120 },
-  // [zh] TypeScript/JS 语句：`{ label: '状态', prop: 'status', width: 100, scopedSlots:`
   { label: '状态', prop: 'status', width: 100, scopedSlots: 'slotStatus' },
-  // [zh] TypeScript/JS 语句：`{ label: '创建时间', prop: 'createTime', width: 180 },`
   { label: '创建时间', prop: 'createTime', width: 180 },
-  // [zh] TypeScript/JS 语句：`{ label: '更新时间', prop: 'updateTime', width: 180 },`
   { label: '更新时间', prop: 'updateTime', width: 180 },
-  // [zh] TypeScript/JS 语句：`{ label: '操作', prop: 'op', width: 140, scopedSlots: 'sl`
   { label: '操作', prop: 'op', width: 140, scopedSlots: 'slotOp' },
-// [zh] TypeScript/JS 语句：`]`
 ]
 
-// [zh] 声明变量 `loadDataList`
 const loadDataList = async (pageNo = 1) => {
-  // [zh] 声明变量 `result`
   const result = await proxy.Request({
-    // [zh] TypeScript/JS 语句：`url: proxy.Api.sensitiveWordList,`
     url: proxy.Api.sensitiveWordList,
-    // [zh] TypeScript/JS 语句：`params: { pageNo, pageSize: 15 },`
     params: { pageNo, pageSize: 15 },
-  // [zh] TypeScript/JS 语句：`})`
   })
-  // [zh] 条件判断 if
   if (!result) return
-  // [zh] TypeScript/JS 语句：`tableData.value = result.data`
   tableData.value = result.data
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `resetForm`
 const resetForm = () => {
-  // [zh] TypeScript/JS 语句：`form.id = null`
   form.id = null
-  // [zh] TypeScript/JS 语句：`form.word = ''`
   form.word = ''
-  // [zh] TypeScript/JS 语句：`form.replaceWord = ''`
   form.replaceWord = ''
-  // [zh] TypeScript/JS 语句：`form.status = 1`
   form.status = 1
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `editRow`
 const editRow = (row) => {
-  // [zh] TypeScript/JS 语句：`form.id = row.id`
   form.id = row.id
-  // [zh] TypeScript/JS 语句：`form.word = row.word`
   form.word = row.word
-  // [zh] TypeScript/JS 语句：`form.replaceWord = row.replaceWord`
   form.replaceWord = row.replaceWord
-  // [zh] TypeScript/JS 语句：`form.status = row.status`
   form.status = row.status
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `save`
 const save = async () => {
-  // [zh] 条件判断 if
   if (!form.word?.trim()) {
-    // [zh] TypeScript/JS 语句：`proxy.Message.warning('请输入敏感词')`
     proxy.Message.warning('请输入敏感词')
-    // [zh] TypeScript/JS 语句：`return`
     return
-  // [zh] 语法符号
   }
-  // [zh] 声明变量 `result`
   const result = await proxy.Request({
-    // [zh] TypeScript/JS 语句：`url: proxy.Api.sensitiveWordSave,`
     url: proxy.Api.sensitiveWordSave,
-    // [zh] 代码块开始
     params: {
-      // [zh] TypeScript/JS 语句：`id: form.id,`
       id: form.id,
-      // [zh] TypeScript/JS 语句：`word: form.word.trim(),`
       word: form.word.trim(),
-      // [zh] TypeScript/JS 语句：`replaceWord: form.replaceWord?.trim() || '***',`
       replaceWord: form.replaceWord?.trim() || '***',
-      // [zh] TypeScript/JS 语句：`status: form.status,`
       status: form.status,
-    // [zh] TypeScript/JS 语句：`},`
     },
-    // [zh] TypeScript/JS 语句：`showLoading: true,`
     showLoading: true,
-  // [zh] TypeScript/JS 语句：`})`
   })
-  // [zh] 条件判断 if
   if (!result) return
-  // [zh] TypeScript/JS 语句：`proxy.Message.success('保存成功')`
   proxy.Message.success('保存成功')
-  // [zh] TypeScript/JS 语句：`resetForm()`
   resetForm()
-  // [zh] TypeScript/JS 语句：`loadDataList()`
   loadDataList()
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `delRow`
 const delRow = (row) => {
-  // [zh] 代码块开始
   proxy.Confirm({
-    // [zh] TypeScript/JS 语句：`message: `确定删除敏感词「${row.word}」吗？`,`
     message: `确定删除敏感词「${row.word}」吗？`,
-    // [zh] 代码块开始
     okfun: async () => {
-      // [zh] 声明变量 `result`
       const result = await proxy.Request({
-        // [zh] TypeScript/JS 语句：`url: proxy.Api.sensitiveWordDelete,`
         url: proxy.Api.sensitiveWordDelete,
-        // [zh] TypeScript/JS 语句：`params: { id: row.id },`
         params: { id: row.id },
-        // [zh] TypeScript/JS 语句：`showLoading: true,`
         showLoading: true,
-      // [zh] TypeScript/JS 语句：`})`
       })
-      // [zh] 条件判断 if
       if (!result) return
-      // [zh] TypeScript/JS 语句：`proxy.Message.success('已删除')`
       proxy.Message.success('已删除')
-      // [zh] TypeScript/JS 语句：`loadDataList()`
       loadDataList()
-    // [zh] TypeScript/JS 语句：`},`
     },
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `refreshCache`
 const refreshCache = async () => {
-  // [zh] 声明变量 `result`
   const result = await proxy.Request({
-    // [zh] TypeScript/JS 语句：`url: proxy.Api.sensitiveWordRefresh,`
     url: proxy.Api.sensitiveWordRefresh,
-    // [zh] TypeScript/JS 语句：`showLoading: true,`
     showLoading: true,
-  // [zh] TypeScript/JS 语句：`})`
   })
-  // [zh] 条件判断 if
   if (!result) return
-  // [zh] TypeScript/JS 语句：`proxy.Message.success('缓存已刷新')`
   proxy.Message.success('缓存已刷新')
-// [zh] 语法符号
 }
 
-// [zh] TypeScript/JS 语句：`loadDataList()`
 loadDataList()
 </script>
 

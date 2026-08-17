@@ -49,173 +49,94 @@
         <p class="metric-yesterday">
           <!-- [zh] 模板内容：`昨日 {{ proxy.Utils.formatNumber(item.dataValue` -->
           昨日 {{ proxy.Utils.formatNumber(item.dataValue.yesterdayValue, item.amount) }}
-        <!-- [zh] 闭合标签 `</p>` -->
         </p>
-      <!-- [zh] 闭合标签 `</article>` -->
       </article>
-    <!-- [zh] 闭合标签 `</div>` -->
     </div>
-  <!-- [zh] 闭合标签 `</section>` -->
   </section>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `vue`
 import { ref, getCurrentInstance, onMounted, computed } from 'vue'
 
-// [zh] TypeScript/JS 语句：`const { proxy } = getCurrentInstance()`
 const { proxy } = getCurrentInstance()
 
-// [zh] 声明变量 `todayLabel`
 const todayLabel = computed(() => {
-  // [zh] 声明变量 `d`
   const d = new Date()
-  // [zh] 声明变量 `week`
   const week = ['日', '一', '二', '三', '四', '五', '六']
-  // [zh] return 返回
   return `${d.getMonth() + 1}月${d.getDate()}日 · 周${week[d.getDay()]}`
-// [zh] TypeScript/JS 语句：`})`
 })
 
-// [zh] 声明变量 `changeIcon`
 const changeIcon = (increase) => {
-  // [zh] 条件判断 if
   if (increase > 0) return 'icon-rise'
-  // [zh] 条件判断 if
   if (increase < 0) return 'icon-decline'
-  // [zh] return 返回
   return 'icon-horizontal'
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `trendClass`
 const trendClass = (increase) => {
-  // [zh] 条件判断 if
   if (increase > 0) return 'is-up'
-  // [zh] 条件判断 if
   if (increase < 0) return 'is-down'
-  // [zh] return 返回
   return 'is-flat'
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `formatTrend`
 const formatTrend = (increase) => {
-  // [zh] 声明变量 `n`
   const n = Number(increase)
-  // [zh] 条件判断 if
   if (Number.isNaN(n)) return '—'
-  // [zh] 条件判断 if
   if (n === 0) return '持平'
-  // [zh] 声明变量 `text`
   const text = proxy.Utils.formatNumber(Math.abs(n), false)
-  // [zh] return 返回
   return n > 0 ? `+${text}%` : `-${text}%`
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `todayDataField`
 const todayDataField = ref([
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`name: '今日销售额',`
     name: '今日销售额',
-    // [zh] TypeScript/JS 语句：`icon: 'sale-amount',`
     icon: 'sale-amount',
-    // [zh] TypeScript/JS 语句：`color: '#fff',`
     color: '#fff',
-    // [zh] TypeScript/JS 语句：`bg: 'linear-gradient(135deg, #c9754f 0%, #a86542 100%)'`
     bg: 'linear-gradient(135deg, #c9754f 0%, #a86542 100%)',
-    // [zh] TypeScript/JS 语句：`key: 'orderAmount',`
     key: 'orderAmount',
-    // [zh] TypeScript/JS 语句：`amount: true,`
     amount: true,
-    // [zh] TypeScript/JS 语句：`dataValue: {},`
     dataValue: {},
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`name: '今日订单',`
     name: '今日订单',
-    // [zh] TypeScript/JS 语句：`icon: 'order-count',`
     icon: 'order-count',
-    // [zh] TypeScript/JS 语句：`color: '#2a2420',`
     color: '#2a2420',
-    // [zh] TypeScript/JS 语句：`bg: 'rgba(42, 36, 32, 0.08)',`
     bg: 'rgba(42, 36, 32, 0.08)',
-    // [zh] TypeScript/JS 语句：`key: 'orderCount',`
     key: 'orderCount',
-    // [zh] TypeScript/JS 语句：`dataValue: {},`
     dataValue: {},
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`name: '新增用户',`
     name: '新增用户',
-    // [zh] TypeScript/JS 语句：`icon: 'user-add',`
     icon: 'user-add',
-    // [zh] TypeScript/JS 语句：`color: '#0071e3',`
     color: '#0071e3',
-    // [zh] TypeScript/JS 语句：`bg: 'rgba(0, 113, 227, 0.12)',`
     bg: 'rgba(0, 113, 227, 0.12)',
-    // [zh] TypeScript/JS 语句：`key: 'userCount',`
     key: 'userCount',
-    // [zh] TypeScript/JS 语句：`dataValue: {},`
     dataValue: {},
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`name: '今日退款',`
     name: '今日退款',
-    // [zh] TypeScript/JS 语句：`icon: 'refund-amount',`
     icon: 'refund-amount',
-    // [zh] TypeScript/JS 语句：`color: '#ff3b30',`
     color: '#ff3b30',
-    // [zh] TypeScript/JS 语句：`bg: 'rgba(255, 59, 48, 0.12)',`
     bg: 'rgba(255, 59, 48, 0.12)',
-    // [zh] TypeScript/JS 语句：`key: 'refundAmount',`
     key: 'refundAmount',
-    // [zh] TypeScript/JS 语句：`amount: true,`
     amount: true,
-    // [zh] TypeScript/JS 语句：`dataValue: {},`
     dataValue: {},
-  // [zh] TypeScript/JS 语句：`},`
   },
-// [zh] TypeScript/JS 语句：`])`
 ])
 
-// [zh] 声明变量 `getTodayData`
 const getTodayData = async () => {
-  // [zh] 声明变量 `result`
   const result = await proxy.Request({
-    // [zh] TypeScript/JS 语句：`url: proxy.Api.getTodayData,`
     url: proxy.Api.getTodayData,
-  // [zh] TypeScript/JS 语句：`})`
   })
-  // [zh] 条件判断 if
   if (!result) return
-  // [zh] 声明变量 `todayData`
   const todayData = new Map(result.data.map((item) => [item.type, item]))
-  // [zh] 代码块开始
   todayDataField.value = todayDataField.value.map((item) => ({
-    // [zh] TypeScript/JS 语句：`...item,`
     ...item,
-    // [zh] TypeScript/JS 语句：`dataValue: todayData.get(item.key) || {},`
     dataValue: todayData.get(item.key) || {},
-  // [zh] TypeScript/JS 语句：`}))`
   }))
-// [zh] 语法符号
 }
 
-// [zh] 代码块开始
 onMounted(() => {
-  // [zh] TypeScript/JS 语句：`getTodayData()`
   getTodayData()
-// [zh] TypeScript/JS 语句：`})`
 })
 </script>
 

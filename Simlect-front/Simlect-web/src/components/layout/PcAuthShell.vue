@@ -40,18 +40,12 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed } from 'vue';
-// [zh] 导入 `vue-router`
 import { RouterLink, useRoute } from 'vue-router';
-// [zh] 导入 `@/components/common/BrandMark.vue`
 import BrandMark from '@/components/common/BrandMark.vue';
 
-// [zh] 声明变量 `route`
 const route = useRoute();
-// [zh] 声明变量 `isLoginPage`
 const isLoginPage = computed(() => route.path === '/login');
 </script>
 

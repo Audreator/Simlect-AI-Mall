@@ -66,126 +66,70 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed, onMounted, ref } from 'vue';
-// [zh] 导入 `@/api/modules`
 import { payTradeApi } from '@/api/modules';
 
-// [zh] 声明变量 `list`
 const list = ref<any[]>([]);
-// [zh] 声明变量 `loading`
 const loading = ref(false);
-// [zh] 声明变量 `loadingMore`
 const loadingMore = ref(false);
-// [zh] 声明变量 `loadError`
 const loadError = ref('');
-// [zh] 声明变量 `pageNo`
 const pageNo = ref(1);
-// [zh] 声明变量 `totalCount`
 const totalCount = ref(0);
 
-// [zh] 声明变量 `hasMore`
 const hasMore = computed(() => list.value.length < totalCount.value);
 
-// [zh] 声明变量 `statusText`
 const statusText = (s: number) => {
-  // [zh] 声明变量 `map`
   const map: Record<number, string> = { 0: '待支付', 1: '支付成功', 2: '已关闭', 3: '已退款' };
-  // [zh] return 返回
   return map[s] ?? '未知';
-// [zh] 语句
 };
 
-// [zh] 声明变量 `statusClass`
 const statusClass = (s: number) => {
-  // [zh] 条件判断 if
   if (s === 1) return 'ok';
-  // [zh] 条件判断 if
   if (s === 0) return 'pending';
-  // [zh] return 返回
   return 'closed';
-// [zh] 语句
 };
 
-// [zh] 声明变量 `formatTime`
 const formatTime = (t: string | number) => {
-  // [zh] 条件判断 if
   if (!t) return '-';
-  // [zh] 声明变量 `d`
   const d = new Date(t);
-  // [zh] return 返回
   return d.toLocaleString('zh-CN');
-// [zh] 语句
 };
 
-// [zh] 声明变量 `load`
 const load = async (append = false) => {
-  // [zh] 条件判断 if
   if (!append) loadError.value = '';
-  // [zh] 条件判断 if
   if (append) {
-    // [zh] 语句
     loadingMore.value = true;
-  // [zh] 代码块开始
   } else {
-    // [zh] 语句
     loading.value = true;
-  // [zh] 语法符号
   }
-  // [zh] 代码块开始
   try {
-    // [zh] 声明变量 `res`
     const res: any = await payTradeApi.loadMyTrades(pageNo.value);
-    // [zh] 声明变量 `rows`
     const rows = res?.list || [];
-    // [zh] 语句
     totalCount.value = res?.totalCount ?? rows.length;
-    // [zh] 语句
     list.value = append ? [...list.value, ...rows] : rows;
-  // [zh] 代码块开始
   } catch (e: any) {
-    // [zh] 条件判断 if
     if (!append) {
-      // [zh] 语句
       loadError.value = e?.info || e?.message || '支付记录加载失败，请稍后重试';
-      // [zh] 语句
       list.value = [];
-    // [zh] 语法符号
     }
-  // [zh] 代码块开始
   } finally {
-    // [zh] 语句
     loading.value = false;
-    // [zh] 语句
     loadingMore.value = false;
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 声明变量 `retryLoad`
 const retryLoad = () => {
-  // [zh] 语句
   pageNo.value = 1;
-  // [zh] 语句
   void load();
-// [zh] 语句
 };
 
-// [zh] 声明变量 `loadMore`
 const loadMore = async () => {
-  // [zh] 条件判断 if
   if (!hasMore.value || loadingMore.value) return;
-  // [zh] 语句
   pageNo.value += 1;
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await load(true);
-// [zh] 语句
 };
 
-// [zh] 语句
 onMounted(() => load());
 </script>
 

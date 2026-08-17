@@ -31,29 +31,18 @@
   </svg>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed } from 'vue';
 
-// [zh] 声明变量 `props`
 const props = withDefaults(
-  // [zh] 代码块开始
   defineProps<{
-    // [zh] 语句
     rootClass?: string;
-    // [zh] 语句
     variant?: 'default' | 'light';
-  // [zh] TypeScript/JS 语句：`}>(),`
   }>(),
-  // [zh] TypeScript/JS 语句：`{ variant: 'default' }`
   { variant: 'default' }
-// [zh] 语句
 );
 
-// [zh] 声明变量 `markColor`
 const markColor = computed(() => (props.variant === 'light' ? '#ffffff' : '#1D1D1F'));
-// [zh] 声明变量 `strokeWidth`
 const strokeWidth = 1.85;
 </script>
 

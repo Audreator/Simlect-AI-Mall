@@ -50,105 +50,58 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `@/views/product/ProductPropertyEdit.vue`
 import ProductPropertyEdit from '@/views/product/ProductPropertyEdit.vue'
-// [zh] 导入 `vue`
 import { ref, getCurrentInstance, onMounted } from 'vue'
 
-// [zh] TypeScript/JS 语句：`const { proxy } = getCurrentInstance()`
 const { proxy } = getCurrentInstance()
-// [zh] 声明变量 `categoryList`
 const categoryList = ref([])
-// [zh] 声明变量 `propertyCategories`
 const propertyCategories = ref([])
-// [zh] 声明变量 `productPropertyEditRef`
 const productPropertyEditRef = ref(null)
 
-// [zh] 声明变量 `collectPropertyCategories`
 const collectPropertyCategories = (nodes, parentPath = '') => {
-  // [zh] 声明变量 `result`
   const result = []
-  // [zh] for 循环
   for (const n of nodes) {
-    // [zh] 声明变量 `path`
     const path = parentPath ? `${parentPath} / ${n.categoryName}` : n.categoryName
-    // [zh] 条件判断 if
     if (n.pCategoryId != '0' && n.pCategoryId !== 0) {
-      // [zh] TypeScript/JS 语句：`result.push({ ...n, pathLabel: path })`
       result.push({ ...n, pathLabel: path })
-    // [zh] 语法符号
     }
-    // [zh] 条件判断 if
     if (n.children?.length) {
-      // [zh] TypeScript/JS 语句：`result.push(...collectPropertyCategories(n.children, pa`
       result.push(...collectPropertyCategories(n.children, path))
-    // [zh] 语法符号
     }
-  // [zh] 语法符号
   }
-  // [zh] return 返回
   return result
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `loadCategory`
 const loadCategory = async () => {
-  // [zh] 声明变量 `result`
   const result = await proxy.Request({
-    // [zh] TypeScript/JS 语句：`url: proxy.Api.loadCategory,`
     url: proxy.Api.loadCategory,
-    // [zh] TypeScript/JS 语句：`params: { queryProperty: true },`
     params: { queryProperty: true },
-  // [zh] TypeScript/JS 语句：`})`
   })
-  // [zh] 条件判断 if
   if (!result) return
-  // [zh] TypeScript/JS 语句：`categoryList.value = result.data || []`
   categoryList.value = result.data || []
-  // [zh] TypeScript/JS 语句：`propertyCategories.value = collectPropertyCategories(ca`
   propertyCategories.value = collectPropertyCategories(categoryList.value)
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `showEdit`
 const showEdit = ({ categoryId, pCategoryId }, tag) => {
-  // [zh] TypeScript/JS 语句：`productPropertyEditRef.value.show({ categoryId, pCatego`
   productPropertyEditRef.value.show({ categoryId, pCategoryId, ...tag })
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `delProperty`
 const delProperty = (data) => {
-  // [zh] 代码块开始
   proxy.Confirm({
-    // [zh] TypeScript/JS 语句：`message: `确定要删除【${data.propertyName}】吗?`,`
     message: `确定要删除【${data.propertyName}】吗?`,
-    // [zh] 代码块开始
     okfun: async () => {
-      // [zh] 声明变量 `result`
       const result = await proxy.Request({
-        // [zh] TypeScript/JS 语句：`url: proxy.Api.delProductProperty,`
         url: proxy.Api.delProductProperty,
-        // [zh] TypeScript/JS 语句：`params: { propertyId: data.propertyId },`
         params: { propertyId: data.propertyId },
-      // [zh] TypeScript/JS 语句：`})`
       })
-      // [zh] 条件判断 if
       if (!result) return
-      // [zh] TypeScript/JS 语句：`proxy.Message.success('已删除')`
       proxy.Message.success('已删除')
-      // [zh] TypeScript/JS 语句：`loadCategory()`
       loadCategory()
-    // [zh] TypeScript/JS 语句：`},`
     },
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 
-// [zh] TypeScript/JS 语句：`onMounted(loadCategory)`
 onMounted(loadCategory)
 </script>
 

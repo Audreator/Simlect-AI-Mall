@@ -14,37 +14,23 @@
       <p v-if="authStore.isLoggedIn" class="greet">
         <!-- [zh] 模板内容：`您好，<strong>{{ authStore.userInfo?.nickName ||` -->
         您好，<strong>{{ authStore.userInfo?.nickName || '用户' }}</strong>
-      <!-- [zh] 闭合标签 `</p>` -->
       </p>
-      <!-- [zh] 开始标签 `<p>` -->
       <p v-else class="greet">登录后享更多优惠</p>
-      <!-- [zh] 开始标签 `<RouterLink>` -->
       <RouterLink
         v-if="!authStore.isLoggedIn"
         class="btn-login"
         to="/login"
       >
-        <!-- [zh] 模板内容：`立即登录` -->
         立即登录
-      <!-- [zh] 闭合标签 `</RouterLink>` -->
       </RouterLink>
-      <!-- [zh] SFC 区块开始（单文件组件 template/script/style 三段） -->
       <template v-else>
-        <!-- [zh] 开始标签 `<p>` -->
         <p v-if="authStore.memberLevelName" class="member-line">{{ authStore.memberLevelName }} · 成长值 {{ authStore.memberGrowthValue }}</p>
-        <!-- [zh] 开始标签 `<RouterLink>` -->
         <RouterLink class="btn-login outline" to="/account">个人中心</RouterLink>
-        <!-- [zh] 开始标签 `<div>` -->
         <div class="member-links">
-          <!-- [zh] 开始标签 `<RouterLink>` -->
           <RouterLink to="/member-center" class="mini-link">会员中心</RouterLink>
-          <!-- [zh] 开始标签 `<RouterLink>` -->
           <RouterLink to="/notifications" class="mini-link">
-            <!-- [zh] 模板内容：`消息<span v-if="unreadCount" class="mini-badge"` -->
             消息<span v-if="unreadCount" class="mini-badge">{{ unreadCount }}</span>
-          <!-- [zh] 闭合标签 `</RouterLink>` -->
           </RouterLink>
-        <!-- [zh] 闭合标签 `</div>` -->
         </div>
       </template>
     </div>
@@ -70,108 +56,60 @@
   </aside>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed, onMounted } from 'vue';
-// [zh] 导入 `vue-router`
 import { RouterLink, useRouter } from 'vue-router';
-// [zh] 导入 `@/composables/useUnreadCount`
 import { useUnreadCount } from '@/composables/useUnreadCount';
-// [zh] 导入 `模块`
 import {
-  // [zh] TypeScript/JS 语句：`ChatDotRound,`
   ChatDotRound,
-  // [zh] TypeScript/JS 语句：`List,`
   List,
-  // [zh] TypeScript/JS 语句：`ShoppingCart,`
   ShoppingCart,
-  // [zh] TypeScript/JS 语句：`Star,`
   Star,
-  // [zh] TypeScript/JS 语句：`Ticket,`
   Ticket,
-  // [zh] TypeScript/JS 语句：`Present`
   Present
-// [zh] 语句
 } from '@element-plus/icons-vue';
-// [zh] 导入 `@/composables/useOpenAgent`
 import { useOpenAgent } from '@/composables/useOpenAgent';
-// [zh] 导入 `@/stores/auth`
 import { useAuthStore } from '@/stores/auth';
-// [zh] 导入 `@/utils/image`
 import { resolveAvatarUrl } from '@/utils/image';
 
-// [zh] 声明变量 `router`
 const router = useRouter();
-// [zh] 语句
 const { openAgent } = useOpenAgent();
 
-// [zh] 声明变量 `onQuickClick`
 const onQuickClick = (item: { path: string }) => {
-  // [zh] 条件判断 if
   if (item.path === '/ai-assistant') {
-    // [zh] 语句
     openAgent();
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
-  // [zh] 语句
   router.push(item.path);
-// [zh] 语句
 };
-// [zh] 声明变量 `authStore`
 const authStore = useAuthStore();
-// [zh] 语句
 const { unreadCount } = useUnreadCount();
 
-// [zh] 声明变量 `avatarUrl`
 const avatarUrl = computed(() => resolveAvatarUrl(authStore.userInfo?.avatar));
-// [zh] 声明变量 `avatarLetter`
 const avatarLetter = computed(() => (authStore.userInfo?.nickName || '访')[0]);
 
-// [zh] 声明变量 `quickItems`
 const quickItems = [
-  // [zh] TypeScript/JS 语句：`{ label: '订单', path: '/orders', icon: List },`
   { label: '订单', path: '/orders', icon: List },
-  // [zh] TypeScript/JS 语句：`{ label: '购物车', path: '/cart', icon: ShoppingCart },`
   { label: '购物车', path: '/cart', icon: ShoppingCart },
-  // [zh] TypeScript/JS 语句：`{ label: '优惠券', path: '/coupons', icon: Ticket },`
   { label: '优惠券', path: '/coupons', icon: Ticket },
-  // [zh] TypeScript/JS 语句：`{ label: '收藏', path: '/wishlist', icon: Star },`
   { label: '收藏', path: '/wishlist', icon: Star },
-  // [zh] TypeScript/JS 语句：`{ label: '签到', path: '/sign', icon: Present },`
   { label: '签到', path: '/sign', icon: Present },
-  // [zh] TypeScript/JS 语句：`{ label: '客服', path: '/ai-assistant', icon: ChatDotRoun`
   { label: '客服', path: '/ai-assistant', icon: ChatDotRound }
-// [zh] 语句
 ];
 
-// [zh] 声明变量 `textLinks`
 const textLinks = [
-  // [zh] TypeScript/JS 语句：`{ label: '领券中心', path: '/coupons' },`
   { label: '领券中心', path: '/coupons' },
-  // [zh] TypeScript/JS 语句：`{ label: '我的券', path: '/my-coupons' },`
   { label: '我的券', path: '/my-coupons' },
-  // [zh] TypeScript/JS 语句：`{ label: '足迹', path: '/footprint' }`
   { label: '足迹', path: '/footprint' }
-// [zh] 语句
 ];
 
-// [zh] 代码块开始
 onMounted(async () => {
-  // [zh] 条件判断 if
   if (!authStore.isLoggedIn) return;
-  // [zh] 代码块开始
   try {
-    // [zh] await 等待 Promise（类比 CompletableFuture.get）
     await authStore.loadMemberCenter();
-  // [zh] 代码块开始
   } catch {
 
-  // [zh] 语法符号
   }
-// [zh] 语句
 });
 </script>
 

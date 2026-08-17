@@ -12,13 +12,9 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `./SaleData.vue`
 import SaleData from './SaleData.vue'
-// [zh] 导入 `./TodayData.vue`
 import TodayData from './TodayData.vue'
-// [zh] 导入 `./WeeklyData.vue`
 import WeeklyData from './WeeklyData.vue'
 </script>
 

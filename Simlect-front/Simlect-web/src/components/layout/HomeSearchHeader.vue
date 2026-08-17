@@ -50,50 +50,29 @@
   </LiquidGlassSurface>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `@/components/common/LiquidGlassSurface.vue`
 import LiquidGlassSurface from '@/components/common/LiquidGlassSurface.vue';
-// [zh] 导入 `@/components/business/CategoryNavCard.vue`
 import CategoryNavCard from '@/components/business/CategoryNavCard.vue';
-// [zh] 导入 `vue-router`
 import { useRouter } from 'vue-router';
-// [zh] 导入 `@element-plus/icons-vue`
 import { Bell, ChatDotRound, Search } from '@element-plus/icons-vue';
-// [zh] 导入 `@/composables/useOpenAgent`
 import { useOpenAgent } from '@/composables/useOpenAgent';
-// [zh] 导入 `@/composables/useUnreadCount`
 import { useUnreadCount } from '@/composables/useUnreadCount';
-// [zh] 导入 `@/stores/auth`
 import { useAuthStore } from '@/stores/auth';
 
-// [zh] TypeScript/JS 语句：`withDefaults(`
 withDefaults(
-  // [zh] 代码块开始
   defineProps<{
-    // [zh] 语句
     placeholder?: string;
-  // [zh] TypeScript/JS 语句：`}>(),`
   }>(),
-  // [zh] TypeScript/JS 语句：`{ placeholder: '搜索商品/品牌' }`
   { placeholder: '搜索商品/品牌' }
-// [zh] 语句
 );
 
-// [zh] 声明变量 `router`
 const router = useRouter();
-// [zh] 语句
 const { openAgent } = useOpenAgent();
-// [zh] 声明变量 `authStore`
 const authStore = useAuthStore();
-// [zh] 语句
 const { unreadCount } = useUnreadCount();
 
-// [zh] 声明变量 `goSearchPortal`
 const goSearchPortal = () => router.push('/search-portal');
-// [zh] 声明变量 `goNotifications`
 const goNotifications = () => router.push('/notifications');
-// [zh] 声明变量 `goAgent`
 const goAgent = () => openAgent();
 </script>
 

@@ -26,18 +26,12 @@
   </LiquidGlassSurface>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `@/components/common/LiquidGlassSurface.vue`
 import LiquidGlassSurface from '@/components/common/LiquidGlassSurface.vue';
 
-// [zh] 代码块开始
 defineProps<{
-  // [zh] 语句
   title: string;
-  // [zh] 语句
   subtitle?: string;
-// [zh] 语句
 }>();
 </script>
 

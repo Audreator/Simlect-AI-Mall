@@ -99,364 +99,196 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed, ref } from 'vue';
-// [zh] 导入 `@element-plus/icons-vue`
 import { Ticket } from '@element-plus/icons-vue';
-// [zh] 导入 `@/api/modules`
 import { agentApi } from '@/api/modules';
-// [zh] 导入 `@/components/common/ProductImage.vue`
 import ProductImage from '@/components/common/ProductImage.vue';
-// [zh] 导入 `@/utils/toast`
 import { toast } from '@/utils/toast';
 
-// [zh] 导出模块成员
 export interface ActionConfirmDetailRow {
-  // [zh] 语句
   label: string;
-  // [zh] 语句
   value: string;
-// [zh] 语法符号
 }
 
-// [zh] 导出模块成员
 export interface ActionConfirmOrderItem {
-  // [zh] 语句
   orderItemId?: string;
-  // [zh] 语句
   productId?: string;
-  // [zh] 语句
   productName?: string;
-  // [zh] 语句
   cover?: string;
-  // [zh] 语句
   propertyInfo?: string;
-  // [zh] 语句
   itemAmount?: number | string;
-  // [zh] 语句
   buyCount?: number | string;
-// [zh] 语法符号
 }
 
-// [zh] 导出模块成员
 export interface ActionConfirmCardData {
-  // [zh] 语句
   type?: string;
-  // [zh] 语句
   token?: string;
-  // [zh] 语句
   actionType?: string;
-  // [zh] 语句
   label?: string;
-  // [zh] 语句
   summary?: string;
-  // [zh] 语句
   confirmText?: string;
-  // [zh] 语句
   riskTip?: string;
-  // [zh] 语句
   intro?: string;
-  // [zh] 语句
   status?: number | string;
-  // [zh] 语句
   orderId?: string;
-  // [zh] 语句
   orderAmount?: number | string;
-  // [zh] 语句
   payScene?: string | number;
-  // [zh] 语句
   items?: ActionConfirmOrderItem[];
-  // [zh] 语句
   details?: ActionConfirmDetailRow[];
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `props`
 const props = defineProps<{
-  // [zh] 语句
   card: ActionConfirmCardData;
-// [zh] 语句
 }>();
 
-// [zh] 声明变量 `emit`
 const emit = defineEmits<{
-  // [zh] 语句
   updated: [card: ActionConfirmCardData];
-// [zh] 语句
 }>();
 
-// [zh] 声明变量 `PENDING`
 const PENDING = 0;
-// [zh] 声明变量 `CONFIRMED`
 const CONFIRMED = 1;
-// [zh] 声明变量 `CANCELLED`
 const CANCELLED = 2;
-// [zh] 声明变量 `EXPIRED`
 const EXPIRED = 3;
 
-// [zh] 声明变量 `loading`
 const loading = ref(false);
-// [zh] 声明变量 `localStatus`
 const localStatus = ref<number | null>(null);
-// [zh] 声明变量 `resultMessage`
 const resultMessage = ref('');
-// [zh] 声明变量 `resultSuccess`
 const resultSuccess = ref(false);
 
-// [zh] 声明变量 `effectiveStatus`
 const effectiveStatus = computed(() => {
-  // [zh] 声明变量 `raw`
   const raw = localStatus.value ?? props.card.status ?? PENDING;
-  // [zh] 声明变量 `num`
   const num = Number(raw);
-  // [zh] return 返回
   return Number.isFinite(num) ? num : PENDING;
-// [zh] 语句
 });
 
-// [zh] 声明变量 `isPending`
 const isPending = computed(() => effectiveStatus.value === PENDING);
 
-// [zh] 声明变量 `showActions`
 const showActions = computed(() => isPending.value && !resultMessage.value);
 
-// [zh] 声明变量 `statusClass`
 const statusClass = computed(() => {
-  // [zh] 条件判断 if
   if (effectiveStatus.value === CONFIRMED) return 'is-confirmed';
-  // [zh] 条件判断 if
   if (effectiveStatus.value === CANCELLED) return 'is-cancelled';
-  // [zh] 条件判断 if
   if (effectiveStatus.value === EXPIRED) return 'is-expired';
-  // [zh] return 返回
   return 'is-pending';
-// [zh] 语句
 });
 
-// [zh] 声明变量 `statusLabel`
 const statusLabel = computed(() => {
-  // [zh] 条件判断 if
   if (effectiveStatus.value === CONFIRMED) return '已确认执行';
-  // [zh] 条件判断 if
   if (effectiveStatus.value === CANCELLED) return '已取消';
-  // [zh] 条件判断 if
   if (effectiveStatus.value === EXPIRED) return '已过期，请重新发起';
-  // [zh] return 返回
   return '';
-// [zh] 语句
 });
 
-// [zh] 声明变量 `cardHint`
 const cardHint = computed(() => {
-  // [zh] 声明变量 `intro`
   const intro = (props.card.intro || '').trim();
-  // [zh] 条件判断 if
   if (!intro || intro.length > 100) {
-    // [zh] return 返回
     return '请核对以下信息，确认后将立即执行。';
-  // [zh] 语法符号
   }
-  // [zh] return 返回
   return intro;
-// [zh] 语句
 });
 
-// [zh] 声明变量 `detailRows`
 const detailRows = computed(() => {
-  // [zh] 声明变量 `rows`
   const rows = props.card.details;
-  // [zh] 条件判断 if
   if (!Array.isArray(rows)) return [];
-  // [zh] return 返回
   return rows
-    // [zh] 代码块开始
     .map((row) => ({
-      // [zh] TypeScript/JS 语句：`label: row?.label != null ? String(row.label).trim() : `
       label: row?.label != null ? String(row.label).trim() : '',
-      // [zh] TypeScript/JS 语句：`value: row?.value != null ? String(row.value).trim() : `
       value: row?.value != null ? String(row.value).trim() : ''
-    // [zh] TypeScript/JS 语句：`}))`
     }))
-    // [zh] 语句
     .filter((row) => row.label && row.value);
-// [zh] 语句
 });
 
-// [zh] 声明变量 `orderItems`
 const orderItems = computed(() => {
-  // [zh] 声明变量 `items`
   const items = props.card.items;
-  // [zh] 条件判断 if
   if (!Array.isArray(items)) return [];
-  // [zh] return 返回
   return items
-    // [zh] 代码块开始
     .map((item) => ({
-      // [zh] TypeScript/JS 语句：`orderItemId: item?.orderItemId != null ? String(item.or`
       orderItemId: item?.orderItemId != null ? String(item.orderItemId) : undefined,
-      // [zh] TypeScript/JS 语句：`productId: item?.productId != null ? String(item.produc`
       productId: item?.productId != null ? String(item.productId) : undefined,
-      // [zh] TypeScript/JS 语句：`productName: item?.productName != null ? String(item.pr`
       productName: item?.productName != null ? String(item.productName).trim() : '',
-      // [zh] TypeScript/JS 语句：`cover: item?.cover != null ? String(item.cover) : undef`
       cover: item?.cover != null ? String(item.cover) : undefined,
-      // [zh] TypeScript/JS 语句：`propertyInfo: item?.propertyInfo != null ? String(item.`
       propertyInfo: item?.propertyInfo != null ? String(item.propertyInfo).trim() : undefined,
-      // [zh] TypeScript/JS 语句：`itemAmount: item?.itemAmount,`
       itemAmount: item?.itemAmount,
-      // [zh] TypeScript/JS 语句：`buyCount: item?.buyCount`
       buyCount: item?.buyCount
-    // [zh] TypeScript/JS 语句：`}))`
     }))
-    // [zh] 语句
     .filter((item) => item.productName);
-// [zh] 语句
 });
 
-// [zh] 声明变量 `COUPON_ORDER_PAY_SCENE`
 const COUPON_ORDER_PAY_SCENE = '2';
-// [zh] 声明变量 `COUPON_ORDER_PROPERTY`
 const COUPON_ORDER_PROPERTY = '优惠券秒杀';
 
-// [zh] 声明变量 `isCouponOrder`
 const isCouponOrder = computed(() => {
-  // [zh] 条件判断 if
   if (String(props.card.payScene) === COUPON_ORDER_PAY_SCENE) {
-    // [zh] return 返回
     return true;
-  // [zh] 语法符号
   }
-  // [zh] return 返回
   return orderItems.value.some((item) => item.propertyInfo === COUPON_ORDER_PROPERTY);
-// [zh] 语句
 });
 
-// [zh] 声明变量 `shortOrderId`
 const shortOrderId = computed(() => {
-  // [zh] 声明变量 `id`
   const id = props.card.orderId || '';
-  // [zh] 条件判断 if
   if (id.length <= 18) return id;
-  // [zh] return 返回
   return `${id.slice(0, 10)}…${id.slice(-6)}`;
-// [zh] 语句
 });
 
-// [zh] 声明变量 `orderAmountText`
 const orderAmountText = computed(() => {
-  // [zh] 声明变量 `amount`
   const amount = props.card.orderAmount;
-  // [zh] 条件判断 if
   if (amount == null || amount === '') return '';
-  // [zh] 声明变量 `hasDetailAmount`
   const hasDetailAmount = detailRows.value.some((row) => row.label.includes('金额'));
-  // [zh] 条件判断 if
   if (hasDetailAmount) return '';
-  // [zh] return 返回
   return `¥${amount}`;
-// [zh] 语句
 });
 
-// [zh] 声明变量 `itemMeta`
 const itemMeta = (item: ActionConfirmOrderItem) => {
-  // [zh] 声明变量 `parts`
   const parts: string[] = [];
-  // [zh] 条件判断 if
   if (item.buyCount != null && item.buyCount !== '') {
-    // [zh] 语句
     parts.push(`×${item.buyCount}`);
-  // [zh] 语法符号
   }
-  // [zh] 条件判断 if
   if (item.itemAmount != null && item.itemAmount !== '') {
-    // [zh] 语句
     parts.push(`¥${item.itemAmount}`);
-  // [zh] 语法符号
   }
-  // [zh] return 返回
   return parts.join('  ');
-// [zh] 语句
 };
 
-// [zh] 声明变量 `patchCard`
 const patchCard = (status: number) => {
-  // [zh] 语句
   localStatus.value = status;
-  // [zh] 语句
   emit('updated', { ...props.card, status });
-// [zh] 语句
 };
 
-// [zh] 声明变量 `onConfirm`
 const onConfirm = async () => {
-  // [zh] 条件判断 if
   if (!props.card.token || loading.value) return;
-  // [zh] 语句
   loading.value = true;
-  // [zh] 代码块开始
   try {
-    // [zh] 声明变量 `res`
     const res = await agentApi.confirmAction(props.card.token);
-    // [zh] 声明变量 `data`
     const data = res as { success?: boolean; resultMessage?: string; actionType?: string };
-    // [zh] 语句
     resultSuccess.value = !!data?.success;
-    // [zh] 语句
     resultMessage.value = data?.resultMessage || (data?.success ? '操作成功' : '操作失败');
-    // [zh] 条件判断 if
     if (data?.success) {
-      // [zh] 语句
       patchCard(CONFIRMED);
-      // [zh] 语句
       toast.success(resultMessage.value);
-    // [zh] 代码块开始
     } else {
-      // [zh] 语句
       toast.error(resultMessage.value);
-    // [zh] 语法符号
     }
-  // [zh] 代码块开始
   } catch {
-    // [zh] 语句
     toast.error('确认失败，请稍后重试');
-  // [zh] 代码块开始
   } finally {
-    // [zh] 语句
     loading.value = false;
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 声明变量 `onCancel`
 const onCancel = async () => {
-  // [zh] 条件判断 if
   if (!props.card.token || loading.value) return;
-  // [zh] 语句
   loading.value = true;
-  // [zh] 代码块开始
   try {
-    // [zh] await 等待 Promise（类比 CompletableFuture.get）
     await agentApi.cancelAction(props.card.token);
-    // [zh] 语句
     patchCard(CANCELLED);
-    // [zh] 语句
     resultMessage.value = '已取消操作';
-    // [zh] 语句
     resultSuccess.value = false;
-  // [zh] 代码块开始
   } catch {
-    // [zh] 语句
     toast.error('取消失败，请稍后重试');
-  // [zh] 代码块开始
   } finally {
-    // [zh] 语句
     loading.value = false;
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 </script>
 

@@ -50,11 +50,8 @@
   </section>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `./LessStockData.vue`
 import LessStockData from './LessStockData.vue'
-// [zh] 导入 `./ShippedOrder.vue`
 import ShippedOrder from './ShippedOrder.vue'
 </script>
 

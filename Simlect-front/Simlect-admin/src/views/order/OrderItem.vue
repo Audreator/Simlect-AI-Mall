@@ -92,85 +92,49 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `vue`
 import { ref, reactive, getCurrentInstance, nextTick, computed } from 'vue'
-// [zh] 导入 `vue-router`
 import { useRouter, useRoute } from 'vue-router'
-// [zh] 导入 `@/utils/order.js`
 import { isCouponOrder, isCouponOrderItem } from '@/utils/order.js'
-// [zh] TypeScript/JS 语句：`const { proxy } = getCurrentInstance()`
 const { proxy } = getCurrentInstance()
-// [zh] 声明变量 `router`
 const router = useRouter()
-// [zh] 声明变量 `route`
 const route = useRoute()
 
-// [zh] 声明变量 `props`
 const props = defineProps({
-  // [zh] 代码块开始
   data: {
-    // [zh] TypeScript/JS 语句：`type: Object,`
     type: Object,
-    // [zh] TypeScript/JS 语句：`default: {},`
     default: {},
-  // [zh] TypeScript/JS 语句：`},`
   },
-// [zh] TypeScript/JS 语句：`})`
 })
 
-// [zh] 声明变量 `isCouponItem`
 const isCouponItem = (item) => isCouponOrder(props.data) || isCouponOrderItem(item)
 
-// [zh] 声明变量 `hasCouponDiscount`
 const hasCouponDiscount = computed(() => Number(props.data?.couponDiscountAmount ?? 0) > 0)
 
-// [zh] 声明变量 `couponLabel`
 const couponLabel = computed(() => {
-  // [zh] 声明变量 `name`
   const name = props.data?.couponName
-  // [zh] 条件判断 if
   if (!name) return ''
-  // [zh] 声明变量 `typeMap`
   const typeMap = { 1: '满减券', 2: '折扣券', 3: '无门槛券' }
-  // [zh] 声明变量 `type`
   const type = typeMap[props.data?.couponType]
-  // [zh] return 返回
   return type ? `${name}（${type}）` : String(name)
-// [zh] TypeScript/JS 语句：`})`
 })
 
-// [zh] 声明变量 `formatDiscount`
 const formatDiscount = (val) => Number(val ?? 0).toFixed(2)
 
-// [zh] 声明变量 `totalAmount`
 const totalAmount = computed(() => {
-  // [zh] return 返回
   return props.data.orderItemList.reduce((total, item) => {
-    // [zh] return 返回
     return total + item.amount
-  // [zh] TypeScript/JS 语句：`}, 0)`
   }, 0)
-// [zh] TypeScript/JS 语句：`})`
 })
 
-// [zh] 声明变量 `emit`
 const emit = defineEmits(['delivery', 'comment'])
-// [zh] 声明变量 `delivery`
 const delivery = () => {
-  // [zh] TypeScript/JS 语句：`emit('delivery', props.data)`
   emit('delivery', props.data)
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `commentRef`
 const commentRef = ref()
-// [zh] 声明变量 `comment`
 const comment = () => {
-  // [zh] TypeScript/JS 语句：`emit('comment', props.data.orderId)`
   emit('comment', props.data.orderId)
-// [zh] 语法符号
 }
 </script>
 

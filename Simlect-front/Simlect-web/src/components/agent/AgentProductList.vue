@@ -24,49 +24,29 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue-router`
 import { RouterLink } from 'vue-router';
-// [zh] 导入 `@/components/common/ProductImage.vue`
 import ProductImage from '@/components/common/ProductImage.vue';
-// [zh] 导入 `@/utils/agentProductConsult`
 import { saveAgentConsultProduct } from '@/utils/agentProductConsult';
-// [zh] 导入 `@/stores/auth`
 import { useAuthStore } from '@/stores/auth';
 
-// [zh] 语句
 defineProps<{ list: Record<string, any>[] }>();
 
-// [zh] 声明变量 `authStore`
 const authStore = useAuthStore();
 
-// [zh] 声明变量 `onProductClick`
 const onProductClick = (item: Record<string, any>) => {
-  // [zh] 条件判断 if
   if (!item?.productId || !item?.productName) return;
-  // [zh] TypeScript/JS 语句：`saveAgentConsultProduct(`
   saveAgentConsultProduct(
-    // [zh] 代码块开始
     {
-      // [zh] TypeScript/JS 语句：`productId: String(item.productId),`
       productId: String(item.productId),
-      // [zh] TypeScript/JS 语句：`productName: String(item.productName),`
       productName: String(item.productName),
-      // [zh] TypeScript/JS 语句：`cover: item.cover ? String(item.cover) : undefined,`
       cover: item.cover ? String(item.cover) : undefined,
-      // [zh] TypeScript/JS 语句：`minPrice: item.minPrice`
       minPrice: item.minPrice
-    // [zh] TypeScript/JS 语句：`},`
     },
-    // [zh] TypeScript/JS 语句：`authStore.userInfo?.userId as string | undefined`
     authStore.userInfo?.userId as string | undefined
-  // [zh] 语句
   );
-// [zh] 语句
 };
 
-// [zh] 声明变量 `formatPrice`
 const formatPrice = (val: unknown) => Number(val ?? 0).toFixed(2);
 </script>
 

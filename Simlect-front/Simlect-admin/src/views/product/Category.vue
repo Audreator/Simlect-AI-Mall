@@ -41,205 +41,109 @@
   <CategoryEdit ref="categoryEditRef" @reload="loadCategory"></CategoryEdit>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `./CategoryEdit.vue`
 import CategoryEdit from './CategoryEdit.vue'
-// [zh] 导入 `vue`
 import { ref, reactive, getCurrentInstance, nextTick, onMounted } from 'vue'
-// [zh] TypeScript/JS 语句：`const { proxy } = getCurrentInstance()`
 const { proxy } = getCurrentInstance()
 
-// [zh] 声明变量 `categoryList`
 const categoryList = ref([])
-// [zh] 声明变量 `loadCategory`
 const loadCategory = async () => {
-  // [zh] 声明变量 `result`
   let result = await proxy.Request({
-    // [zh] TypeScript/JS 语句：`url: proxy.Api.loadCategory,`
     url: proxy.Api.loadCategory,
-    // [zh] 代码块开始
     params: {
-      // [zh] TypeScript/JS 语句：`querySku: false,`
       querySku: false,
-    // [zh] TypeScript/JS 语句：`},`
     },
-  // [zh] TypeScript/JS 语句：`})`
   })
-  // [zh] 条件判断 if
   if (!result) {
-    // [zh] TypeScript/JS 语句：`return`
     return
-  // [zh] 语法符号
   }
-  // [zh] TypeScript/JS 语句：`categoryList.value = normalizeCategoryTree(result.data `
   categoryList.value = normalizeCategoryTree(result.data || [])
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `normalizeCategoryTree`
 const normalizeCategoryTree = (nodes) => {
-  // [zh] 条件判断 if
   if (!Array.isArray(nodes)) {
-    // [zh] return 返回
     return []
-  // [zh] 语法符号
   }
-  // [zh] return 返回
   return nodes.map((node) => {
-    // [zh] 声明变量 `pCategoryId`
     const pCategoryId =
-      // [zh] TypeScript/JS 语句：`node.pCategoryId === null || node.pCategoryId === undef`
       node.pCategoryId === null || node.pCategoryId === undefined || node.pCategoryId === ''
-        // [zh] TypeScript/JS 语句：`? '0'`
         ? '0'
-        // [zh] TypeScript/JS 语句：`: String(node.pCategoryId)`
         : String(node.pCategoryId)
-    // [zh] return 返回
     return {
-      // [zh] TypeScript/JS 语句：`...node,`
       ...node,
-      // [zh] TypeScript/JS 语句：`pCategoryId,`
       pCategoryId,
-      // [zh] TypeScript/JS 语句：`children: normalizeCategoryTree(node.children || []),`
       children: normalizeCategoryTree(node.children || []),
-    // [zh] 语法符号
     }
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `categoryEditRef`
 const categoryEditRef = ref(null)
-// [zh] 声明变量 `showEdit`
 const showEdit = (data = {}) => {
-  // [zh] TypeScript/JS 语句：`categoryEditRef.value.show(data)`
   categoryEditRef.value.show(data)
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `delCategory`
 const delCategory = (data) => {
-  // [zh] 代码块开始
   proxy.Confirm({
-    // [zh] TypeScript/JS 语句：`message: `确定要删除【${data.categoryName}】吗?`,`
     message: `确定要删除【${data.categoryName}】吗?`,
-    // [zh] 代码块开始
     okfun: async () => {
-      // [zh] 声明变量 `result`
       let result = await proxy.Request({
-        // [zh] TypeScript/JS 语句：`url: proxy.Api.delCategory,`
         url: proxy.Api.delCategory,
-        // [zh] 代码块开始
         params: {
-          // [zh] TypeScript/JS 语句：`categoryId: data.categoryId,`
           categoryId: data.categoryId,
-        // [zh] TypeScript/JS 语句：`},`
         },
-      // [zh] TypeScript/JS 语句：`})`
       })
-      // [zh] 条件判断 if
       if (!result) {
-        // [zh] TypeScript/JS 语句：`return`
         return
-      // [zh] 语法符号
       }
-      // [zh] TypeScript/JS 语句：`loadCategory()`
       loadCategory()
-    // [zh] TypeScript/JS 语句：`},`
     },
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `allowDrop`
 const allowDrop = (draggingNode, dropNode, type) => {
 
-  // [zh] 条件判断 if
   if (type === 'inner') {
-    // [zh] return 返回
     return false
-  // [zh] 语法符号
   }
 
-  // [zh] 声明变量 `draggingParentKey`
   const draggingParentKey = draggingNode.parent?.key
-  // [zh] 声明变量 `dropParentKey`
   const dropParentKey = dropNode.parent?.key
 
-  // [zh] 条件判断 if
   if (!draggingParentKey && !dropParentKey) {
-    // [zh] return 返回
     return true
-  // [zh] 语法符号
   }
-  // [zh] 条件判断 if
   if (
-    // [zh] TypeScript/JS 语句：`draggingParentKey &&`
     draggingParentKey &&
-    // [zh] TypeScript/JS 语句：`dropParentKey &&`
     dropParentKey &&
-    // [zh] TypeScript/JS 语句：`draggingParentKey === dropParentKey`
     draggingParentKey === dropParentKey
-  // [zh] 代码块开始
   ) {
-    // [zh] return 返回
     return true
-  // [zh] 语法符号
   }
-  // [zh] return 返回
   return false
-// [zh] 语法符号
 }
-// [zh] 声明变量 `handleDrop`
 const handleDrop = async (draggingNode, dropNode, dropType, event) => {
-  // [zh] 声明变量 `targetCategoryList`
   let targetCategoryList = []
-  // [zh] 条件判断 if
   if (dropNode.data.pCategoryId == '0') {
-    // [zh] TypeScript/JS 语句：`targetCategoryList = categoryList.value`
     targetCategoryList = categoryList.value
-  // [zh] 代码块开始
   } else {
-    // [zh] TypeScript/JS 语句：`targetCategoryList = dropNode.parent.data.children`
     targetCategoryList = dropNode.parent.data.children
-  // [zh] 语法符号
   }
-  // [zh] 代码块开始
   targetCategoryList = targetCategoryList.map((item) => {
-    // [zh] return 返回
     return item.categoryId
-  // [zh] TypeScript/JS 语句：`})`
   })
-  // [zh] 声明变量 `result`
   let result = await proxy.Request({
-    // [zh] TypeScript/JS 语句：`url: proxy.Api.changeCategorySort,`
     url: proxy.Api.changeCategorySort,
-    // [zh] 代码块开始
     params: {
-      // [zh] TypeScript/JS 语句：`categoryIds: targetCategoryList.join(','),`
       categoryIds: targetCategoryList.join(','),
-    // [zh] TypeScript/JS 语句：`},`
     },
-  // [zh] TypeScript/JS 语句：`})`
   })
-  // [zh] 条件判断 if
   if (!result) {
-    // [zh] TypeScript/JS 语句：`return`
     return
-  // [zh] 语法符号
   }
-  // [zh] TypeScript/JS 语句：`proxy.Message.success('排序成功')`
   proxy.Message.success('排序成功')
-// [zh] 语法符号
 }
-// [zh] 代码块开始
 onMounted(() => {
-  // [zh] TypeScript/JS 语句：`loadCategory()`
   loadCategory()
-// [zh] TypeScript/JS 语句：`})`
 })
 </script>
 

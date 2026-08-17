@@ -16,44 +16,26 @@
   </el-config-provider>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed, onMounted } from 'vue';
-// [zh] 导入 `vue-router`
 import { RouterView } from 'vue-router';
-// [zh] 导入 `element-plus/es/locale/lang/zh-cn`
 import zhCn from 'element-plus/es/locale/lang/zh-cn';
-// [zh] 导入 `@/components/business/ProductSkuSheet.vue`
 import ProductSkuSheet from '@/components/business/ProductSkuSheet.vue';
-// [zh] 导入 `@/components/common/ImagePreviewHost.vue`
 import ImagePreviewHost from '@/components/common/ImagePreviewHost.vue';
-// [zh] 导入 `@/components/pc/PcAgentFloatingPanel.vue`
 import PcAgentFloatingPanel from '@/components/pc/PcAgentFloatingPanel.vue';
-// [zh] 导入 `./stores/device`
 import { useDeviceStore } from './stores/device';
-// [zh] 导入 `./stores/auth`
 import { useAuthStore } from './stores/auth';
-// [zh] 导入 `@/composables/useAppWebSocket`
 import { useAppWebSocket } from '@/composables/useAppWebSocket';
 
-// [zh] 声明变量 `deviceStore`
 const deviceStore = useDeviceStore();
 
-// [zh] 声明变量 `elementSize`
 const elementSize = computed(() => (deviceStore.isDesktop ? 'small' : 'default'));
-// [zh] 声明变量 `isDesktop`
 const isDesktop = computed(() => deviceStore.isDesktop);
 
-// [zh] 语句
 useAuthStore().tryRestoreSession();
-// [zh] 语句
 useAppWebSocket();
 
-// [zh] 代码块开始
 onMounted(() => {
-  // [zh] 语句
   deviceStore.sync();
-// [zh] 语句
 });
 </script>

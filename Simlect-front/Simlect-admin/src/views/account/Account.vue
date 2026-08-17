@@ -140,90 +140,50 @@
 <script setup>
  `vue`
 import { ref, getCurrentInstance } from 'vue'
-// [zh] 导入 `vue-router`
 import { useRoute, useRouter } from 'vue-router'
-// [zh] 导入 `@/components/BrandMark.vue`
 import BrandMark from '@/components/BrandMark.vue'
 
-// [zh] TypeScript/JS 语句：`const { proxy } = getCurrentInstance()`
 const { proxy } = getCurrentInstance()
-// [zh] 声明变量 `router`
 const router = useRouter()
 const route = useRoute()
 
-// [zh] 声明变量 `checkCodeInfo`
 const checkCodeInfo = ref({})
-// [zh] 声明变量 `changeCheckCode`
 const changeCheckCode = async () => {
-  // [zh] 声明变量 `result`
   const result = await proxy.Request({
-    // [zh] TypeScript/JS 语句：`url: proxy.Api.checkCode,`
     url: proxy.Api.checkCode,
-  // [zh] TypeScript/JS 语句：`})`
   })
-  // [zh] 条件判断 if
   if (!result) {
-    // [zh] TypeScript/JS 语句：`return`
     return
-  // [zh] 语法符号
   }
-  // [zh] TypeScript/JS 语句：`checkCodeInfo.value = result.data`
   checkCodeInfo.value = result.data
-// [zh] 语法符号
 }
-// [zh] TypeScript/JS 语句：`changeCheckCode()`
 changeCheckCode()
 
-// [zh] 声明变量 `formData`
 const formData = ref({})
-// [zh] 声明变量 `formDataRef`
 const formDataRef = ref()
-// [zh] 声明变量 `rules`
 const rules = {
-  // [zh] TypeScript/JS 语句：`account: [{ required: true, message: '请输入账号' }],`
   account: [{ required: true, message: '请输入账号' }],
-  // [zh] TypeScript/JS 语句：`password: [{ required: true, message: '请输入密码' }],`
   password: [{ required: true, message: '请输入密码' }],
-  // [zh] TypeScript/JS 语句：`checkCode: [{ required: true, message: '请输入图片验证码' }],`
   checkCode: [{ required: true, message: '请输入图片验证码' }],
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `doSubmit`
 const doSubmit = () => {
-  // [zh] 代码块开始
   formDataRef.value.validate(async (valid) => {
-    // [zh] 条件判断 if
     if (!valid) {
-      // [zh] TypeScript/JS 语句：`return`
       return
-    // [zh] 语法符号
     }
-    // [zh] 声明变量 `params`
     const params = { ...formData.value }
-    // [zh] TypeScript/JS 语句：`params.checkCodeKey = checkCodeInfo.value.checkCodeKey`
     params.checkCodeKey = checkCodeInfo.value.checkCodeKey
-    // [zh] 声明变量 `result`
     const result = await proxy.Request({
-      // [zh] TypeScript/JS 语句：`url: proxy.Api.login,`
       url: proxy.Api.login,
-      // [zh] TypeScript/JS 语句：`params,`
       params,
-      // [zh] 代码块开始
       errorCallback: () => {
-        // [zh] TypeScript/JS 语句：`changeCheckCode()`
         changeCheckCode()
-      // [zh] TypeScript/JS 语句：`},`
       },
-    // [zh] TypeScript/JS 语句：`})`
     })
-    // [zh] 条件判断 if
     if (!result) {
-      // [zh] TypeScript/JS 语句：`return`
       return
-    // [zh] 语法符号
     }
-    // [zh] TypeScript/JS 语句：`router.push('/home')`
     // 登录后消费 redirect 深链（若存在）
     const redirectTo = route.query.redirect
     const safeRedirect =
@@ -232,11 +192,8 @@ const doSubmit = () => {
       !redirectTo.startsWith('//') &&
       !redirectTo.startsWith('/login')
     router.push(safeRedirect ? redirectTo : '/home')
-    // [zh] TypeScript/JS 语句：`proxy.Message.success('登录成功')`
     proxy.Message.success('登录成功')
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 </script>
 

@@ -1,7 +1,12 @@
+<!-- [zh] SFC 区块开始（单文件组件 template/script/style 三段） -->
 <template>
+  <!-- [zh] 开始标签 `<div>` -->
   <div class="operate-tools-page">
+    <!-- [zh] 开始标签 `<el-card>` -->
     <el-card class="tool-card">
+      <!-- [zh] SFC 区块开始（单文件组件 template/script/style 三段） -->
       <template #header>
+        <!-- [zh] 开始标签 `<span>` -->
         <span>数据同步</span>
       </template>
       <div class="tool-grid">
@@ -13,7 +18,9 @@
     </el-card>
 
     <el-card class="tool-card">
+      <!-- [zh] SFC 区块开始（单文件组件 template/script/style 三段） -->
       <template #header>
+        <!-- [zh] 开始标签 `<span>` -->
         <span>订单与秒杀</span>
       </template>
       <div class="tool-grid">
@@ -30,7 +37,9 @@
       <p class="tool-hint">延时队列用于支付超时关单；秒杀操作请先在「营销 → 优惠券管理」配置秒杀券。</p>
     </el-card>
     <el-card class="tool-card">
+      <!-- [zh] SFC 区块开始（单文件组件 template/script/style 三段） -->
       <template #header>
+        <!-- [zh] 开始标签 `<span>` -->
         <span>签到数据</span>
       </template>
       <div class="tool-grid">
@@ -86,28 +95,49 @@ const runApi = (apiKey, params, confirmMsg) => {
 }
 </script>
 
+/* [zh] 样式声明 */
 <style scoped lang="scss">
+/* [zh] 样式规则 `.operate-tools-page {` */
 .operate-tools-page {
+  /* [zh] 样式规则 `display: flex;` */
   display: flex;
+  /* [zh] 样式规则 `flex-direction: column;` */
   flex-direction: column;
+  /* [zh] 样式规则 `gap: 16px;` */
   gap: 16px;
+  /* [zh] 样式规则 `max-width: 960px;` */
   max-width: 960px;
+/* [zh] 样式规则 `}` */
 }
 
+/* [zh] 样式规则 `.tool-card {` */
 .tool-card {
+  /* [zh] 样式规则 `border-radius: 12px;` */
   border-radius: 12px;
+/* [zh] 样式规则 `}` */
 }
 
+/* [zh] 样式规则 `.tool-grid {` */
 .tool-grid {
+  /* [zh] 样式规则 `display: flex;` */
   display: flex;
+  /* [zh] 样式规则 `flex-wrap: wrap;` */
   flex-wrap: wrap;
+  /* [zh] 样式规则 `gap: 10px;` */
   gap: 10px;
+/* [zh] 样式规则 `}` */
 }
 
+/* [zh] 样式规则 `.tool-hint {` */
 .tool-hint {
+  /* [zh] 样式规则 `margin: 12px 0 0;` */
   margin: 12px 0 0;
+  /* [zh] 样式规则 `font-size: 13px;` */
   font-size: 13px;
+  /* [zh] 样式规则 `color: #888;` */
   color: #888;
+  /* [zh] 样式规则 `line-height: 1.5;` */
   line-height: 1.5;
+/* [zh] 样式规则 `}` */
 }
 </style>

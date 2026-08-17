@@ -87,187 +87,103 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed, onMounted, ref } from 'vue';
-// [zh] 导入 `vue-router`
 import { useRoute, useRouter } from 'vue-router';
-// [zh] 导入 `@element-plus/icons-vue`
 import { Plus } from '@element-plus/icons-vue';
-// [zh] 导入 `@/components/business/AddressCardBody.vue`
 import AddressCardBody from '@/components/business/AddressCardBody.vue';
-// [zh] 导入 `模块`
 import AddressFormPanel, { type AddressFormItem } from '@/components/business/AddressFormPanel.vue';
-// [zh] 导入 `@/components/business/SwipeActionsRow.vue`
 import SwipeActionsRow from '@/components/business/SwipeActionsRow.vue';
-// [zh] 导入 `@/api/modules`
 import { addressApi } from '@/api/modules';
-// [zh] 导入 `@/composables/useDevice`
 import { useDevice } from '@/composables/useDevice';
-// [zh] 导入 `@/utils/confirm`
 import { confirmAction } from '@/utils/confirm';
-// [zh] 导入 `@/utils/checkout`
 import { saveCheckoutSelectedAddress, loadCheckoutSelectedAddress } from '@/utils/checkout';
-// [zh] 导入 `@/utils/toast`
 import { toast } from '@/utils/toast';
-// [zh] 导入 `@/composables/pullRefresh`
 import { usePageRefresh } from '@/composables/pullRefresh';
 
-// [zh] 声明变量 `route`
 const route = useRoute();
-// [zh] 声明变量 `router`
 const router = useRouter();
-// [zh] 语句
 const { isDesktop } = useDevice();
-// [zh] 声明变量 `isSelectMode`
 const isSelectMode = computed(() => route.query.from === 'checkout');
-// [zh] 声明变量 `useSwipeActions`
 const useSwipeActions = computed(() => !isDesktop.value && !isSelectMode.value);
-// [zh] 声明变量 `pickedAddressId`
 const pickedAddressId = ref(loadCheckoutSelectedAddress() || '');
 
-// [zh] 声明变量 `list`
 const list = ref<AddressFormItem[]>([]);
-// [zh] 声明变量 `formVisible`
 const formVisible = ref(false);
-// [zh] 声明变量 `editingItem`
 const editingItem = ref<AddressFormItem | null>(null);
-// [zh] 声明变量 `openSwipeId`
 const openSwipeId = ref('');
 
-// [zh] 声明变量 `sortList`
 const sortList = (rows: AddressFormItem[]) =>
-  // [zh] 语句
   [...rows].sort((a, b) => (b.defaultType === 1 ? 1 : 0) - (a.defaultType === 1 ? 1 : 0));
 
-// [zh] 声明变量 `cardClass`
 const cardClass = (item: AddressFormItem) => ({
-  // [zh] TypeScript/JS 语句：`'is-default': item.defaultType === 1,`
   'is-default': item.defaultType === 1,
-  // [zh] TypeScript/JS 语句：`'is-selectable': isSelectMode.value,`
   'is-selectable': isSelectMode.value,
-  // [zh] TypeScript/JS 语句：`'is-picked': isSelectMode.value && pickedAddressId.valu`
   'is-picked': isSelectMode.value && pickedAddressId.value === item.addressId
-// [zh] 语句
 });
 
-// [zh] 声明变量 `load`
 const load = async () => {
-  // [zh] 声明变量 `data`
   const data = await addressApi.loadDataList();
-  // [zh] 语句
   list.value = sortList(Array.isArray(data) ? data : []);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `openForm`
 const openForm = (item?: AddressFormItem) => {
-  // [zh] 语句
   editingItem.value = item ?? null;
-  // [zh] 语句
   formVisible.value = true;
-// [zh] 语句
 };
 
-// [zh] 声明变量 `onFormSaved`
 const onFormSaved = async () => {
-  // [zh] 声明变量 `wasAdd`
   const wasAdd = !editingItem.value;
-  // [zh] 声明变量 `prevIds`
   const prevIds = new Set(list.value.map((a) => a.addressId));
-  // [zh] 语句
   editingItem.value = null;
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await load();
-  // [zh] 条件判断 if
   if (isSelectMode.value && wasAdd) {
-    // [zh] 声明变量 `added`
     const added = list.value.find((a) => !prevIds.has(a.addressId));
-    // [zh] 条件判断 if
     if (added) {
-      // [zh] 语句
       selectForCheckout(added);
-    // [zh] 语法符号
     }
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 声明变量 `remove`
 const remove = async (addressId: string) => {
-  // [zh] 声明变量 `ok`
   const ok = await confirmAction('删除后无法恢复，确定要删除该收货地址吗？', {
-    // [zh] TypeScript/JS 语句：`title: '删除地址',`
     title: '删除地址',
-    // [zh] TypeScript/JS 语句：`confirmButtonText: '删除'`
     confirmButtonText: '删除'
-  // [zh] 语句
   });
-  // [zh] 条件判断 if
   if (!ok) return;
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await addressApi.delAddress(addressId);
-  // [zh] 语句
   toast.success('已删除');
-  // [zh] 条件判断 if
   if (openSwipeId.value === addressId) openSwipeId.value = '';
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await load();
-// [zh] 语句
 };
 
-// [zh] 声明变量 `setDefault`
 const setDefault = async (addressId: string) => {
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await addressApi.updateDefault(addressId);
-  // [zh] 语句
   toast.success('已设为默认地址');
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await load();
-// [zh] 语句
 };
 
-// [zh] 声明变量 `selectForCheckout`
 const selectForCheckout = (item: AddressFormItem) => {
-  // [zh] 语句
   saveCheckoutSelectedAddress(item.addressId);
-  // [zh] 语句
   router.push('/checkout');
-// [zh] 语句
 };
 
-// [zh] 声明变量 `onCardClick`
 const onCardClick = (item: AddressFormItem) => {
-  // [zh] 条件判断 if
   if (isSelectMode.value) selectForCheckout(item);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `onSwipeClose`
 const onSwipeClose = (id: string) => {
-  // [zh] 条件判断 if
   if (openSwipeId.value === id) openSwipeId.value = '';
-// [zh] 语句
 };
 
-// [zh] 声明变量 `bootstrap`
 const bootstrap = async () => {
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await load();
-  // [zh] 条件判断 if
   if (isSelectMode.value && route.query.action === 'add') {
-    // [zh] 语句
     openForm();
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 语句
 onMounted(bootstrap);
-// [zh] 语句
 usePageRefresh(load);
 </script>
 

@@ -4,21 +4,14 @@
   <p v-if="displayId" class="order-item-id" :title="displayId">订单项 ID {{ displayId }}</p>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed } from 'vue';
 
-// [zh] 声明变量 `props`
 const props = defineProps<{ id?: string | number | null }>();
 
-// [zh] 声明变量 `displayId`
 const displayId = computed(() => {
-  // [zh] 条件判断 if
   if (props.id == null || props.id === '') return '';
-  // [zh] return 返回
   return String(props.id);
-// [zh] 语句
 });
 </script>
 

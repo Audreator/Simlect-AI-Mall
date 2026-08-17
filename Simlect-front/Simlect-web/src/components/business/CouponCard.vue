@@ -89,75 +89,41 @@
   </article>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed } from 'vue';
-// [zh] 导入 `模块`
 import {
-  // [zh] TypeScript/JS 语句：`canReceiveCoupon,`
   canReceiveCoupon,
-  // [zh] TypeScript/JS 语句：`couponLeftMainDisplay,`
   couponLeftMainDisplay,
-  // [zh] TypeScript/JS 语句：`couponReceiveBtnText,`
   couponReceiveBtnText,
-  // [zh] TypeScript/JS 语句：`couponSoldCount,`
   couponSoldCount,
-  // [zh] TypeScript/JS 语句：`couponSoldProgress,`
   couponSoldProgress,
-  // [zh] TypeScript/JS 语句：`couponStockTotalLabel,`
   couponStockTotalLabel,
-  // [zh] TypeScript/JS 语句：`couponThresholdText,`
   couponThresholdText,
-  // [zh] TypeScript/JS 语句：`couponTypeLabel,`
   couponTypeLabel,
-  // [zh] TypeScript/JS 语句：`formatCouponDateTime,`
   formatCouponDateTime,
-  // [zh] TypeScript/JS 语句：`resolveCouponHasBought`
   resolveCouponHasBought
-// [zh] 语句
 } from '@/utils/couponPlaza';
 
-// [zh] 声明变量 `props`
 const props = withDefaults(
-  // [zh] TypeScript/JS 语句：`defineProps<{ coupon: Record<string, any>; type: 'user'`
   defineProps<{ coupon: Record<string, any>; type: 'user' | 'available'; receiving?: boolean }>(),
-  // [zh] TypeScript/JS 语句：`{ receiving: false }`
   { receiving: false }
-// [zh] 语句
 );
-// [zh] 语句
 defineEmits<{ receive: [Record<string, any>] }>();
 
-// [zh] 声明变量 `leftDisplay`
 const leftDisplay = computed(() => couponLeftMainDisplay(props.coupon));
-// [zh] 声明变量 `thresholdText`
 const thresholdText = computed(() => couponThresholdText(props.coupon));
-// [zh] 声明变量 `typeLabel`
 const typeLabel = computed(() => couponTypeLabel(props.coupon.couponType));
-// [zh] 声明变量 `progress`
 const progress = computed(() => couponSoldProgress(props.coupon));
-// [zh] 声明变量 `sold`
 const sold = computed(() => couponSoldCount(props.coupon));
-// [zh] 声明变量 `stockTotalLabel`
 const stockTotalLabel = computed(() => couponStockTotalLabel(props.coupon));
-// [zh] 声明变量 `hasBought`
 const hasBought = computed(() => resolveCouponHasBought(props.coupon));
-// [zh] 声明变量 `canReceive`
 const canReceive = computed(() => (props.type === 'available' ? canReceiveCoupon(props.coupon) : false));
-// [zh] 声明变量 `btnText`
 const btnText = computed(() => couponReceiveBtnText(props.coupon));
-// [zh] 声明变量 `validEndText`
 const validEndText = computed(() =>
-  // [zh] TypeScript/JS 语句：`props.coupon.validEndTime ? `至 ${formatCouponDateTime(p`
   props.coupon.validEndTime ? `至 ${formatCouponDateTime(props.coupon.validEndTime)}` : '长期有效'
-// [zh] 语句
 );
-// [zh] 声明变量 `rushRangeText`
 const rushRangeText = computed(() =>
-  // [zh] TypeScript/JS 语句：``${formatCouponDateTime(props.coupon.rushingStartTime)}`
   `${formatCouponDateTime(props.coupon.rushingStartTime)} ~ ${formatCouponDateTime(props.coupon.rushingEndTime)}`
-// [zh] 语句
 );
 </script>
 

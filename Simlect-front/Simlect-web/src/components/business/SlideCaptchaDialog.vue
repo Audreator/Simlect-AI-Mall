@@ -4,54 +4,32 @@
   <Teleport to="body">
     <!-- [zh] 开始标签 `<Transition>` -->
     <Transition name="slide-captcha-fade">
-      <!-- [zh] 开始标签 `<div>` -->
       <div v-if="visible" class="slide-captcha-overlay" @click.self="cancel">
-        <!-- [zh] 开始标签 `<div>` -->
         <div class="slide-captcha-panel" role="dialog" aria-modal="true" aria-label="安全验证">
-          <!-- [zh] 开始标签 `<div>` -->
           <div class="panel-glow" aria-hidden="true" />
 
-          <!-- [zh] 开始标签 `<header>` -->
           <header class="panel-header">
-            <!-- [zh] 开始标签 `<div>` -->
             <div class="header-icon">
-              <!-- [zh] 开始标签 `<svg>` -->
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                <!-- [zh] 开始标签 `<path>` -->
                 <path
                   d="M12 2l7 4v6c0 5-3 9-7 10C8 21 5 17 5 12V6l7-4z"
                   stroke-linejoin="round"
                 />
-                <!-- [zh] 开始标签 `<path>` -->
                 <path d="M9.5 12.5l1.8 1.8 3.5-4.2" stroke-linecap="round" stroke-linejoin="round" />
-              <!-- [zh] 闭合标签 `</svg>` -->
               </svg>
-            <!-- [zh] 闭合标签 `</div>` -->
             </div>
-            <!-- [zh] 开始标签 `<div>` -->
             <div class="header-text">
-              <!-- [zh] 开始标签 `<h3>` -->
               <h3>安全验证</h3>
-              <!-- [zh] 开始标签 `<p>` -->
               <p>拖动滑块完成拼图</p>
-            <!-- [zh] 闭合标签 `</div>` -->
             </div>
-            <!-- [zh] 开始标签 `<button>` -->
             <button type="button" class="btn-close" aria-label="关闭" @click="cancel">
-              <!-- [zh] 开始标签 `<svg>` -->
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <!-- [zh] 开始标签 `<path>` -->
                 <path d="M6 6l12 12M18 6L6 18" stroke-linecap="round" />
-              <!-- [zh] 闭合标签 `</svg>` -->
               </svg>
-            <!-- [zh] 闭合标签 `</button>` -->
             </button>
-          <!-- [zh] 闭合标签 `</header>` -->
           </header>
 
-          <!-- [zh] 开始标签 `<div>` -->
           <div class="panel-body">
-            <!-- [zh] 开始标签 `<div>` -->
             <div
               ref="imageWrapRef"
               class="image-wrap"
@@ -59,19 +37,12 @@
               @pointerdown="onDragStart"
               @touchstart="onTouchStart"
             >
-              <!-- [zh] 开始标签 `<div>` -->
               <div v-if="loading" class="image-skeleton">
-                <!-- [zh] 开始标签 `<span>` -->
                 <span class="skeleton-shimmer" />
-                <!-- [zh] 开始标签 `<p>` -->
                 <p>加载验证图…</p>
-              <!-- [zh] 闭合标签 `</div>` -->
               </div>
-              <!-- [zh] SFC 区块开始（单文件组件 template/script/style 三段） -->
               <template v-else>
-                <!-- [zh] 开始标签 `<img>` -->
                 <img v-if="bgSrc" :src="bgSrc" class="bg-img" alt="" draggable="false" />
-                <!-- [zh] 开始标签 `<img>` -->
                 <img
                   v-if="blockSrc"
                   :src="blockSrc"
@@ -80,17 +51,11 @@
                   alt=""
                   draggable="false"
                 />
-                <!-- [zh] 开始标签 `<div>` -->
                 <div v-if="status === 'success'" class="status-badge success-badge">
-                  <!-- [zh] 开始标签 `<svg>` -->
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                    <!-- [zh] 开始标签 `<path>` -->
                     <path d="M5 12.5l4.2 4.3L19 7" stroke-linecap="round" stroke-linejoin="round" />
-                  <!-- [zh] 闭合标签 `</svg>` -->
                   </svg>
-                  <!-- [zh] 模板内容：`验证通过` -->
                   验证通过
-                <!-- [zh] 闭合标签 `</div>` -->
                 </div>
               </template>
               <button
@@ -145,462 +110,249 @@
   </Teleport>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed, nextTick, onBeforeUnmount, ref } from 'vue';
-// [zh] 导入 `@/utils/slideCaptcha`
 import { checkSlideCaptcha, cancelSlideCaptchaToken, fetchSlideCaptcha, toCaptchaX, type CaptchaGetData } from '@/utils/slideCaptcha';
 
-// [zh] TypeScript 类型 `Status`（类比 Java interface/DTO）
 type Status = 'idle' | 'success' | 'fail';
 
-// [zh] 声明变量 `visible`
 const visible = ref(false);
-// [zh] 声明变量 `loading`
 const loading = ref(false);
-// [zh] 声明变量 `verifying`
 const verifying = ref(false);
-// [zh] 声明变量 `dragging`
 const dragging = ref(false);
-// [zh] 声明变量 `moveX`
 const moveX = ref(0);
-// [zh] 声明变量 `status`
 const status = ref<Status>('idle');
-// [zh] 声明变量 `tip`
 const tip = ref('');
-// [zh] 声明变量 `hintText`
 const hintText = computed(() => (status.value === 'fail' ? '请重新拖动滑块' : '向右拖动滑块完成拼图'));
 
-// [zh] 声明变量 `imageWrapRef`
 const imageWrapRef = ref<HTMLElement | null>(null);
-// [zh] 声明变量 `sliderWrapRef`
 const sliderWrapRef = ref<HTMLElement | null>(null);
-// [zh] 声明变量 `knobRef`
 const knobRef = ref<HTMLElement | null>(null);
-// [zh] 声明变量 `knobSize`
 const knobSize = 46;
 
-// [zh] 声明变量 `bgSrc`
 const bgSrc = ref('');
-// [zh] 声明变量 `blockSrc`
 const blockSrc = ref('');
-// [zh] 声明变量 `captchaMeta`
 const captchaMeta = ref<CaptchaGetData | null>(null);
-// [zh] 声明变量 `startTime`
 const startTime = ref(0);
-// [zh] 声明变量 `trackWidth`
 const trackWidth = ref(0);
 
-// [zh] 声明变量 `resolveFn`
 let resolveFn: ((v: string) => void) | null = null;
-// [zh] 声明变量 `rejectFn`
 let rejectFn: (() => void) | null = null;
-// [zh] 声明变量 `startClientX`
 let startClientX = 0;
-// [zh] 声明变量 `startMoveX`
 let startMoveX = 0;
-// [zh] 声明变量 `settled`
 let settled = false;
-// [zh] 声明变量 `activePointerId`
 let activePointerId: number | null = null;
-// [zh] 声明变量 `touchDragActive`
 let touchDragActive = false;
 
-// [zh] 声明变量 `toImgSrc`
 const toImgSrc = (b64: string) => (b64.startsWith('data:') ? b64 : `data:image/png;base64,${b64}`);
 
-// [zh] 声明变量 `resetState`
 const resetState = () => {
-  // [zh] 语句
   moveX.value = 0;
-  // [zh] 语句
   status.value = 'idle';
-  // [zh] 语句
   tip.value = '';
-  // [zh] 语句
   dragging.value = false;
-  // [zh] 语句
   verifying.value = false;
-// [zh] 语句
 };
 
-// [zh] 声明变量 `discardCurrentToken`
 const discardCurrentToken = () => {
-  // [zh] 声明变量 `token`
   const token = captchaMeta.value?.token;
-  // [zh] 条件判断 if
   if (token) {
-    // [zh] 语句
     cancelSlideCaptchaToken(token);
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 声明变量 `loadCaptcha`
 const loadCaptcha = async () => {
-  // [zh] 语句
   discardCurrentToken();
-  // [zh] 语句
   loading.value = true;
-  // [zh] 语句
   resetState();
-  // [zh] 语句
   bgSrc.value = '';
-  // [zh] 语句
   blockSrc.value = '';
-  // [zh] 代码块开始
   try {
-    // [zh] 声明变量 `data`
     const data = await fetchSlideCaptcha();
-    // [zh] 语句
     captchaMeta.value = data;
-    // [zh] 语句
     bgSrc.value = toImgSrc(data.originalImageBase64);
-    // [zh] 语句
     blockSrc.value = toImgSrc(data.jigsawImageBase64);
-    // [zh] await 等待 Promise（类比 CompletableFuture.get）
     await nextTick();
-    // [zh] 语句
     measureTrack();
-  // [zh] 代码块开始
   } catch (e: unknown) {
-    // [zh] 语句
     tip.value = e instanceof Error ? e.message : '加载失败';
-    // [zh] 语句
     status.value = 'fail';
-  // [zh] 代码块开始
   } finally {
-    // [zh] 语句
     loading.value = false;
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 声明变量 `open`
 const open = (): Promise<string> => {
-  // [zh] 条件判断 if
   if (visible.value) {
-    // [zh] return 返回
     return Promise.reject(new Error('验证窗口已打开'));
-  // [zh] 语法符号
   }
-  // [zh] 语句
   settled = false;
-  // [zh] 语句
   visible.value = true;
-  // [zh] 语句
   loadCaptcha();
-  // [zh] return 返回
   return new Promise((resolve, reject) => {
-    // [zh] 语句
     resolveFn = resolve;
-    // [zh] 语句
     rejectFn = reject;
-  // [zh] 语句
   });
-// [zh] 语句
 };
 
-// [zh] 声明变量 `finish`
 const finish = (token: string) => {
-  // [zh] 条件判断 if
   if (settled) return;
-  // [zh] 语句
   settled = true;
-  // [zh] 语句
   status.value = 'success';
-  // [zh] 声明变量 `seconds`
   const seconds = ((Date.now() - startTime.value) / 1000).toFixed(1);
-  // [zh] 语句
   tip.value = `${seconds}s 验证成功`;
-  // [zh] 代码块开始
   setTimeout(() => {
-    // [zh] 语句
     visible.value = false;
-    // [zh] 语句
     resolveFn?.(token);
-    // [zh] 语句
     cleanup();
-  // [zh] 语句
   }, 650);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `cancel`
 const cancel = () => {
-  // [zh] 条件判断 if
   if (settled) return;
-  // [zh] 语句
   settled = true;
-  // [zh] 语句
   discardCurrentToken();
-  // [zh] 语句
   visible.value = false;
-  // [zh] 语句
   rejectFn?.();
-  // [zh] 语句
   cleanup();
-// [zh] 语句
 };
 
-// [zh] 声明变量 `cleanup`
 const cleanup = () => {
-  // [zh] 语句
   resolveFn = null;
-  // [zh] 语句
   rejectFn = null;
-  // [zh] 语句
   resetState();
-  // [zh] 语句
   captchaMeta.value = null;
-  // [zh] 语句
   bgSrc.value = '';
-  // [zh] 语句
   blockSrc.value = '';
-// [zh] 语句
 };
 
-// [zh] 声明变量 `measureTrack`
 const measureTrack = () => {
-  // [zh] 语句
   trackWidth.value = sliderWrapRef.value?.clientWidth || imageWrapRef.value?.clientWidth || 310;
-// [zh] 语句
 };
 
-// [zh] 声明变量 `maxMove`
 const maxMove = () => Math.max(0, trackWidth.value - knobSize);
 
-// [zh] 声明变量 `canDrag`
 const canDrag = () => !loading.value && !verifying.value && status.value !== 'success';
 
-// [zh] 声明变量 `updateMove`
 const updateMove = (clientX: number) => {
-  // [zh] 声明变量 `delta`
   const delta = clientX - startClientX;
-  // [zh] 语句
   moveX.value = Math.min(maxMove(), Math.max(0, startMoveX + delta));
-// [zh] 语句
 };
 
-// [zh] 声明变量 `bindDragListeners`
 const bindDragListeners = () => {
-  // [zh] 语句
   window.addEventListener('pointermove', onPointerMove, { passive: false });
-  // [zh] 语句
   window.addEventListener('pointerup', onPointerUp);
-  // [zh] 语句
   window.addEventListener('pointercancel', onPointerUp);
-  // [zh] 语句
   window.addEventListener('touchmove', onTouchMove, { passive: false });
-  // [zh] 语句
   window.addEventListener('touchend', onTouchEnd);
-  // [zh] 语句
   window.addEventListener('touchcancel', onTouchEnd);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `unbindDragListeners`
 const unbindDragListeners = () => {
-  // [zh] 语句
   window.removeEventListener('pointermove', onPointerMove);
-  // [zh] 语句
   window.removeEventListener('pointerup', onPointerUp);
-  // [zh] 语句
   window.removeEventListener('pointercancel', onPointerUp);
-  // [zh] 语句
   window.removeEventListener('touchmove', onTouchMove);
-  // [zh] 语句
   window.removeEventListener('touchend', onTouchEnd);
-  // [zh] 语句
   window.removeEventListener('touchcancel', onTouchEnd);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `beginDrag`
 const beginDrag = (clientX: number) => {
-  // [zh] 条件判断 if
   if (!canDrag() || dragging.value) return false;
-  // [zh] 语句
   measureTrack();
-  // [zh] 语句
   dragging.value = true;
-  // [zh] 语句
   status.value = 'idle';
-  // [zh] 语句
   tip.value = '';
-  // [zh] 语句
   startTime.value = Date.now();
-  // [zh] 语句
   startClientX = clientX;
-  // [zh] 语句
   startMoveX = moveX.value;
-  // [zh] 语句
   bindDragListeners();
-  // [zh] return 返回
   return true;
-// [zh] 语句
 };
 
-// [zh] 声明变量 `onDragStart`
 const onDragStart = (e: PointerEvent) => {
-  // [zh] 条件判断 if
   if (!canDrag()) return;
-  // [zh] 条件判断 if
   if ((e.target as HTMLElement).closest('.btn-refresh')) return;
-  // [zh] 语句
   e.preventDefault();
-  // [zh] 语句
   e.stopPropagation();
-  // [zh] 条件判断 if
   if (!beginDrag(e.clientX)) return;
-  // [zh] 语句
   activePointerId = e.pointerId;
-  // [zh] 语句
   touchDragActive = e.pointerType === 'touch';
-  // [zh] 语句
   knobRef.value?.setPointerCapture?.(e.pointerId);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `onTouchStart`
 const onTouchStart = (e: TouchEvent) => {
-  // [zh] 条件判断 if
   if (!canDrag() || dragging.value) return;
-  // [zh] 条件判断 if
   if ((e.target as HTMLElement).closest('.btn-refresh')) return;
-  // [zh] 声明变量 `touch`
   const touch = e.touches[0];
-  // [zh] 条件判断 if
   if (!touch) return;
-  // [zh] 条件判断 if
   if (!beginDrag(touch.clientX)) return;
-  // [zh] 语句
   touchDragActive = true;
-  // [zh] 语句
   e.preventDefault();
-// [zh] 语句
 };
 
-// [zh] 声明变量 `onPointerMove`
 const onPointerMove = (e: PointerEvent) => {
-  // [zh] 条件判断 if
   if (!dragging.value) return;
-  // [zh] 条件判断 if
   if (activePointerId != null && e.pointerId !== activePointerId) return;
-  // [zh] 语句
   e.preventDefault();
-  // [zh] 语句
   updateMove(e.clientX);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `onTouchMove`
 const onTouchMove = (e: TouchEvent) => {
-  // [zh] 条件判断 if
   if (!dragging.value || !touchDragActive) return;
-  // [zh] 声明变量 `touch`
   const touch = e.touches[0];
-  // [zh] 条件判断 if
   if (!touch) return;
-  // [zh] 语句
   e.preventDefault();
-  // [zh] 语句
   updateMove(touch.clientX);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `endDrag`
 const endDrag = async () => {
-  // [zh] 条件判断 if
   if (!dragging.value) return;
-  // [zh] 语句
   dragging.value = false;
-  // [zh] 语句
   activePointerId = null;
-  // [zh] 语句
   touchDragActive = false;
-  // [zh] 语句
   unbindDragListeners();
 
-  // [zh] 声明变量 `meta`
   const meta = captchaMeta.value;
-  // [zh] 条件判断 if
   if (!meta?.token) return;
 
-  // [zh] 语句
   verifying.value = true;
-  // [zh] 代码块开始
   try {
-    // [zh] 声明变量 `captchaX`
     const captchaX = toCaptchaX(moveX.value, trackWidth.value);
-    // [zh] 声明变量 `captchaVerification`
     const captchaVerification = await checkSlideCaptcha({
-      // [zh] TypeScript/JS 语句：`token: meta.token,`
       token: meta.token,
-      // [zh] TypeScript/JS 语句：`secretKey: meta.secretKey,`
       secretKey: meta.secretKey,
-      // [zh] TypeScript/JS 语句：`moveX: captchaX`
       moveX: captchaX
-    // [zh] 语句
     });
-    // [zh] 语句
     finish(captchaVerification);
-  // [zh] 代码块开始
   } catch (e: unknown) {
-    // [zh] 语句
     status.value = 'fail';
-    // [zh] 语句
     tip.value = e instanceof Error ? e.message : '验证失败';
-    // [zh] 代码块开始
     setTimeout(() => {
-      // [zh] 语句
       resetState();
-      // [zh] 语句
       loadCaptcha();
-    // [zh] 语句
     }, 900);
-  // [zh] 代码块开始
   } finally {
-    // [zh] 语句
     verifying.value = false;
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 声明变量 `onPointerUp`
 const onPointerUp = (e: PointerEvent) => {
-  // [zh] 条件判断 if
   if (touchDragActive) return;
-  // [zh] 条件判断 if
   if (activePointerId != null && e.pointerId !== activePointerId) return;
-  // [zh] 语句
   void endDrag();
-// [zh] 语句
 };
 
-// [zh] 声明变量 `onTouchEnd`
 const onTouchEnd = () => {
-  // [zh] 条件判断 if
   if (!touchDragActive) return;
-  // [zh] 语句
   void endDrag();
-// [zh] 语句
 };
 
-// [zh] 代码块开始
 onBeforeUnmount(() => {
-  // [zh] 语句
   discardCurrentToken();
-  // [zh] 语句
   unbindDragListeners();
-// [zh] 语句
 });
 
-// [zh] 语句
 defineExpose({ open });
 </script>
 

@@ -31,15 +31,10 @@
             <!-- [zh] 开始标签 `<button>` -->
             <button
               v-if="productEditStore.productPropertyList.length > 1"
-              <!-- [zh] 模板内容：`type="button"` -->
               type="button"
-              <!-- [zh] 模板内容：`class="dim-icon-btn danger"` -->
               class="dim-icon-btn danger"
-              <!-- [zh] 模板内容：`title="移除此维度"` -->
               title="移除此维度"
-              <!-- [zh] 模板内容：`@click="removePropertyDimension(pIndex)"` -->
               @click="removePropertyDimension(pIndex)"
-            <!-- [zh] 模板内容：`>` -->
             >
               <!-- [zh] 开始标签 `<span>` -->
               <span class="iconfont icon-delete"></span>
@@ -77,15 +72,10 @@
           <!-- [zh] 开始标签 `<button>` -->
           <button
             v-if="property.propertyValues.length > 1"
-            <!-- [zh] 模板内容：`type="button"` -->
             type="button"
-            <!-- [zh] 模板内容：`class="op-btn sm danger block"` -->
             class="op-btn sm danger block"
-            <!-- [zh] 模板内容：`style="margin-top: 8px"` -->
             style="margin-top: 8px"
-            <!-- [zh] 模板内容：`@click="removePropertyValue(pIndex, vIndex)"` -->
             @click="removePropertyValue(pIndex, vIndex)"
-          <!-- [zh] 模板内容：`>` -->
           >
             <!-- [zh] 模板内容：`删除此属性值` -->
             删除此属性值
@@ -140,13 +130,9 @@
           <!-- [zh] 开始标签 `<div>` -->
           <div
             v-if="productEditStore.productPropertyList.length > 1"
-            <!-- [zh] 模板内容：`class="iconfont icon-delete"` -->
             class="iconfont icon-delete"
-            <!-- [zh] 模板内容：`title="移除此 SKU 维度"` -->
             title="移除此 SKU 维度"
-            <!-- [zh] 模板内容：`@click="removePropertyDimension(pIndex)"` -->
             @click="removePropertyDimension(pIndex)"
-          <!-- [zh] 模板内容：`></div>` -->
           ></div>
         <!-- [zh] 闭合标签 `</div>` -->
         </div>
@@ -175,7 +161,6 @@
               class="iconfont icon-delete"
               @click="removePropertyValue(pIndex, vIndex)"
               v-if="property.propertyValues.length > 1"
-            <!-- [zh] 模板内容：`></div>` -->
             ></div>
           <!-- [zh] 闭合标签 `</div>` -->
           </div>
@@ -212,162 +197,88 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `./ProductSkuBuild.vue`
 import ProductSkuBuild from './ProductSkuBuild.vue'
-// [zh] 导入 `@/components/ImageSelect.vue`
 import ImageSelect from '@/components/ImageSelect.vue'
-// [zh] 导入 `vue`
 import { ref, computed, getCurrentInstance, watch } from 'vue'
-// [zh] TypeScript/JS 语句：`const { proxy } = getCurrentInstance()`
 const { proxy } = getCurrentInstance()
-// [zh] 导入 `vue-router`
 import { useRoute } from 'vue-router'
-// [zh] 声明变量 `route`
 const route = useRoute()
-// [zh] 导入 `@/stores/productEditStore`
 import { useProductEditStore } from '@/stores/productEditStore'
-// [zh] 声明变量 `productEditStore`
 const productEditStore = useProductEditStore()
 
-// [zh] 声明变量 `isMobileAdmin`
 const isMobileAdmin = computed(() => route.path.startsWith('/m/'))
 
-// [zh] 声明变量 `availableDimensions`
 const availableDimensions = computed(() => {
-  // [zh] 声明变量 `activeIds`
   const activeIds = new Set(productEditStore.productPropertyList.map((item) => item.propertyId))
-  // [zh] return 返回
   return productEditStore.categoryPropertyTemplates.filter((item) => !activeIds.has(item.propertyId))
-// [zh] TypeScript/JS 语句：`})`
 })
 
-// [zh] 声明变量 `createDefaultPropertyValues`
 const createDefaultPropertyValues = (index = 0) => [
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`propertyValueId: `${Date.now()}${index}`,`
     propertyValueId: `${Date.now()}${index}`,
-    // [zh] TypeScript/JS 语句：`propertyCover: '',`
     propertyCover: '',
-    // [zh] TypeScript/JS 语句：`propertyValue: '',`
     propertyValue: '',
-    // [zh] TypeScript/JS 语句：`propertyRemark: '',`
     propertyRemark: '',
-  // [zh] TypeScript/JS 语句：`},`
   },
-// [zh] TypeScript/JS 语句：`]`
 ]
 
-// [zh] 声明变量 `addPropertyValue`
 const addPropertyValue = (propertyIndex) => {
-  // [zh] 代码块开始
   productEditStore.productPropertyList[propertyIndex].propertyValues.push({
-    // [zh] TypeScript/JS 语句：`propertyValueId: `${Date.now()}`,`
     propertyValueId: `${Date.now()}`,
-    // [zh] TypeScript/JS 语句：`propertyCover: '',`
     propertyCover: '',
-    // [zh] TypeScript/JS 语句：`propertyValue: '',`
     propertyValue: '',
-    // [zh] TypeScript/JS 语句：`propertyRemark: '',`
     propertyRemark: '',
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `removePropertyValue`
 const removePropertyValue = (propertyIndex, valueIndex) => {
-  // [zh] 条件判断 if
   if (productEditStore.productPropertyList[propertyIndex].propertyValues.length > 1) {
-    // [zh] TypeScript/JS 语句：`productEditStore.productPropertyList[propertyIndex].pro`
     productEditStore.productPropertyList[propertyIndex].propertyValues.splice(valueIndex, 1)
-  // [zh] 代码块开始
   } else {
-    // [zh] TypeScript/JS 语句：`proxy.Message.warning('至少需要保留一个属性值')`
     proxy.Message.warning('至少需要保留一个属性值')
-  // [zh] 语法符号
   }
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `resetSkuGenerationState`
 const resetSkuGenerationState = () => {
-  // [zh] TypeScript/JS 语句：`productEditStore.skuData = new Map()`
   productEditStore.skuData = new Map()
-  // [zh] TypeScript/JS 语句：`productEditStore.excludedSkuHashes = new Set()`
   productEditStore.excludedSkuHashes = new Set()
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `removePropertyDimension`
 const removePropertyDimension = (propertyIndex) => {
-  // [zh] 条件判断 if
   if (productEditStore.productPropertyList.length <= 1) {
-    // [zh] TypeScript/JS 语句：`proxy.Message.warning('至少保留一个 SKU 维度')`
     proxy.Message.warning('至少保留一个 SKU 维度')
-    // [zh] TypeScript/JS 语句：`return`
     return
-  // [zh] 语法符号
   }
-  // [zh] 声明变量 `property`
   const property = productEditStore.productPropertyList[propertyIndex]
-  // [zh] 代码块开始
   proxy.Confirm({
-    // [zh] TypeScript/JS 语句：`message: `确定移除「${property.propertyName}」维度吗？将按剩余维度重新生成 `
     message: `确定移除「${property.propertyName}」维度吗？将按剩余维度重新生成 SKU 列表`,
-    // [zh] 代码块开始
     okfun: () => {
-      // [zh] TypeScript/JS 语句：`productEditStore.productPropertyList.splice(propertyInd`
       productEditStore.productPropertyList.splice(propertyIndex, 1)
-      // [zh] TypeScript/JS 语句：`resetSkuGenerationState()`
       resetSkuGenerationState()
-    // [zh] TypeScript/JS 语句：`},`
     },
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `restorePropertyDimension`
 const restorePropertyDimension = (template) => {
-  // [zh] 声明变量 `restored`
   const restored = {
-    // [zh] TypeScript/JS 语句：`...template,`
     ...template,
-    // [zh] TypeScript/JS 语句：`propertyValues: createDefaultPropertyValues(),`
     propertyValues: createDefaultPropertyValues(),
-  // [zh] 语法符号
   }
-  // [zh] 声明变量 `orderIds`
   const orderIds = productEditStore.categoryPropertyTemplates.map((item) => item.propertyId)
-  // [zh] 声明变量 `nextList`
   const nextList = [...productEditStore.productPropertyList, restored]
-  // [zh] TypeScript/JS 语句：`nextList.sort((a, b) => orderIds.indexOf(a.propertyId) `
   nextList.sort((a, b) => orderIds.indexOf(a.propertyId) - orderIds.indexOf(b.propertyId))
-  // [zh] TypeScript/JS 语句：`productEditStore.productPropertyList = nextList`
   productEditStore.productPropertyList = nextList
-  // [zh] TypeScript/JS 语句：`resetSkuGenerationState()`
   resetSkuGenerationState()
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `productSkuBuildRef`
 const productSkuBuildRef = ref()
-// [zh] TypeScript/JS 语句：`watch(`
 watch(
-  // [zh] TypeScript/JS 语句：`() => productEditStore.productPropertyList,`
   () => productEditStore.productPropertyList,
-  // [zh] 代码块开始
   () => {
-    // [zh] TypeScript/JS 语句：`productSkuBuildRef.value?.generateSkuList()`
     productSkuBuildRef.value?.generateSkuList()
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] TypeScript/JS 语句：`{ deep: true }`
   { deep: true }
-// [zh] 语法符号
 )
 </script>
 

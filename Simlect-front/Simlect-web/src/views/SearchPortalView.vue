@@ -109,184 +109,99 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { onMounted, ref } from 'vue';
-// [zh] 导入 `vue-router`
 import { RouterLink, useRouter } from 'vue-router';
-// [zh] 导入 `@element-plus/icons-vue`
 import { Close, Search } from '@element-plus/icons-vue';
-// [zh] 导入 `@/utils/confirm`
 import { confirmAction } from '@/utils/confirm';
-// [zh] 导入 `@/stores/search`
 import { useSearchStore } from '@/stores/search';
-// [zh] 导入 `@/api/modules`
 import { searchApi } from '@/api/modules';
-// [zh] 导入 `@/stores/auth`
 import { useAuthStore } from '@/stores/auth';
-// [zh] 导入 `@/utils/image`
 import { pickProductCover, resolveImageUrl } from '@/utils/image';
-// [zh] 导入 `@/constants/searchHotWords`
 import { DEFAULT_HOT_SEARCH_WORDS } from '@/constants/searchHotWords';
 
-// [zh] 声明变量 `router`
 const router = useRouter();
-// [zh] 声明变量 `searchStore`
 const searchStore = useSearchStore();
-// [zh] 声明变量 `authStore`
 const authStore = useAuthStore();
-// [zh] 声明变量 `keyword`
 const keyword = ref('');
-// [zh] 声明变量 `hotWords`
 const hotWords = ref<string[]>([]);
-// [zh] 声明变量 `guessWords`
 const guessWords = ref<string[]>([]);
-// [zh] 声明变量 `recentWords`
 const recentWords = ref<string[]>([]);
-// [zh] 声明变量 `recommendProducts`
 const recommendProducts = ref<any[]>([]);
-// [zh] 声明变量 `inputRef`
 const inputRef = ref();
 
-// [zh] 声明变量 `refreshRecent`
 const refreshRecent = async () => {
-  // [zh] 条件判断 if
   if (!authStore.isLoggedIn) {
-    // [zh] 语句
     recentWords.value = [];
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
-  // [zh] 代码块开始
   try {
-    // [zh] 声明变量 `list`
     const list = await searchApi.loadRecentKeywords();
-    // [zh] 语句
     recentWords.value = Array.isArray(list) ? list.slice(0, 10) : [];
-  // [zh] 代码块开始
   } catch {
-    // [zh] 语句
     recentWords.value = [];
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 声明变量 `submitSearch`
 const submitSearch = async (word?: string) => {
-  // [zh] 声明变量 `keyWords`
   const keyWords = (word ?? keyword.value).trim();
-  // [zh] 条件判断 if
   if (!keyWords) return;
-  // [zh] 条件判断 if
   if (authStore.isLoggedIn) {
-    // [zh] 代码块开始
     try {
-      // [zh] await 等待 Promise（类比 CompletableFuture.get）
       await searchApi.saveKeyword(keyWords);
-    // [zh] 代码块开始
     } catch {
 
-    // [zh] 语法符号
     }
-  // [zh] 语法符号
   }
-  // [zh] 语句
   searchStore.setSearch({ keyWords, categoryId: '' });
-  // [zh] 语句
   router.push({ path: '/search-result', query: { q: keyWords } });
-// [zh] 语句
 };
 
-// [zh] 声明变量 `searchByWord`
 const searchByWord = (word: string) => {
-  // [zh] 语句
   keyword.value = word;
-  // [zh] 语句
   submitSearch(word);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `clearRecent`
 const clearRecent = async () => {
-  // [zh] 声明变量 `ok`
   const ok = await confirmAction('确定要清空全部最近搜索记录吗？', {
-    // [zh] TypeScript/JS 语句：`title: '清空记录',`
     title: '清空记录',
-    // [zh] TypeScript/JS 语句：`confirmButtonText: '清空'`
     confirmButtonText: '清空'
-  // [zh] 语句
   });
-  // [zh] 条件判断 if
   if (!ok) return;
-  // [zh] 条件判断 if
   if (authStore.isLoggedIn) {
-    // [zh] await 等待 Promise（类比 CompletableFuture.get）
     await searchApi.clearRecentKeywords();
-  // [zh] 语法符号
   }
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await refreshRecent();
-// [zh] 语句
 };
 
-// [zh] 声明变量 `removeRecent`
 const removeRecent = async (word: string) => {
-  // [zh] 条件判断 if
   if (authStore.isLoggedIn) {
-    // [zh] await 等待 Promise（类比 CompletableFuture.get）
     await searchApi.removeRecentKeyword(word);
-  // [zh] 语法符号
   }
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await refreshRecent();
-// [zh] 语句
 };
 
-// [zh] 声明变量 `coverOf`
 const coverOf = (p: Record<string, unknown>) =>
-  // [zh] 语句
   resolveImageUrl(pickProductCover(p), { useThumbnail: true });
 
-// [zh] 代码块开始
 onMounted(async () => {
-  // [zh] 代码块开始
   try {
-    // [zh] 声明变量 `hot`
     const hot = await searchApi.loadHotKeywords();
-    // [zh] 语句
     hotWords.value = Array.isArray(hot) && hot.length ? hot : [...DEFAULT_HOT_SEARCH_WORDS];
-  // [zh] 代码块开始
   } catch {
-    // [zh] 语句
     hotWords.value = [...DEFAULT_HOT_SEARCH_WORDS];
-  // [zh] 语法符号
   }
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await refreshRecent();
-  // [zh] 条件判断 if
   if (authStore.isLoggedIn) {
-    // [zh] 代码块开始
     try {
-      // [zh] 语句
       guessWords.value = (await searchApi.loadGuessKeywords()) || [];
-      // [zh] 语句
       recommendProducts.value = (await searchApi.loadRecommendProducts(6)) || [];
-    // [zh] 代码块开始
     } catch {
-      // [zh] 语句
       guessWords.value = [];
-      // [zh] 语句
       recommendProducts.value = [];
-    // [zh] 语法符号
     }
-  // [zh] 语法符号
   }
-  // [zh] 语句
   inputRef.value?.focus?.();
-// [zh] 语句
 });
 </script>
 

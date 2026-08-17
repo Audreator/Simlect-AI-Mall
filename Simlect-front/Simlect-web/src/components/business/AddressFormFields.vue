@@ -96,314 +96,169 @@
   </el-form>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
-// [zh] 导入 `模块`
 import type { CascaderInstance } from 'element-plus';
-// [zh] 导入 `@element-plus/icons-vue`
 import { Location } from '@element-plus/icons-vue';
-// [zh] 导入 `element-china-area-data`
 import { regionData } from 'element-china-area-data';
-// [zh] 导入 `@/composables/useDevice`
 import { useDevice } from '@/composables/useDevice';
-// [zh] 导入 `@/composables/useUserLocationWeather`
 import { useUserLocationWeather } from '@/composables/useUserLocationWeather';
-// [zh] 导入 `@/stores/auth`
 import { useAuthStore } from '@/stores/auth';
-// [zh] 导入 `@/utils/regionGeocode`
 import { resolveRegionCodes } from '@/utils/regionGeocode';
-// [zh] 导入 `@/utils/toast`
 import { toast } from '@/utils/toast';
-// [zh] 导入 `vue-router`
 import { useRouter } from 'vue-router';
 
-// [zh] 声明变量 `props`
 const props = defineProps<{
-  // [zh] 代码块开始
   form: {
-    // [zh] 语句
     addressee: string;
-    // [zh] 语句
     phone: string;
-    // [zh] 语句
     regionCodes: string[];
-    // [zh] 语句
     detailAddress: string;
-    // [zh] 语句
     defaultType: number;
-  // [zh] 语句
   };
-  // [zh] 语句
   saving?: boolean;
 
-  // [zh] 语句
   embedded?: boolean;
-// [zh] 语句
 }>();
 
-// [zh] 声明变量 `emit`
 const emit = defineEmits<{ submit: [] }>();
 
-// [zh] 语句
 const { getBrowserPosition, fetchByCoords } = useUserLocationWeather();
-// [zh] 声明变量 `authStore`
 const authStore = useAuthStore();
-// [zh] 声明变量 `router`
 const router = useRouter();
-// [zh] 声明变量 `locating`
 const locating = ref(false);
-// [zh] 声明变量 `regionOptions`
 const regionOptions = regionData;
-// [zh] 声明变量 `cascaderProps`
 const cascaderProps = {
-  // [zh] TypeScript/JS 语句：`label: 'label',`
   label: 'label',
-  // [zh] TypeScript/JS 语句：`value: 'value',`
   value: 'value',
-  // [zh] TypeScript/JS 语句：`children: 'children',`
   children: 'children',
-  // [zh] TypeScript/JS 语句：`emitPath: true,`
   emitPath: true,
 
-  // [zh] TypeScript/JS 语句：`checkStrictly: true`
   checkStrictly: true
-// [zh] 语句
 };
 
-// [zh] 声明变量 `parseStreetJson`
 const parseStreetJson = (street: string): string => {
-  // [zh] 代码块开始
   try {
-    // [zh] 声明变量 `data`
     const data = JSON.parse(street);
-    // [zh] 声明变量 `parts`
     const parts: string[] = [];
-    // [zh] 条件判断 if
     if (data.street) parts.push(data.street);
-    // [zh] 条件判断 if
     if (data.number) parts.push(data.number);
-    // [zh] return 返回
     return parts.join('');
-  // [zh] 代码块开始
   } catch {
-    // [zh] return 返回
     return street;
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 语句
 const { isDesktop } = useDevice();
-// [zh] 声明变量 `regionCascaderRef`
 const regionCascaderRef = ref<CascaderInstance | null>(null);
 
-// [zh] 声明变量 `closeRegionCascader`
 const closeRegionCascader = () => {
-  // [zh] 代码块开始
   nextTick(() => {
-    // [zh] 语句
     regionCascaderRef.value?.togglePopperVisible(false);
-    // [zh] 声明变量 `input`
     const input = regionCascaderRef.value?.$el?.querySelector('input');
-    // [zh] 条件判断 if
     if (input instanceof HTMLInputElement) input.blur();
-  // [zh] 语句
   });
-// [zh] 语句
 };
 
-// [zh] 声明变量 `findRegionLeaf`
 const findRegionLeaf = (codes: string[]) => {
-  // [zh] 声明变量 `level`
   let level = regionOptions as { value: string; children?: unknown[] }[];
-  // [zh] 声明变量 `node`
   let node: { value: string; children?: unknown[] } | undefined;
-  // [zh] for 循环
   for (const code of codes) {
-    // [zh] 语句
     node = level.find((n) => String(n.value) === String(code));
-    // [zh] 条件判断 if
     if (!node) return null;
-    // [zh] 语句
     level = (node.children || []) as { value: string; children?: unknown[] }[];
-  // [zh] 语法符号
   }
-  // [zh] return 返回
   return node ?? null;
-// [zh] 语句
 };
 
-// [zh] 声明变量 `onRegionChange`
 const onRegionChange = (codes: string[]) => {
-  // [zh] 条件判断 if
   if (!codes?.length) return;
-  // [zh] 声明变量 `leaf`
   const leaf = findRegionLeaf(codes);
-  // [zh] 条件判断 if
   if (leaf && !leaf.children?.length) closeRegionCascader();
-// [zh] 语句
 };
 
-// [zh] 声明变量 `regionPopperClass`
 const regionPopperClass = computed(() =>
-  // [zh] TypeScript/JS 语句：`isDesktop.value ? 'address-region-popper' : 'address-re`
   isDesktop.value ? 'address-region-popper' : 'address-region-popper address-region-popper--mobile'
-// [zh] 语句
 );
 
-// [zh] 声明变量 `applyCurrentLocation`
 const applyCurrentLocation = async () => {
-  // [zh] 条件判断 if
   if (locating.value) return;
-  // [zh] 条件判断 if
   if (!authStore.isLoggedIn) {
-    // [zh] 语句
     toast.warning('请先登录后再获取当前位置');
-    // [zh] 语句
     router.push({ path: '/login', query: { redirect: router.currentRoute.value.fullPath } });
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
-  // [zh] 语句
   locating.value = true;
-  // [zh] 代码块开始
   try {
-    // [zh] 声明变量 `pos`
     const pos = await getBrowserPosition();
-    // [zh] 语句
     const { latitude, longitude } = pos.coords;
 
-    // [zh] 声明变量 `info`
     const info = await fetchByCoords(latitude, longitude);
 
-    // [zh] 声明变量 `province`
     const province = info?.province;
-    // [zh] 声明变量 `city`
     const city = info?.city;
-    // [zh] 声明变量 `district`
     const district = info?.district;
-    // [zh] 声明变量 `street`
     const street = info?.street;
 
-    // [zh] 条件判断 if
     if (!province && !city && !district) {
-      // [zh] 语句
       toast.warning('未能解析当前位置');
-      // [zh] 语句
       return;
-    // [zh] 语法符号
     }
 
-    // [zh] 声明变量 `codes`
     const codes = resolveRegionCodes(province, city, district);
-    // [zh] 条件判断 if
     if (codes?.length) {
-      // [zh] 语句
       props.form.regionCodes = [...codes];
-      // [zh] await 等待 Promise（类比 CompletableFuture.get）
       await nextTick();
-      // [zh] 声明变量 `leaf`
       const leaf = findRegionLeaf(codes);
-      // [zh] 条件判断 if
       if (leaf && !leaf.children?.length) closeRegionCascader();
-    // [zh] 代码块开始
     } else {
-      // [zh] 语句
       toast.warning('未能匹配到省市区，请手动选择');
-    // [zh] 语法符号
     }
-    // [zh] 条件判断 if
     if (street) {
-      // [zh] 语句
       props.form.detailAddress = parseStreetJson(street);
-    // [zh] 语法符号
     }
-    // [zh] 条件判断 if
     if (codes?.length || street) {
-      // [zh] 声明变量 `needDistrict`
       const needDistrict = codes?.length === 2;
-      // [zh] TypeScript/JS 语句：`toast.success(`
       toast.success(
-        // [zh] TypeScript/JS 语句：`needDistrict`
         needDistrict
-          // [zh] TypeScript/JS 语句：`? '已填入省市，请再选择区县'`
           ? '已填入省市，请再选择区县'
-          // [zh] TypeScript/JS 语句：`: codes?.length`
           : codes?.length
-            // [zh] TypeScript/JS 语句：`? '已填入当前位置'`
             ? '已填入当前位置'
-            // [zh] TypeScript/JS 语句：`: '已填入详细地址，请选择省市区'`
             : '已填入详细地址，请选择省市区'
-      // [zh] 语句
       );
-    // [zh] 语法符号
     }
-  // [zh] 代码块开始
   } catch (e: any) {
-    // [zh] 声明变量 `msg`
     const msg =
-      // [zh] 语句
       e?.code === 1 ? '请允许浏览器获取位置权限' : e?.message || '定位失败';
-    // [zh] 语句
     toast.warning(msg);
-  // [zh] 代码块开始
   } finally {
-    // [zh] 语句
     locating.value = false;
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 声明变量 `patchMobileRegionTrigger`
 const patchMobileRegionTrigger = () => {
-  // [zh] 条件判断 if
   if (isDesktop.value) return;
-  // [zh] 代码块开始
   nextTick(() => {
-    // [zh] 声明变量 `root`
     const root = regionCascaderRef.value?.$el;
-    // [zh] 条件判断 if
     if (!root) return;
-    // [zh] 代码块开始
     root.querySelectorAll('input').forEach((input: HTMLInputElement) => {
-      // [zh] 语句
       input.setAttribute('readonly', 'true');
-      // [zh] 语句
       input.setAttribute('inputmode', 'none');
-      // [zh] 语句
       input.setAttribute('autocomplete', 'off');
-    // [zh] 语句
     });
-  // [zh] 语句
   });
-// [zh] 语句
 };
 
-// [zh] 声明变量 `onRegionPanelVisible`
 const onRegionPanelVisible = (visible: boolean) => {
-  // [zh] 条件判断 if
   if (!visible || isDesktop.value) return;
-  // [zh] 语句
   patchMobileRegionTrigger();
-  // [zh] 代码块开始
   nextTick(() => {
-    // [zh] 声明变量 `root`
     const root = regionCascaderRef.value?.$el;
-    // [zh] 语句
     root?.querySelectorAll('input').forEach((input: HTMLInputElement) => input.blur());
-  // [zh] 语句
   });
-// [zh] 语句
 };
 
-// [zh] 语句
 onMounted(patchMobileRegionTrigger);
-// [zh] 语句
 watch(isDesktop, () => patchMobileRegionTrigger());
 </script>
 

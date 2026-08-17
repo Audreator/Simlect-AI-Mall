@@ -125,299 +125,162 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed, onMounted, reactive, ref } from 'vue';
-// [zh] 导入 `@/api/modules`
 import { signApi } from '@/api/modules';
-// [zh] 导入 `element-plus`
 import { ElMessageBox } from 'element-plus';
-// [zh] 导入 `@/utils/toast`
 import { toast } from '@/utils/toast';
-// [zh] 导入 `@/composables/pullRefresh`
 import { usePageRefresh } from '@/composables/pullRefresh';
 
-// [zh] 声明变量 `weekdays`
 const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
-// [zh] 声明变量 `today`
 const today = new Date();
-// [zh] 声明变量 `currentYear`
 const currentYear = ref(today.getFullYear());
-// [zh] 声明变量 `currentMonth`
 const currentMonth = ref(today.getMonth());
-// [zh] 声明变量 `todaySigned`
 const todaySigned = ref(false);
-// [zh] 声明变量 `supplementVisible`
 const supplementVisible = ref(false);
-// [zh] 声明变量 `supplementLoading`
 const supplementLoading = ref(false);
-// [zh] 声明变量 `supplementLabel`
 const supplementLabel = ref('');
-// [zh] 声明变量 `supplementDateParam`
 const supplementDateParam = ref('');
 
-// [zh] 声明变量 `signData`
 const signData = reactive({
-  // [zh] TypeScript/JS 语句：`continuousDays: 0,`
   continuousDays: 0,
-  // [zh] TypeScript/JS 语句：`supplementCount: 0,`
   supplementCount: 0,
-  // [zh] TypeScript/JS 语句：`totalSignDays: 0,`
   totalSignDays: 0,
-  // [zh] TypeScript/JS 语句：`signDays: [] as string[]`
   signDays: [] as string[]
-// [zh] 语句
 });
 
-// [zh] 声明变量 `yearMonth`
 const yearMonth = () =>
-  // [zh] 语句
   `${currentYear.value}${String(currentMonth.value + 1).padStart(2, '0')}`;
 
-// [zh] 声明变量 `calendarDays`
 const calendarDays = computed(() => {
-  // [zh] 声明变量 `days`
   const days: Array<{
-    // [zh] 语句
     day: number;
-    // [zh] 语句
     date: string | null;
-    // [zh] 语句
     signed: boolean;
-    // [zh] 语句
     supplement: boolean;
-    // [zh] 语句
     className: string;
-  // [zh] 语句
   }> = [];
 
-  // [zh] 声明变量 `firstDay`
   const firstDay = new Date(currentYear.value, currentMonth.value, 1);
-  // [zh] 声明变量 `lastDay`
   const lastDay = new Date(currentYear.value, currentMonth.value + 1, 0);
-  // [zh] 声明变量 `startDayOfWeek`
   const startDayOfWeek = firstDay.getDay();
-  // [zh] 声明变量 `totalDays`
   const totalDays = lastDay.getDate();
-  // [zh] 声明变量 `prevLastDay`
   const prevLastDay = new Date(currentYear.value, currentMonth.value, 0).getDate();
 
-  // [zh] for 循环
   for (let i = startDayOfWeek - 1; i >= 0; i--) {
-    // [zh] 语句
     days.push({ day: prevLastDay - i, date: null, signed: false, supplement: false, className: 'is-other' });
-  // [zh] 语法符号
   }
 
-  // [zh] for 循环
   for (let d = 1; d <= totalDays; d++) {
-    // [zh] 声明变量 `dateStr`
     const dateStr = `${yearMonth()}${String(d).padStart(2, '0')}`;
-    // [zh] 声明变量 `isToday`
     const isToday =
-      // [zh] TypeScript/JS 语句：`d === today.getDate() &&`
       d === today.getDate() &&
-      // [zh] TypeScript/JS 语句：`currentMonth.value === today.getMonth() &&`
       currentMonth.value === today.getMonth() &&
-      // [zh] 语句
       currentYear.value === today.getFullYear();
-    // [zh] 声明变量 `isPast`
     const isPast =
-      // [zh] TypeScript/JS 语句：`currentYear.value < today.getFullYear() ||`
       currentYear.value < today.getFullYear() ||
-      // [zh] TypeScript/JS 语句：`(currentYear.value === today.getFullYear() && currentMo`
       (currentYear.value === today.getFullYear() && currentMonth.value < today.getMonth()) ||
-      // [zh] TypeScript/JS 语句：`(isToday === false &&`
       (isToday === false &&
-        // [zh] TypeScript/JS 语句：`currentYear.value === today.getFullYear() &&`
         currentYear.value === today.getFullYear() &&
-        // [zh] TypeScript/JS 语句：`currentMonth.value === today.getMonth() &&`
         currentMonth.value === today.getMonth() &&
-        // [zh] 语句
         d < today.getDate());
 
-    // [zh] 声明变量 `signed`
     const signed = signData.signDays.includes(dateStr);
-    // [zh] 声明变量 `canSupplement`
     const canSupplement = !signed && !isToday && isPast && signData.supplementCount > 0;
 
-    // [zh] 声明变量 `className`
     let className = '';
-    // [zh] 条件判断 if
     if (isToday) className += ' is-today';
-    // [zh] 条件判断 if
     if (signed) className += ' is-signed';
-    // [zh] 条件判断 if
     if (canSupplement) className += ' can-supplement';
 
-    // [zh] 代码块开始
     days.push({
-      // [zh] TypeScript/JS 语句：`day: d,`
       day: d,
-      // [zh] TypeScript/JS 语句：`date: dateStr,`
       date: dateStr,
-      // [zh] TypeScript/JS 语句：`signed,`
       signed,
-      // [zh] TypeScript/JS 语句：`supplement: canSupplement,`
       supplement: canSupplement,
-      // [zh] TypeScript/JS 语句：`className`
       className
-    // [zh] 语句
     });
 
-    // [zh] 条件判断 if
     if (isToday) todaySigned.value = signed;
-  // [zh] 语法符号
   }
 
-  // [zh] 声明变量 `remain`
   const remain = 42 - days.length;
-  // [zh] for 循环
   for (let i = 1; i <= remain; i++) {
-    // [zh] 语句
     days.push({ day: i, date: null, signed: false, supplement: false, className: 'is-other' });
-  // [zh] 语法符号
   }
 
-  // [zh] return 返回
   return days;
-// [zh] 语句
 });
 
-// [zh] 声明变量 `loadSignCalendar`
 const loadSignCalendar = async () => {
-  // [zh] 声明变量 `data`
   const data = await signApi.getSignCalendar(yearMonth());
-  // [zh] 语句
   signData.continuousDays = data?.continuousDays ?? 0;
-  // [zh] 语句
   signData.supplementCount = data?.supplementCount ?? 0;
-  // [zh] 语句
   signData.totalSignDays = data?.totalSignDays ?? 0;
-  // [zh] 语句
   signData.signDays = data?.signDays ?? [];
-// [zh] 语句
 };
 
-// [zh] 声明变量 `prevMonth`
 const prevMonth = () => {
-  // [zh] 条件判断 if
   if (currentMonth.value === 0) {
-    // [zh] 语句
     currentMonth.value = 11;
-    // [zh] 语句
     currentYear.value--;
-  // [zh] 代码块开始
   } else {
-    // [zh] 语句
     currentMonth.value--;
-  // [zh] 语法符号
   }
-  // [zh] 语句
   loadSignCalendar();
-// [zh] 语句
 };
 
-// [zh] 声明变量 `nextMonth`
 const nextMonth = () => {
-  // [zh] 条件判断 if
   if (currentMonth.value === 11) {
-    // [zh] 语句
     currentMonth.value = 0;
-    // [zh] 语句
     currentYear.value++;
-  // [zh] 代码块开始
   } else {
-    // [zh] 语句
     currentMonth.value++;
-  // [zh] 语法符号
   }
-  // [zh] 语句
   loadSignCalendar();
-// [zh] 语句
 };
 
-// [zh] 声明变量 `doSign`
 const doSign = async () => {
-  // [zh] 条件判断 if
   if (todaySigned.value) return;
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await signApi.sign();
-  // [zh] 语句
   toast.success('签到成功');
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await loadSignCalendar();
-  // [zh] 声明变量 `days`
   const days = signData.continuousDays;
-  // [zh] 条件判断 if
   if (days > 0 && days % 7 === 0) {
-    // [zh] TypeScript/JS 语句：`ElMessageBox.alert(`
     ElMessageBox.alert(
-      // [zh] TypeScript/JS 语句：``连续签到 ${days} 天，恭喜您获得签到奖励！请前往「优惠券」查看。`,`
       `连续签到 ${days} 天，恭喜您获得签到奖励！请前往「优惠券」查看。`,
-      // [zh] TypeScript/JS 语句：`'签到奖励',`
       '签到奖励',
-      // [zh] 代码块开始
       {
-        // [zh] TypeScript/JS 语句：`confirmButtonText: '知道了',`
         confirmButtonText: '知道了',
-        // [zh] TypeScript/JS 语句：`type: 'success',`
         type: 'success',
-        // [zh] TypeScript/JS 语句：`customClass: 'sign-reward-alert',`
         customClass: 'sign-reward-alert',
-        // [zh] TypeScript/JS 语句：`showClose: false,`
         showClose: false,
-        // [zh] TypeScript/JS 语句：`roundButton: true`
         roundButton: true
-      // [zh] 语法符号
       }
-    // [zh] 语句
     );
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 声明变量 `handleDayClick`
 const handleDayClick = (day: { supplement?: boolean; date?: string | null; day: number }) => {
-  // [zh] 条件判断 if
   if (!day.supplement || !day.date) return;
-  // [zh] 语句
   supplementLabel.value = `${currentYear.value}年${currentMonth.value + 1}月${day.day}日`;
-  // [zh] 语句
   supplementDateParam.value = day.date;
-  // [zh] 语句
   supplementVisible.value = true;
-// [zh] 语句
 };
 
-// [zh] 声明变量 `doSupplement`
 const doSupplement = async () => {
-  // [zh] 语句
   supplementLoading.value = true;
-  // [zh] 代码块开始
   try {
-    // [zh] await 等待 Promise（类比 CompletableFuture.get）
     await signApi.msign(supplementDateParam.value);
-    // [zh] 语句
     supplementVisible.value = false;
-    // [zh] 语句
     toast.success('补签成功');
-    // [zh] 语句
     loadSignCalendar();
-  // [zh] 代码块开始
   } finally {
-    // [zh] 语句
     supplementLoading.value = false;
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 语句
 onMounted(loadSignCalendar);
-// [zh] 语句
 usePageRefresh(loadSignCalendar);
 </script>
 

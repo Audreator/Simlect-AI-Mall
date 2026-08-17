@@ -33,90 +33,49 @@
   <ProductPropertyEdit ref="productPropertyEditRef" @reload="loadCategory"></ProductPropertyEdit>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `./ProductPropertyEdit.vue`
 import ProductPropertyEdit from './ProductPropertyEdit.vue'
-// [zh] 导入 `vue`
 import { ref, reactive, getCurrentInstance, nextTick, onMounted } from 'vue'
-// [zh] TypeScript/JS 语句：`const { proxy } = getCurrentInstance()`
 const { proxy } = getCurrentInstance()
 
-// [zh] 声明变量 `categoryList`
 const categoryList = ref([])
-// [zh] 声明变量 `loadCategory`
 const loadCategory = async () => {
-  // [zh] 声明变量 `result`
   let result = await proxy.Request({
-    // [zh] TypeScript/JS 语句：`url: proxy.Api.loadCategory,`
     url: proxy.Api.loadCategory,
-    // [zh] 代码块开始
     params: {
-      // [zh] TypeScript/JS 语句：`queryProperty: true,`
       queryProperty: true,
-    // [zh] TypeScript/JS 语句：`},`
     },
-  // [zh] TypeScript/JS 语句：`})`
   })
-  // [zh] 条件判断 if
   if (!result) {
-    // [zh] TypeScript/JS 语句：`return`
     return
-  // [zh] 语法符号
   }
-  // [zh] TypeScript/JS 语句：`categoryList.value = result.data`
   categoryList.value = result.data
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `productPropertyEditRef`
 const productPropertyEditRef = ref(null)
-// [zh] 声明变量 `showEdit`
 const showEdit = ({ categoryId, pCategoryId }, tag) => {
-  // [zh] TypeScript/JS 语句：`productPropertyEditRef.value.show({ categoryId, pCatego`
   productPropertyEditRef.value.show({ categoryId, pCategoryId, ...tag })
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `delProperty`
 const delProperty = (data) => {
-  // [zh] 代码块开始
   proxy.Confirm({
-    // [zh] TypeScript/JS 语句：`message: `确定要删除【${data.propertyName}】吗?`,`
     message: `确定要删除【${data.propertyName}】吗?`,
-    // [zh] 代码块开始
     okfun: async () => {
-      // [zh] 声明变量 `result`
       let result = await proxy.Request({
-        // [zh] TypeScript/JS 语句：`url: proxy.Api.delProductProperty,`
         url: proxy.Api.delProductProperty,
-        // [zh] 代码块开始
         params: {
-          // [zh] TypeScript/JS 语句：`propertyId: data.propertyId,`
           propertyId: data.propertyId,
-        // [zh] TypeScript/JS 语句：`},`
         },
-      // [zh] TypeScript/JS 语句：`})`
       })
-      // [zh] 条件判断 if
       if (!result) {
-        // [zh] TypeScript/JS 语句：`return`
         return
-      // [zh] 语法符号
       }
-      // [zh] TypeScript/JS 语句：`loadCategory()`
       loadCategory()
-    // [zh] TypeScript/JS 语句：`},`
     },
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
-// [zh] 代码块开始
 onMounted(() => {
-  // [zh] TypeScript/JS 语句：`loadCategory()`
   loadCategory()
-// [zh] TypeScript/JS 语句：`})`
 })
 </script>
 

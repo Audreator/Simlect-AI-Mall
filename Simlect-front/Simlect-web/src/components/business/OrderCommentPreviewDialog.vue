@@ -142,173 +142,94 @@
   </el-dialog>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed, ref, watch } from 'vue';
-// [zh] 导入 `vue-router`
 import { useRouter } from 'vue-router';
-// [zh] 导入 `@element-plus/icons-vue`
 import { ArrowRight } from '@element-plus/icons-vue';
-// [zh] 导入 `@/api/modules`
 import { commentApi, productApi } from '@/api/modules';
-// [zh] 导入 `@/utils/product`
 import { isProductOnSale } from '@/utils/product';
-// [zh] 导入 `@/utils/image`
 import { resolveImageUrl, splitImagePaths } from '@/utils/image';
-// [zh] 导入 `@/composables/imagePreview`
 import { openImagePreview, closeImagePreview } from '@/composables/imagePreview';
-// [zh] 导入 `@/utils/toast`
 import { toast } from '@/utils/toast';
 
-// [zh] 声明变量 `router`
 const router = useRouter();
-// [zh] 声明变量 `visible`
 const visible = ref(false);
-// [zh] 声明变量 `loading`
 const loading = ref(false);
-// [zh] 声明变量 `navigating`
 const navigating = ref(false);
-// [zh] 声明变量 `data`
 const data = ref<Record<string, any> | null>(null);
 
-// [zh] 声明变量 `toImageSrc`
 const toImageSrc = (path: string) => resolveImageUrl(path, { useThumbnail: false }) || path;
 
-// [zh] 声明变量 `commentImages`
 const commentImages = computed(() => splitImagePaths(data.value?.commentImages as string | null));
-// [zh] 声明变量 `recommentImages`
 const recommentImages = computed(() => splitImagePaths(data.value?.recommentImages as string | null));
 
-// [zh] 声明变量 `productCover`
 const productCover = computed(() => {
-  // [zh] 声明变量 `cover`
   const cover = data.value?.cover;
-  // [zh] return 返回
   return cover ? resolveImageUrl(cover) : '';
-// [zh] 语句
 });
 
-// [zh] 声明变量 `formatTime`
 const formatTime = (val: unknown) => {
-  // [zh] 条件判断 if
   if (!val) return '--';
-  // [zh] 条件判断 if
   if (typeof val === 'string') return val.replace('T', ' ').slice(0, 19);
-  // [zh] 声明变量 `d`
   const d = new Date(val as string | number);
-  // [zh] 条件判断 if
   if (Number.isNaN(d.getTime())) return String(val);
-  // [zh] 声明变量 `pad`
   const pad = (n: number) => String(n).padStart(2, '0');
-  // [zh] return 返回
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-// [zh] 语句
 };
 
-// [zh] 声明变量 `previewImage`
 const previewImage = (list: string[], index: number) => {
-  // [zh] 声明变量 `urls`
   const urls = list.map((p) => toImageSrc(p)).filter(Boolean);
-  // [zh] 条件判断 if
   if (!urls.length) return;
-  // [zh] 语句
   openImagePreview(urls, Math.min(Math.max(index, 0), urls.length - 1));
-// [zh] 语句
 };
 
-// [zh] 声明变量 `goProductDetail`
 const goProductDetail = async () => {
-  // [zh] 声明变量 `productId`
   const productId = data.value?.productId;
-  // [zh] 条件判断 if
   if (!productId) {
-    // [zh] 语句
     toast.warning('无法获取商品信息');
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
-  // [zh] 条件判断 if
   if (navigating.value) return;
-  // [zh] 语句
   navigating.value = true;
-  // [zh] 代码块开始
   try {
-    // [zh] 声明变量 `res`
     const res = await productApi.getProduct(String(productId));
-    // [zh] 声明变量 `info`
     const info = res?.productInfo;
-    // [zh] 条件判断 if
     if (!info) {
-      // [zh] 语句
       toast.warning('商品不存在或已下架');
-      // [zh] 语句
       return;
-    // [zh] 语法符号
     }
-    // [zh] 条件判断 if
     if (!isProductOnSale(info)) {
-      // [zh] 语句
       toast.warning('该商品已下架');
-      // [zh] 语句
       return;
-    // [zh] 语法符号
     }
-    // [zh] 语句
     visible.value = false;
-    // [zh] await 等待 Promise（类比 CompletableFuture.get）
     await router.push(`/product/${productId}`);
-  // [zh] 代码块开始
   } catch {
-    // [zh] 语句
     toast.warning('商品不存在或已下架');
-  // [zh] 代码块开始
   } finally {
-    // [zh] 语句
     navigating.value = false;
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 声明变量 `show`
 const show = async (payload: string | Record<string, unknown>) => {
-  // [zh] 语句
   visible.value = true;
-  // [zh] 语句
   loading.value = true;
-  // [zh] 语句
   data.value = null;
-  // [zh] 代码块开始
   try {
-    // [zh] 条件判断 if
     if (typeof payload === 'object' && payload !== null) {
-      // [zh] 语句
       data.value = { ...payload };
-      // [zh] 语句
       return;
-    // [zh] 语法符号
     }
-    // [zh] 语句
     data.value = (await commentApi.getComment(payload)) || null;
-  // [zh] 代码块开始
   } finally {
-    // [zh] 语句
     loading.value = false;
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 代码块开始
 watch(visible, (open) => {
-  // [zh] 条件判断 if
   if (!open) closeImagePreview();
-// [zh] 语句
 });
 
-// [zh] 语句
 defineExpose({ show });
 </script>
 

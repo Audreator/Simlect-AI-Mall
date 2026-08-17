@@ -191,373 +191,194 @@
   <ProductView ref="productViewRef"></ProductView>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `./ProductView.vue`
 import ProductView from './ProductView.vue'
-// [zh] 导入 `./edit/ProductStock.vue`
 import ProductStock from './edit/ProductStock.vue'
-// [zh] 导入 `模块`
 import {
-  // [zh] TypeScript/JS 语句：`ref,`
   ref,
-  // [zh] TypeScript/JS 语句：`reactive,`
   reactive,
-  // [zh] TypeScript/JS 语句：`getCurrentInstance,`
   getCurrentInstance,
-  // [zh] TypeScript/JS 语句：`nextTick,`
   nextTick,
-  // [zh] TypeScript/JS 语句：`onMounted,`
   onMounted,
-  // [zh] TypeScript/JS 语句：`onUnmounted,`
   onUnmounted,
-// [zh] TypeScript/JS 语句：`} from 'vue'`
 } from 'vue'
-// [zh] 导入 `vue-router`
 import { useRouter } from 'vue-router'
-// [zh] TypeScript/JS 语句：`const { proxy } = getCurrentInstance()`
 const { proxy } = getCurrentInstance()
-// [zh] 导入 `@/eventbus/eventBus.js`
 import { mitter } from '@/eventbus/eventBus.js'
-// [zh] 导入 `模块`
 import {
-  // [zh] TypeScript/JS 语句：`canCommend,`
   canCommend,
-  // [zh] TypeScript/JS 语句：`canDelist,`
   canDelist,
-  // [zh] TypeScript/JS 语句：`canDelete,`
   canDelete,
-  // [zh] TypeScript/JS 语句：`getCommendBlockReason,`
   getCommendBlockReason,
-  // [zh] TypeScript/JS 语句：`getDelistBlockReason,`
   getDelistBlockReason,
-  // [zh] TypeScript/JS 语句：`getDeleteBlockReason`
   getDeleteBlockReason
-// [zh] TypeScript/JS 语句：`} from '@/utils/productRules.js'`
 } from '@/utils/productRules.js'
 
-// [zh] 声明变量 `columns`
 const columns = [
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '商品信息',`
     label: '商品信息',
-    // [zh] TypeScript/JS 语句：`prop: 'avatar',`
     prop: 'avatar',
-    // [zh] TypeScript/JS 语句：`scopedSlots: 'slotProduct',`
     scopedSlots: 'slotProduct',
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '价格区间',`
     label: '价格区间',
-    // [zh] TypeScript/JS 语句：`prop: 'price',`
     prop: 'price',
-    // [zh] TypeScript/JS 语句：`width: 200,`
     width: 200,
-    // [zh] TypeScript/JS 语句：`scopedSlots: 'slotPrice',`
     scopedSlots: 'slotPrice',
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '总库存',`
     label: '总库存',
-    // [zh] TypeScript/JS 语句：`prop: 'stock',`
     prop: 'stock',
-    // [zh] TypeScript/JS 语句：`width: 100,`
     width: 100,
-    // [zh] TypeScript/JS 语句：`scopedSlots: 'slotStock',`
     scopedSlots: 'slotStock',
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: 'SKU数量',`
     label: 'SKU数量',
-    // [zh] TypeScript/JS 语句：`prop: 'skuCount',`
     prop: 'skuCount',
-    // [zh] TypeScript/JS 语句：`width: 100,`
     width: 100,
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '状态',`
     label: '状态',
-    // [zh] TypeScript/JS 语句：`prop: 'status',`
     prop: 'status',
-    // [zh] TypeScript/JS 语句：`scopedSlots: 'slotStatus',`
     scopedSlots: 'slotStatus',
-    // [zh] TypeScript/JS 语句：`width: 100,`
     width: 100,
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '推荐',`
     label: '推荐',
-    // [zh] TypeScript/JS 语句：`prop: 'commend',`
     prop: 'commend',
-    // [zh] TypeScript/JS 语句：`scopedSlots: 'commend',`
     scopedSlots: 'commend',
-    // [zh] TypeScript/JS 语句：`width: 100,`
     width: 100,
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '操作',`
     label: '操作',
-    // [zh] TypeScript/JS 语句：`prop: 'op',`
     prop: 'op',
-    // [zh] TypeScript/JS 语句：`width: 380,`
     width: 380,
-    // [zh] TypeScript/JS 语句：`scopedSlots: 'slotOp',`
     scopedSlots: 'slotOp',
-  // [zh] TypeScript/JS 语句：`},`
   },
-// [zh] TypeScript/JS 语句：`]`
 ]
 
-// [zh] 声明变量 `tableInfoRef`
 const tableInfoRef = ref()
-// [zh] 声明变量 `searchForm`
 const searchForm = ref({})
-// [zh] 声明变量 `tableData`
 const tableData = ref({})
-// [zh] 声明变量 `loadDataList`
 const loadDataList = async () => {
-  // [zh] 声明变量 `params`
   let params = {
-    // [zh] TypeScript/JS 语句：`pageNo: tableData.value.pageNo,`
     pageNo: tableData.value.pageNo,
-    // [zh] TypeScript/JS 语句：`pageSize: tableData.value.pageSize,`
     pageSize: tableData.value.pageSize,
-  // [zh] 语法符号
   }
-  // [zh] TypeScript/JS 语句：`Object.assign(params, searchForm.value)`
   Object.assign(params, searchForm.value)
-  // [zh] 声明变量 `result`
   let result = await proxy.Request({
-    // [zh] TypeScript/JS 语句：`url: proxy.Api.loadProduct,`
     url: proxy.Api.loadProduct,
-    // [zh] TypeScript/JS 语句：`params: params,`
     params: params,
-  // [zh] TypeScript/JS 语句：`})`
   })
-  // [zh] 条件判断 if
   if (!result) {
-    // [zh] TypeScript/JS 语句：`return`
     return
-  // [zh] 语法符号
   }
-  // [zh] TypeScript/JS 语句：`Object.assign(tableData.value, result.data)`
   Object.assign(tableData.value, result.data)
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `del`
 const del = (row) => {
-  // [zh] 声明变量 `block`
   const block = getDeleteBlockReason(row)
-  // [zh] 条件判断 if
   if (block) {
-    // [zh] TypeScript/JS 语句：`proxy.Message.warning(block)`
     proxy.Message.warning(block)
-    // [zh] TypeScript/JS 语句：`return`
     return
-  // [zh] 语法符号
   }
-  // [zh] 代码块开始
   proxy.ConfirmSensitive({
-    // [zh] TypeScript/JS 语句：`message: `确定要删除【${row.productName}】吗？`,`
     message: `确定要删除【${row.productName}】吗？`,
-    // [zh] 代码块开始
     okfun: async (sensitiveConfirmToken) => {
-      // [zh] 声明变量 `result`
       let result = await proxy.Request({
-        // [zh] TypeScript/JS 语句：`url: proxy.Api.deleteProduct,`
         url: proxy.Api.deleteProduct,
-        // [zh] TypeScript/JS 语句：`sensitiveConfirmToken,`
         sensitiveConfirmToken,
-        // [zh] 代码块开始
         params: {
-          // [zh] TypeScript/JS 语句：`productId: row.productId,`
           productId: row.productId,
-        // [zh] TypeScript/JS 语句：`},`
         },
-      // [zh] TypeScript/JS 语句：`})`
       })
-      // [zh] 条件判断 if
       if (!result) {
-        // [zh] TypeScript/JS 语句：`return`
         return
-      // [zh] 语法符号
       }
-      // [zh] TypeScript/JS 语句：`proxy.Message.success('操作成功')`
       proxy.Message.success('操作成功')
-      // [zh] TypeScript/JS 语句：`loadDataList()`
       loadDataList()
-    // [zh] TypeScript/JS 语句：`},`
     },
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `changeStatus`
 const changeStatus = (row) => {
-  // [zh] 条件判断 if
   if (row.status == 1) {
-    // [zh] 声明变量 `block`
     const block = getDelistBlockReason(row)
-    // [zh] 条件判断 if
     if (block) {
-      // [zh] TypeScript/JS 语句：`proxy.Message.warning(block)`
       proxy.Message.warning(block)
-      // [zh] TypeScript/JS 语句：`return`
       return
-    // [zh] 语法符号
     }
-  // [zh] 语法符号
   }
-  // [zh] 代码块开始
   proxy.ConfirmSensitive({
-    // [zh] TypeScript/JS 语句：`message: `确定要【${row.status == 0 ? '上架' : '下架'}】吗？`,`
     message: `确定要【${row.status == 0 ? '上架' : '下架'}】吗？`,
-    // [zh] 代码块开始
     okfun: async (sensitiveConfirmToken) => {
-      // [zh] 声明变量 `result`
       let result = await proxy.Request({
-        // [zh] TypeScript/JS 语句：`url: proxy.Api.updateProductStatus,`
         url: proxy.Api.updateProductStatus,
-        // [zh] TypeScript/JS 语句：`sensitiveConfirmToken,`
         sensitiveConfirmToken,
-        // [zh] 代码块开始
         params: {
-          // [zh] TypeScript/JS 语句：`productId: row.productId,`
           productId: row.productId,
-          // [zh] TypeScript/JS 语句：`status: row.status == 0 ? 1 : 0,`
           status: row.status == 0 ? 1 : 0,
-        // [zh] TypeScript/JS 语句：`},`
         },
-      // [zh] TypeScript/JS 语句：`})`
       })
-      // [zh] 条件判断 if
       if (!result) {
-        // [zh] TypeScript/JS 语句：`return`
         return
-      // [zh] 语法符号
       }
-      // [zh] TypeScript/JS 语句：`proxy.Message.success('操作成功')`
       proxy.Message.success('操作成功')
-      // [zh] TypeScript/JS 语句：`loadDataList()`
       loadDataList()
-    // [zh] TypeScript/JS 语句：`},`
     },
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `commend`
 const commend = (row) => {
-  // [zh] 条件判断 if
   if (row.commendType == 0) {
-    // [zh] 声明变量 `block`
     const block = getCommendBlockReason(row)
-    // [zh] 条件判断 if
     if (block) {
-      // [zh] TypeScript/JS 语句：`proxy.Message.warning(block)`
       proxy.Message.warning(block)
-      // [zh] TypeScript/JS 语句：`return`
       return
-    // [zh] 语法符号
     }
-  // [zh] 语法符号
   }
-  // [zh] 代码块开始
   proxy.Confirm({
-    // [zh] TypeScript/JS 语句：`message: `确定要【${row.commendType == 0 ? '推荐' : '取消推荐'}】吗`
     message: `确定要【${row.commendType == 0 ? '推荐' : '取消推荐'}】吗？`,
-    // [zh] 代码块开始
     okfun: async () => {
-      // [zh] 声明变量 `result`
       let result = await proxy.Request({
-        // [zh] TypeScript/JS 语句：`url: proxy.Api.commendProduct,`
         url: proxy.Api.commendProduct,
-        // [zh] 代码块开始
         params: {
-          // [zh] TypeScript/JS 语句：`productId: row.productId,`
           productId: row.productId,
-          // [zh] TypeScript/JS 语句：`commendType: row.commendType == 0 ? 1 : 0,`
           commendType: row.commendType == 0 ? 1 : 0,
-        // [zh] TypeScript/JS 语句：`},`
         },
-      // [zh] TypeScript/JS 语句：`})`
       })
-      // [zh] 条件判断 if
       if (!result) {
-        // [zh] TypeScript/JS 语句：`return`
         return
-      // [zh] 语法符号
       }
-      // [zh] TypeScript/JS 语句：`proxy.Message.success('操作成功')`
       proxy.Message.success('操作成功')
-      // [zh] TypeScript/JS 语句：`loadDataList()`
       loadDataList()
-    // [zh] TypeScript/JS 语句：`},`
     },
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `productStockRef`
 const productStockRef = ref()
-// [zh] 声明变量 `updateStock`
 const updateStock = (row) => {
-  // [zh] TypeScript/JS 语句：`productStockRef.value.show(row.productId)`
   productStockRef.value.show(row.productId)
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `updateStockHandler`
 const updateStockHandler = ({ productId, totalStock }) => {
-  // [zh] 声明变量 `row`
   const row = tableData.value.list.find((item) => {
-    // [zh] return 返回
     return item.productId == productId
-  // [zh] TypeScript/JS 语句：`})`
   })
-  // [zh] TypeScript/JS 语句：`row.totalStock = totalStock`
   row.totalStock = totalStock
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `productViewRef`
 const productViewRef = ref()
-// [zh] 声明变量 `viewProduct`
 const viewProduct = (row) => {
-  // [zh] TypeScript/JS 语句：`productViewRef.value.show(row.productId)`
   productViewRef.value.show(row.productId)
-// [zh] 语法符号
 }
 
-// [zh] 代码块开始
 onMounted(() => {
-  // [zh] TypeScript/JS 语句：`mitter.on('updateStockCallback', updateStockHandler)`
   mitter.on('updateStockCallback', updateStockHandler)
-// [zh] TypeScript/JS 语句：`})`
 })
 
-// [zh] 代码块开始
 onUnmounted(() => {
-  // [zh] TypeScript/JS 语句：`mitter.off('updateStockCallback')`
   mitter.off('updateStockCallback')
-// [zh] TypeScript/JS 语句：`})`
 })
 </script>
 

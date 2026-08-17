@@ -67,186 +67,99 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `@/views/setting/RagEdit.vue`
 import RagEdit from '@/views/setting/RagEdit.vue'
-// [zh] 导入 `vue`
 import { ref, reactive, getCurrentInstance, onMounted, onUnmounted } from 'vue'
 
-// [zh] TypeScript/JS 语句：`const { proxy } = getCurrentInstance()`
 const { proxy } = getCurrentInstance()
-// [zh] 声明变量 `searchForm`
 const searchForm = reactive({ questionFuzzy: '' })
-// [zh] 声明变量 `list`
 const list = ref([])
-// [zh] 声明变量 `pageNo`
 const pageNo = ref(0)
-// [zh] 声明变量 `pageTotal`
 const pageTotal = ref(1)
-// [zh] 声明变量 `loading`
 const loading = ref(false)
-// [zh] 声明变量 `finished`
 const finished = ref(false)
-// [zh] 声明变量 `sentinel`
 const sentinel = ref(null)
-// [zh] 声明变量 `ragEditRef`
 const ragEditRef = ref(null)
-// [zh] 声明变量 `observer`
 let observer = null
 
-// [zh] 声明变量 `loadList`
 const loadList = async (reset = false) => {
-  // [zh] 条件判断 if
   if (loading.value) return
-  // [zh] 条件判断 if
   if (reset) {
-    // [zh] TypeScript/JS 语句：`pageNo.value = 0`
     pageNo.value = 0
-    // [zh] TypeScript/JS 语句：`pageTotal.value = 1`
     pageTotal.value = 1
-    // [zh] TypeScript/JS 语句：`finished.value = false`
     finished.value = false
-    // [zh] TypeScript/JS 语句：`list.value = []`
     list.value = []
-  // [zh] 语法符号
   }
-  // [zh] 条件判断 if
   if (finished.value) return
-  // [zh] TypeScript/JS 语句：`loading.value = true`
   loading.value = true
-  // [zh] TypeScript/JS 语句：`pageNo.value += 1`
   pageNo.value += 1
-  // [zh] 代码块开始
   try {
-    // [zh] 声明变量 `result`
     const result = await proxy.Request({
-      // [zh] TypeScript/JS 语句：`url: proxy.Api.loadRagQuestion,`
       url: proxy.Api.loadRagQuestion,
-      // [zh] 代码块开始
       params: {
-        // [zh] TypeScript/JS 语句：`pageNo: pageNo.value,`
         pageNo: pageNo.value,
-        // [zh] TypeScript/JS 语句：`pageSize: 15,`
         pageSize: 15,
-        // [zh] TypeScript/JS 语句：`...searchForm,`
         ...searchForm,
-      // [zh] TypeScript/JS 语句：`},`
       },
-    // [zh] TypeScript/JS 语句：`})`
     })
-    // [zh] 条件判断 if
     if (!result) {
-      // [zh] TypeScript/JS 语句：`pageNo.value -= 1`
       pageNo.value -= 1
-      // [zh] TypeScript/JS 语句：`return`
       return
-    // [zh] 语法符号
     }
-    // [zh] 声明变量 `data`
     const data = result.data || {}
-    // [zh] TypeScript/JS 语句：`pageTotal.value = data.pageTotal || 1`
     pageTotal.value = data.pageTotal || 1
-    // [zh] 声明变量 `rows`
     const rows = (data.list || []).map((item) => {
-      // [zh] 条件判断 if
       if (item.similarQuestion && typeof item.similarQuestion === 'string') {
-        // [zh] 代码块开始
         try {
-          // [zh] TypeScript/JS 语句：`item.similarQuestion = JSON.parse(item.similarQuestion)`
           item.similarQuestion = JSON.parse(item.similarQuestion)
-        // [zh] 代码块开始
         } catch {
-          // [zh] TypeScript/JS 语句：`item.similarQuestion = []`
           item.similarQuestion = []
-        // [zh] 语法符号
         }
-      // [zh] 语法符号
       }
-      // [zh] return 返回
       return item
-    // [zh] TypeScript/JS 语句：`})`
     })
-    // [zh] TypeScript/JS 语句：`list.value.push(...rows)`
     list.value.push(...rows)
-    // [zh] 条件判断 if
     if (pageNo.value >= pageTotal.value) finished.value = true
-  // [zh] 代码块开始
   } finally {
-    // [zh] TypeScript/JS 语句：`loading.value = false`
     loading.value = false
-  // [zh] 语法符号
   }
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `reload`
 const reload = () => loadList(true)
 
-// [zh] 声明变量 `showEdit`
 const showEdit = (data) => {
-  // [zh] TypeScript/JS 语句：`ragEditRef.value.show(data)`
   ragEditRef.value.show(data)
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `delRag`
 const delRag = (data) => {
-  // [zh] 代码块开始
   proxy.Confirm({
-    // [zh] TypeScript/JS 语句：`message: '确定要删除吗?',`
     message: '确定要删除吗?',
-    // [zh] 代码块开始
     okfun: async () => {
-      // [zh] 声明变量 `result`
       const result = await proxy.Request({
-        // [zh] TypeScript/JS 语句：`url: proxy.Api.delRagQuestion,`
         url: proxy.Api.delRagQuestion,
-        // [zh] TypeScript/JS 语句：`params: { questionId: data.questionId },`
         params: { questionId: data.questionId },
-      // [zh] TypeScript/JS 语句：`})`
       })
-      // [zh] 条件判断 if
       if (!result) return
-      // [zh] TypeScript/JS 语句：`proxy.Message.success('删除成功')`
       proxy.Message.success('删除成功')
-      // [zh] TypeScript/JS 语句：`reload()`
       reload()
-    // [zh] TypeScript/JS 语句：`},`
     },
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 
-// [zh] 代码块开始
 onMounted(() => {
-  // [zh] TypeScript/JS 语句：`loadList(true)`
   loadList(true)
-  // [zh] TypeScript/JS 语句：`observer = new IntersectionObserver(`
   observer = new IntersectionObserver(
-    // [zh] 代码块开始
     (entries) => {
-      // [zh] 条件判断 if
       if (entries.some((e) => e.isIntersecting)) loadList()
-    // [zh] TypeScript/JS 语句：`},`
     },
-    // [zh] TypeScript/JS 语句：`{ rootMargin: '0px 0px 300px 0px' }`
     { rootMargin: '0px 0px 300px 0px' }
-  // [zh] 语法符号
   )
-  // [zh] 条件判断 if
   if (sentinel.value) observer.observe(sentinel.value)
-// [zh] TypeScript/JS 语句：`})`
 })
 
-// [zh] 代码块开始
 onUnmounted(() => {
-  // [zh] TypeScript/JS 语句：`observer && observer.disconnect()`
   observer && observer.disconnect()
-  // [zh] TypeScript/JS 语句：`observer = null`
   observer = null
-// [zh] TypeScript/JS 语句：`})`
 })
 </script>
 

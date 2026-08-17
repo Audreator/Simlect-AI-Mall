@@ -46,31 +46,20 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `@element-plus/icons-vue`
 import { Ticket } from '@element-plus/icons-vue';
-// [zh] 导入 `@/components/common/ProductImage.vue`
 import ProductImage from '@/components/common/ProductImage.vue';
-// [zh] 导入 `@/constants/backendEnums`
 import { orderStatusLabel } from '@/constants/backendEnums';
 
-// [zh] 语句
 defineProps<{ list: Record<string, any>[] }>();
 
-// [zh] 声明变量 `COUPON_ORDER_PAY_SCENE`
 const COUPON_ORDER_PAY_SCENE = '2';
-// [zh] 声明变量 `COUPON_ORDER_PROPERTY`
 const COUPON_ORDER_PROPERTY = '优惠券秒杀';
 
-// [zh] 声明变量 `isCouponOrder`
 const isCouponOrder = (order: Record<string, any>) =>
-  // [zh] TypeScript/JS 语句：`String(order.payScene) === COUPON_ORDER_PAY_SCENE`
   String(order.payScene) === COUPON_ORDER_PAY_SCENE
-  // [zh] 语句
   || (order.orderItemList || []).some((item: Record<string, any>) => item?.propertyInfo === COUPON_ORDER_PROPERTY);
 
-// [zh] 声明变量 `statusText`
 const statusText = (s?: number) => (s != null ? orderStatusLabel(s) : '订单');
 </script>
 

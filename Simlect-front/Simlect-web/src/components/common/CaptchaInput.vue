@@ -32,24 +32,15 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { ref, watch } from 'vue';
 
-// [zh] 声明变量 `props`
 const props = defineProps<{ modelValue: string; captchaImage: string; placeholder?: string }>();
-// [zh] 语句
 defineEmits<{ 'update:modelValue': [string]; refresh: [] }>();
-// [zh] 声明变量 `innerValue`
 const innerValue = ref(props.modelValue);
-// [zh] TypeScript/JS 语句：`watch(`
 watch(
-  // [zh] TypeScript/JS 语句：`() => props.modelValue,`
   () => props.modelValue,
-  // [zh] TypeScript/JS 语句：`(v) => (innerValue.value = v)`
   (v) => (innerValue.value = v)
-// [zh] 语句
 );
 </script>
 

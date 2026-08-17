@@ -4,27 +4,17 @@
   <component :is="layoutComponent" :key="platform" />
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed, onMounted } from 'vue';
-// [zh] 导入 `@/composables/useDevice`
 import { useDevice } from '@/composables/useDevice';
-// [zh] 导入 `@/layouts/PcSubPageLayout.vue`
 import PcSubPageLayout from '@/layouts/PcSubPageLayout.vue';
-// [zh] 导入 `@/layouts/SubPageLayout.vue`
 import SubPageLayout from '@/layouts/SubPageLayout.vue';
 
-// [zh] 语句
 const { isMobile, platform, sync } = useDevice();
 
-// [zh] 声明变量 `layoutComponent`
 const layoutComponent = computed(() => (isMobile.value ? SubPageLayout : PcSubPageLayout));
 
-// [zh] 代码块开始
 onMounted(() => {
-  // [zh] 语句
   sync();
-// [zh] 语句
 });
 </script>

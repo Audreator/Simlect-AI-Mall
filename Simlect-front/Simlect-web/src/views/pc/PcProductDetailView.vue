@@ -69,7 +69,6 @@
             <span class="price-value">
               <!-- [zh] 开始标签 `<em>` -->
               <em>¥</em>{{ displayPrice }}
-            <!-- [zh] 闭合标签 `</span>` -->
             </span>
           <!-- [zh] 闭合标签 `</div>` -->
           </div>
@@ -297,306 +296,165 @@
   <CommentReportDialog ref="reportDialogRef" />
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { ref, onMounted, onUnmounted, watch } from 'vue';
-// [zh] 导入 `vue-router`
 import { useRoute, useRouter } from 'vue-router';
-// [zh] 导入 `@element-plus/icons-vue`
 import { ArrowRight, Star, StarFilled } from '@element-plus/icons-vue';
-// [zh] 导入 `@/components/agent/AgentServiceEntry.vue`
 import AgentServiceEntry from '@/components/agent/AgentServiceEntry.vue';
-// [zh] 导入 `@/components/common/ProductImage.vue`
 import ProductImage from '@/components/common/ProductImage.vue';
-// [zh] 导入 `@/components/common/MarkdownContent.vue`
 import MarkdownContent from '@/components/common/MarkdownContent.vue';
-// [zh] 导入 `@/components/business/CommentReportDialog.vue`
 import CommentReportDialog from '@/components/business/CommentReportDialog.vue';
-// [zh] 导入 `@/composables/useProductDetailPage`
 import { useProductDetailPage } from '@/composables/useProductDetailPage';
-// [zh] 导入 `@/utils/comment`
 import { maskCommenterName } from '@/utils/comment';
-// [zh] 导入 `@/api/modules`
 import { productApi, userMemberApi } from '@/api/modules';
-// [zh] 导入 `@/utils/image`
 import { resolveAvatarUrl } from '@/utils/image';
 
-// [zh] 声明变量 `route`
 const route = useRoute();
-// [zh] 声明变量 `router`
 const router = useRouter();
 
-// [zh] 代码块开始
 const {
-  // [zh] TypeScript/JS 语句：`loading,`
   loading,
-  // [zh] TypeScript/JS 语句：`loadError,`
   loadError,
-  // [zh] TypeScript/JS 语句：`load,`
   load,
-  // [zh] TypeScript/JS 语句：`productInfo,`
   productInfo,
-  // [zh] TypeScript/JS 语句：`productPropertyList,`
   productPropertyList,
-  // [zh] TypeScript/JS 语句：`comments,`
   comments,
-  // [zh] TypeScript/JS 语句：`commentTotal,`
   commentTotal,
-  // [zh] TypeScript/JS 语句：`commentGoodRate,`
   commentGoodRate,
-  // [zh] TypeScript/JS 语句：`commentImageCount,`
   commentImageCount,
-  // [zh] TypeScript/JS 语句：`quantity,`
   quantity,
-  // [zh] TypeScript/JS 语句：`selectedSku,`
   selectedSku,
-  // [zh] TypeScript/JS 语句：`selectedProperty,`
   selectedProperty,
-  // [zh] TypeScript/JS 语句：`activeImageIndex,`
   activeImageIndex,
-  // [zh] TypeScript/JS 语句：`favorited,`
   favorited,
-  // [zh] TypeScript/JS 语句：`favoriteLoading,`
   favoriteLoading,
-  // [zh] TypeScript/JS 语句：`detailTab,`
   detailTab,
-  // [zh] TypeScript/JS 语句：`galleryImages,`
   galleryImages,
-  // [zh] TypeScript/JS 语句：`displayPrice,`
   displayPrice,
-  // [zh] TypeScript/JS 语句：`agentConsultProduct,`
   agentConsultProduct,
-  // [zh] TypeScript/JS 语句：`maxBuy,`
   maxBuy,
-  // [zh] TypeScript/JS 语句：`openGalleryPreview,`
   openGalleryPreview,
-  // [zh] TypeScript/JS 语句：`selectGalleryIndex,`
   selectGalleryIndex,
-  // [zh] TypeScript/JS 语句：`selectProperty,`
   selectProperty,
-  // [zh] TypeScript/JS 语句：`toggleFavorite,`
   toggleFavorite,
-  // [zh] TypeScript/JS 语句：`goAllComments,`
   goAllComments,
-  // [zh] TypeScript/JS 语句：`openAddCartSheet,`
   openAddCartSheet,
-  // [zh] TypeScript/JS 语句：`buyNow`
   buyNow
-// [zh] 语句
 } = useProductDetailPage();
 
-// [zh] 声明变量 `reportDialogRef`
 const reportDialogRef = ref<InstanceType<typeof CommentReportDialog>>();
 
-// [zh] 声明变量 `similarProducts`
 const similarProducts = ref<any[]>([]);
-// [zh] 声明变量 `loadingMore`
 const loadingMore = ref(false);
-// [zh] 声明变量 `finished`
 const finished = ref(false);
-// [zh] 声明变量 `allSimilarProducts`
 const allSimilarProducts = ref<any[]>([]);
-// [zh] 声明变量 `displayCount`
 const displayCount = ref(8);
-// [zh] 声明变量 `PAGE_SIZE`
 const PAGE_SIZE = 8;
-// [zh] 声明变量 `MAX_SIMILAR`
 const MAX_SIMILAR = 16;
-// [zh] 声明变量 `scrollTicking`
 let scrollTicking = false;
 
-// [zh] 声明变量 `onScroll`
 const onScroll = () => {
-  // [zh] 条件判断 if
   if (scrollTicking || finished.value || loadingMore.value) return;
-  // [zh] 语句
   scrollTicking = true;
-  // [zh] 代码块开始
   requestAnimationFrame(() => {
-    // [zh] 语句
     scrollTicking = false;
-    // [zh] 声明变量 `st`
     const st = window.scrollY || document.documentElement.scrollTop;
-    // [zh] 声明变量 `sh`
     const sh = document.documentElement.scrollHeight;
-    // [zh] 声明变量 `ch`
     const ch = window.innerHeight;
-    // [zh] 条件判断 if
     if (sh - st - ch < 200) loadMore();
-  // [zh] 语句
   });
-// [zh] 语句
 };
 
-// [zh] 声明变量 `loadMore`
 const loadMore = () => {
-  // [zh] 条件判断 if
   if (finished.value || loadingMore.value) return;
-  // [zh] 条件判断 if
   if (displayCount.value >= allSimilarProducts.value.length) {
-    // [zh] 语句
     finished.value = true;
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
-  // [zh] 语句
   loadingMore.value = true;
-  // [zh] 代码块开始
   setTimeout(() => {
-    // [zh] 语句
     displayCount.value = Math.min(displayCount.value + PAGE_SIZE, MAX_SIMILAR, allSimilarProducts.value.length);
-    // [zh] 语句
     similarProducts.value = allSimilarProducts.value.slice(0, displayCount.value);
-    // [zh] 条件判断 if
     if (displayCount.value >= allSimilarProducts.value.length) finished.value = true;
-    // [zh] 语句
     loadingMore.value = false;
-  // [zh] 语句
   }, 300);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `loadSimilarProducts`
 const loadSimilarProducts = async () => {
-  // [zh] 语句
   loadingMore.value = true;
-  // [zh] 代码块开始
   try {
-    // [zh] 声明变量 `r`
     const r = await productApi.loadCommendProduct();
-    // [zh] 声明变量 `list`
     const list = Array.isArray(r) ? r : r?.list || [];
-    // [zh] 条件判断 if
     if (!list.length) { finished.value = true; return; }
 
-    // [zh] 声明变量 `filled`
     let filled = [...list];
-    // [zh] 代码块开始
     while (filled.length < MAX_SIMILAR) {
-      // [zh] 语句
       filled = filled.concat(list);
-    // [zh] 语法符号
     }
-    // [zh] 语句
     allSimilarProducts.value = filled.slice(0, MAX_SIMILAR);
-    // [zh] 语句
     similarProducts.value = allSimilarProducts.value.slice(0, displayCount.value);
-    // [zh] 条件判断 if
     if (allSimilarProducts.value.length <= displayCount.value) finished.value = true;
-  // [zh] 代码块开始
   } catch (error) {
-    // [zh] 语句
     console.error('PcProductDetailView: loadSimilarProducts error', error);
-    // [zh] 语句
     finished.value = true;
-  // [zh] 代码块开始
   } finally {
-    // [zh] 语句
     loadingMore.value = false;
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 声明变量 `formatPrice`
 const formatPrice = (price: any): string => {
-  // [zh] 声明变量 `n`
   const n = Number(price);
-  // [zh] 条件判断 if
   if (isNaN(n)) return '--';
-  // [zh] return 返回
   return n.toFixed(2);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `goDetail`
 const goDetail = (p: any) => router.push(`/product/${p.productId}`);
 
-// [zh] 声明变量 `levelCache`
 const levelCache = ref<Record<string, { levelCode: number; levelName: string }>>({});
 
-// [zh] 声明变量 `fetchCommentLevel`
 const fetchCommentLevel = (userId: string) => {
-  // [zh] 条件判断 if
   if (!userId || levelCache.value[userId]) return;
-  // [zh] 代码块开始
   userMemberApi.getLevelBadge(userId).then((res: any) => {
-    // [zh] 条件判断 if
     if (res?.levelCode != null) {
-      // [zh] 语句
       levelCache.value = { ...levelCache.value, [userId]: res };
-    // [zh] 语法符号
     }
-  // [zh] 语句
   }).catch(() => {});
-// [zh] 语句
 };
 
-// [zh] 声明变量 `getCommentLevelProxy`
 const getCommentLevelProxy = (userId: string | number | undefined): { levelCode: number; levelName: string } | null => {
-  // [zh] 条件判断 if
   if (!userId) return null;
-  // [zh] 声明变量 `key`
   const key = String(userId);
 
-  // [zh] 语句
   fetchCommentLevel(key);
-  // [zh] return 返回
   return levelCache.value[key] ?? null;
-// [zh] 语句
 };
 
-// [zh] 声明变量 `commentLevelTagClass`
 const commentLevelTagClass = (code: number): string => {
-  // [zh] 条件判断 if
   if (code >= 3) return 'level-gold';
-  // [zh] 条件判断 if
   if (code >= 2) return 'level-silver';
-  // [zh] return 返回
   return 'level-normal';
-// [zh] 语句
 };
 
-// [zh] 代码块开始
 watch(comments, (val) => {
-  // [zh] 条件判断 if
   if (!val?.length) return;
-  // [zh] 代码块开始
   val.forEach((c: any) => {
-    // [zh] 条件判断 if
     if (c.userId) fetchCommentLevel(String(c.userId));
-  // [zh] 语句
   });
-// [zh] 语句
 }, { immediate: true });
 
-// [zh] 代码块开始
 onMounted(() => {
-  // [zh] 语句
   loadSimilarProducts();
-  // [zh] 语句
   window.addEventListener('scroll', onScroll, { passive: true });
-// [zh] 语句
 });
 
-// [zh] 语句
 onUnmounted(() => window.removeEventListener('scroll', onScroll));
 
-// [zh] 声明变量 `openReport`
 const openReport = (payload: { orderId: string; commentContent?: string }) => {
-  // [zh] 代码块开始
   reportDialogRef.value?.show({
-    // [zh] TypeScript/JS 语句：`orderId: payload.orderId,`
     orderId: payload.orderId,
-    // [zh] TypeScript/JS 语句：`productId: String(route.params.productId || ''),`
     productId: String(route.params.productId || ''),
-    // [zh] TypeScript/JS 语句：`commentContent: payload.commentContent`
     commentContent: payload.commentContent
-  // [zh] 语句
   });
-// [zh] 语句
 };
 </script>
 

@@ -31,50 +31,29 @@
   </aside>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue-router`
 import { useRoute, useRouter } from 'vue-router';
-// [zh] 导入 `@/composables/useOpenAgent`
 import { useOpenAgent } from '@/composables/useOpenAgent';
-// [zh] 导入 `@/constants/pcUserNav`
 import { PC_USER_NAV_GROUPS } from '@/constants/pcUserNav';
 
-// [zh] 声明变量 `route`
 const route = useRoute();
-// [zh] 声明变量 `router`
 const router = useRouter();
-// [zh] 语句
 const { openAgent } = useOpenAgent();
 
-// [zh] 声明变量 `onNavClick`
 const onNavClick = (path: string) => {
-  // [zh] 条件判断 if
   if (path === '/ai-assistant') {
-    // [zh] 语句
     openAgent();
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
-  // [zh] 语句
   router.push(path);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `isActive`
 const isActive = (path: string) => {
-  // [zh] 条件判断 if
   if (path === '/account') return route.path === '/account';
-  // [zh] 条件判断 if
   if (path === '/orders') return route.path === '/orders' || route.path.startsWith('/order/');
-  // [zh] 条件判断 if
   if (path === '/member-center') return route.path === '/member-center';
-  // [zh] 条件判断 if
   if (path === '/notifications') return route.path === '/notifications';
-  // [zh] return 返回
   return route.path === path || route.path.startsWith(`${path}/`);
-// [zh] 语句
 };
 </script>
 

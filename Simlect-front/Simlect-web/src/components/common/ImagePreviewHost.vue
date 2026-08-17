@@ -4,7 +4,6 @@
   <Teleport to="body">
     <!-- [zh] 开始标签 `<Transition>` -->
     <Transition name="eshop-lightbox-fade">
-      <!-- [zh] 开始标签 `<div>` -->
       <div
         v-if="imagePreviewState.visible"
         class="eshop-image-lightbox allow-pinch-zoom"
@@ -15,7 +14,6 @@
         @mouseup="onMouseUp"
         @mouseleave="onMouseUp"
       >
-        <!-- [zh] 开始标签 `<img>` -->
         <img
           :key="currentUrl"
           :src="currentUrl"
@@ -31,113 +29,65 @@
           @mousedown="onMouseDown"
           @mousemove="onMouseMove"
         />
-      <!-- [zh] 闭合标签 `</div>` -->
       </div>
-    <!-- [zh] 闭合标签 `</Transition>` -->
     </Transition>
   <!-- [zh] 闭合标签 `</Teleport>` -->
   </Teleport>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed, onMounted, onUnmounted, watch } from 'vue';
-// [zh] 导入 `@/composables/imagePreview`
 import { closeImagePreview, imagePreviewState } from '@/composables/imagePreview';
-// [zh] 导入 `@/composables/useImageLightboxZoom`
 import { useImageLightboxZoom } from '@/composables/useImageLightboxZoom';
 
-// [zh] 声明变量 `currentUrl`
 const currentUrl = computed(() => imagePreviewState.urls[imagePreviewState.index] ?? '');
 
-// [zh] 代码块开始
 const {
-  // [zh] TypeScript/JS 语句：`imgStyle,`
   imgStyle,
-  // [zh] TypeScript/JS 语句：`resetTransform,`
   resetTransform,
-  // [zh] TypeScript/JS 语句：`onWheel,`
   onWheel,
-  // [zh] TypeScript/JS 语句：`onTouchStart,`
   onTouchStart,
-  // [zh] TypeScript/JS 语句：`onTouchMove,`
   onTouchMove,
-  // [zh] TypeScript/JS 语句：`onTouchEnd,`
   onTouchEnd,
-  // [zh] TypeScript/JS 语句：`onMouseDown,`
   onMouseDown,
-  // [zh] TypeScript/JS 语句：`onMouseMove,`
   onMouseMove,
-  // [zh] TypeScript/JS 语句：`onMouseUp`
   onMouseUp
-// [zh] 语句
 } = useImageLightboxZoom();
 
-// [zh] 声明变量 `prev`
 const prev = () => {
-  // [zh] 声明变量 `n`
   const n = imagePreviewState.urls.length;
-  // [zh] 条件判断 if
   if (n <= 1) return;
-  // [zh] 语句
   imagePreviewState.index = (imagePreviewState.index - 1 + n) % n;
-// [zh] 语句
 };
 
-// [zh] 声明变量 `next`
 const next = () => {
-  // [zh] 声明变量 `n`
   const n = imagePreviewState.urls.length;
-  // [zh] 条件判断 if
   if (n <= 1) return;
-  // [zh] 语句
   imagePreviewState.index = (imagePreviewState.index + 1) % n;
-// [zh] 语句
 };
 
-// [zh] 声明变量 `onKeydown`
 const onKeydown = (e: KeyboardEvent) => {
-  // [zh] 条件判断 if
   if (!imagePreviewState.visible) return;
-  // [zh] 条件判断 if
   if (e.key === 'Escape') closeImagePreview();
-  // [zh] else 分支
   else if (e.key === 'ArrowLeft') prev();
-  // [zh] else 分支
   else if (e.key === 'ArrowRight') next();
-// [zh] 语句
 };
 
-// [zh] 语句
 watch(currentUrl, () => resetTransform());
 
-// [zh] TypeScript/JS 语句：`watch(`
 watch(
-  // [zh] TypeScript/JS 语句：`() => imagePreviewState.visible,`
   () => imagePreviewState.visible,
-  // [zh] 代码块开始
   (open) => {
-    // [zh] 语句
     document.body.style.overflow = open ? 'hidden' : '';
-    // [zh] 条件判断 if
     if (!open) resetTransform();
-  // [zh] 语法符号
   }
-// [zh] 语句
 );
 
-// [zh] 语句
 onMounted(() => window.addEventListener('keydown', onKeydown));
-// [zh] 代码块开始
 onUnmounted(() => {
-  // [zh] 语句
   window.removeEventListener('keydown', onKeydown);
-  // [zh] 语句
   document.body.style.overflow = '';
-  // [zh] 语句
   resetTransform();
-// [zh] 语句
 });
 </script>
 

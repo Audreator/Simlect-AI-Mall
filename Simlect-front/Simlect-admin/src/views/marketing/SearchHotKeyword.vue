@@ -83,137 +83,75 @@
   </el-card>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `vue`
 import { getCurrentInstance, reactive, ref } from 'vue'
 
-// [zh] TypeScript/JS 语句：`const { proxy } = getCurrentInstance()`
 const { proxy } = getCurrentInstance()
-// [zh] 声明变量 `tableData`
 const tableData = ref({ list: [], pageNo: 1, pageTotal: 1 })
-// [zh] 声明变量 `form`
 const form = reactive({ keyword: '', sort: 0, status: 1 })
 
-// [zh] 声明变量 `columns`
 const columns = [
-  // [zh] TypeScript/JS 语句：`{ label: '热搜词', prop: 'keyword' },`
   { label: '热搜词', prop: 'keyword' },
-  // [zh] TypeScript/JS 语句：`{ label: '排序', prop: 'sort', width: 100 },`
   { label: '排序', prop: 'sort', width: 100 },
-  // [zh] TypeScript/JS 语句：`{ label: '状态', prop: 'status', width: 100, scopedSlots:`
   { label: '状态', prop: 'status', width: 100, scopedSlots: 'slotStatus' },
-  // [zh] TypeScript/JS 语句：`{ label: '更新时间', prop: 'updateTime', width: 180 },`
   { label: '更新时间', prop: 'updateTime', width: 180 },
-  // [zh] TypeScript/JS 语句：`{ label: '操作', prop: 'op', width: 140, scopedSlots: 'sl`
   { label: '操作', prop: 'op', width: 140, scopedSlots: 'slotOp' },
-// [zh] TypeScript/JS 语句：`]`
 ]
 
-// [zh] 声明变量 `loadDataList`
 const loadDataList = async () => {
-  // [zh] 声明变量 `result`
   const result = await proxy.Request({ url: proxy.Api.searchHotKeywordLoadList })
-  // [zh] 条件判断 if
   if (!result) return
-  // [zh] TypeScript/JS 语句：`tableData.value = { list: result.data || [], pageNo: 1,`
   tableData.value = { list: result.data || [], pageNo: 1, pageTotal: 1 }
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `resetForm`
 const resetForm = () => {
-  // [zh] TypeScript/JS 语句：`form.keyword = ''`
   form.keyword = ''
-  // [zh] TypeScript/JS 语句：`form.sort = 0`
   form.sort = 0
-  // [zh] TypeScript/JS 语句：`form.status = 1`
   form.status = 1
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `editRow`
 const editRow = (row) => {
-  // [zh] TypeScript/JS 语句：`form.keyword = row.keyword`
   form.keyword = row.keyword
-  // [zh] TypeScript/JS 语句：`form.sort = row.sort ?? 0`
   form.sort = row.sort ?? 0
-  // [zh] TypeScript/JS 语句：`form.status = row.status ?? 1`
   form.status = row.status ?? 1
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `save`
 const save = async () => {
-  // [zh] 条件判断 if
   if (!form.keyword?.trim()) {
-    // [zh] TypeScript/JS 语句：`proxy.Message.warning('请输入热搜词')`
     proxy.Message.warning('请输入热搜词')
-    // [zh] TypeScript/JS 语句：`return`
     return
-  // [zh] 语法符号
   }
-  // [zh] 声明变量 `result`
   const result = await proxy.Request({
-    // [zh] TypeScript/JS 语句：`url: proxy.Api.searchHotKeywordSave,`
     url: proxy.Api.searchHotKeywordSave,
-    // [zh] 代码块开始
     params: {
-      // [zh] TypeScript/JS 语句：`keyword: form.keyword.trim(),`
       keyword: form.keyword.trim(),
-      // [zh] TypeScript/JS 语句：`sort: form.sort,`
       sort: form.sort,
-      // [zh] TypeScript/JS 语句：`status: form.status,`
       status: form.status,
-    // [zh] TypeScript/JS 语句：`},`
     },
-    // [zh] TypeScript/JS 语句：`showLoading: true,`
     showLoading: true,
-  // [zh] TypeScript/JS 语句：`})`
   })
-  // [zh] 条件判断 if
   if (!result) return
-  // [zh] TypeScript/JS 语句：`proxy.Message.success('保存成功')`
   proxy.Message.success('保存成功')
-  // [zh] TypeScript/JS 语句：`resetForm()`
   resetForm()
-  // [zh] TypeScript/JS 语句：`loadDataList()`
   loadDataList()
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `delRow`
 const delRow = (row) => {
-  // [zh] 代码块开始
   proxy.Confirm({
-    // [zh] TypeScript/JS 语句：`message: `确定删除热搜词「${row.keyword}」吗？`,`
     message: `确定删除热搜词「${row.keyword}」吗？`,
-    // [zh] 代码块开始
     okfun: async () => {
-      // [zh] 声明变量 `result`
       const result = await proxy.Request({
-        // [zh] TypeScript/JS 语句：`url: proxy.Api.searchHotKeywordDel,`
         url: proxy.Api.searchHotKeywordDel,
-        // [zh] TypeScript/JS 语句：`params: { keyword: row.keyword },`
         params: { keyword: row.keyword },
-        // [zh] TypeScript/JS 语句：`showLoading: true,`
         showLoading: true,
-      // [zh] TypeScript/JS 语句：`})`
       })
-      // [zh] 条件判断 if
       if (!result) return
-      // [zh] TypeScript/JS 语句：`proxy.Message.success('已删除')`
       proxy.Message.success('已删除')
-      // [zh] TypeScript/JS 语句：`loadDataList()`
       loadDataList()
-    // [zh] TypeScript/JS 语句：`},`
     },
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 
-// [zh] TypeScript/JS 语句：`loadDataList()`
 loadDataList()
 </script>
 

@@ -68,125 +68,67 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed, onMounted, reactive, ref } from 'vue';
-// [zh] 导入 `element-plus`
 import { ElMessage } from 'element-plus';
-// [zh] 导入 `@/utils/captcha`
 import { formatCaptchaSrc } from '@/utils/captcha';
-// [zh] 导入 `vue-router`
 import { RouterLink, useRoute, useRouter } from 'vue-router';
-// [zh] 导入 `@/components/common/BrandMark.vue`
 import BrandMark from '@/components/common/BrandMark.vue';
-// [zh] 导入 `@/components/common/CaptchaInput.vue`
 import CaptchaInput from '@/components/common/CaptchaInput.vue';
-// [zh] 导入 `@/components/layout/AppFooter.vue`
 import AppFooter from '@/components/layout/AppFooter.vue';
-// [zh] 导入 `@/api/modules`
 import { accountApi } from '@/api/modules';
-// [zh] 导入 `@/stores/auth`
 import { useAuthStore } from '@/stores/auth';
-// [zh] 导入 `@/utils/apiError`
 import { formatLoginErrorMessage } from '@/utils/apiError';
-// [zh] 导入 `@/constants/validation`
 import { isValidEmail } from '@/constants/validation';
-// [zh] 导入 `@/utils/navigation`
 import { resolveSafeRedirect } from '@/utils/navigation';
-// [zh] 导入 `@/utils/toast`
 import { toast } from '@/utils/toast';
 
-// [zh] 声明变量 `route`
 const route = useRoute();
-// [zh] 声明变量 `router`
 const router = useRouter();
-// [zh] 声明变量 `authStore`
 const authStore = useAuthStore();
-// [zh] 声明变量 `error`
 const error = ref('');
-// [zh] 声明变量 `submitting`
 const submitting = ref(false);
-// [zh] 声明变量 `captcha`
 const captcha = reactive({ checkCode: '', checkCodeKey: '' });
-// [zh] 声明变量 `form`
 const form = reactive<any>({ email: '', password: '', checkCode: '' });
-// [zh] 声明变量 `captchaSrc`
 const captchaSrc = computed(() => formatCaptchaSrc(captcha.checkCode));
 
-// [zh] 声明变量 `loadCode`
 const loadCode = async () => {
-  // [zh] 声明变量 `data`
   const data = await accountApi.checkCode();
-  // [zh] 语句
   captcha.checkCode = data?.checkCode || '';
-  // [zh] 语句
   captcha.checkCodeKey = data?.checkCodeKey || '';
-// [zh] 语句
 };
 
-// [zh] 声明变量 `submit`
 const submit = async () => {
-  // [zh] 语句
   error.value = '';
-  // [zh] 条件判断 if
   if (!form.email?.trim()) {
-    // [zh] 语句
     ElMessage.warning('请输入邮箱');
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
-  // [zh] 条件判断 if
   if (!isValidEmail(form.email)) {
-    // [zh] 语句
     error.value = '请输入有效的邮箱地址';
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
-  // [zh] 条件判断 if
   if (!form.password) {
-    // [zh] 语句
     ElMessage.warning('请输入密码');
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
-  // [zh] 条件判断 if
   if (!form.checkCode) {
-    // [zh] 语句
     ElMessage.warning('请输入验证码');
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
-  // [zh] 语句
   submitting.value = true;
-  // [zh] 代码块开始
   try {
-    // [zh] await 等待 Promise（类比 CompletableFuture.get）
     await authStore.login({ ...form, checkCodeKey: captcha.checkCodeKey });
-    // [zh] 语句
     toast.success('登录成功');
-    // [zh] 语句
     router.replace(resolveSafeRedirect(route.query.redirect));
-  // [zh] 代码块开始
   } catch (e: any) {
-    // [zh] 语句
     error.value = formatLoginErrorMessage(e);
-    // [zh] await 等待 Promise（类比 CompletableFuture.get）
     await loadCode();
-  // [zh] 代码块开始
   } finally {
-    // [zh] 语句
     submitting.value = false;
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 语句
 onMounted(loadCode);
 </script>
 

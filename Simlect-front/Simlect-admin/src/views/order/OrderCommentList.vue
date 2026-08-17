@@ -99,233 +99,122 @@
   <CommentReply ref="commentRef" @reload="loadDataList"></CommentReply>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `./CommentReply.vue`
 import CommentReply from './CommentReply.vue'
-// [zh] 导入 `./CommentDetail.vue`
 import CommentDetail from './CommentDetail.vue'
-// [zh] 导入 `模块`
 import {
-  // [zh] TypeScript/JS 语句：`ref,`
   ref,
-  // [zh] TypeScript/JS 语句：`reactive,`
   reactive,
-  // [zh] TypeScript/JS 语句：`getCurrentInstance,`
   getCurrentInstance,
-  // [zh] TypeScript/JS 语句：`nextTick,`
   nextTick,
-  // [zh] TypeScript/JS 语句：`createCommentVNode,`
   createCommentVNode,
-// [zh] TypeScript/JS 语句：`} from 'vue'`
 } from 'vue'
-// [zh] 导入 `vue-router`
 import { useRouter } from 'vue-router'
-// [zh] 导入 `element-plus`
 import { ElMessageBox } from 'element-plus'
-// [zh] TypeScript/JS 语句：`const { proxy } = getCurrentInstance()`
 const { proxy } = getCurrentInstance()
-// [zh] 声明变量 `router`
 const router = useRouter()
 
-// [zh] 声明变量 `columns`
 const columns = [
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '用户信息',`
     label: '用户信息',
-    // [zh] TypeScript/JS 语句：`prop: 'user',`
     prop: 'user',
-    // [zh] TypeScript/JS 语句：`scopedSlots: 'slotUser',`
     scopedSlots: 'slotUser',
-    // [zh] TypeScript/JS 语句：`width: 150,`
     width: 150,
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '商品信息',`
     label: '商品信息',
-    // [zh] TypeScript/JS 语句：`prop: 'product',`
     prop: 'product',
-    // [zh] TypeScript/JS 语句：`scopedSlots: 'slotProduct',`
     scopedSlots: 'slotProduct',
-    // [zh] TypeScript/JS 语句：`width: 500,`
     width: 500,
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '评论内容',`
     label: '评论内容',
-    // [zh] TypeScript/JS 语句：`prop: 'commentContent',`
     prop: 'commentContent',
-    // [zh] TypeScript/JS 语句：`scopedSlots: 'slotCommentContent',`
     scopedSlots: 'slotCommentContent',
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '操作',`
     label: '操作',
-    // [zh] TypeScript/JS 语句：`prop: 'operation',`
     prop: 'operation',
-    // [zh] TypeScript/JS 语句：`width: 120,`
     width: 120,
-    // [zh] TypeScript/JS 语句：`scopedSlots: 'slotOperation',`
     scopedSlots: 'slotOperation',
-  // [zh] TypeScript/JS 语句：`},`
   },
-// [zh] TypeScript/JS 语句：`]`
 ]
 
-// [zh] 声明变量 `tableInfoRef`
 const tableInfoRef = ref()
-// [zh] 声明变量 `searchForm`
 const searchForm = ref({})
-// [zh] 声明变量 `tableData`
 const tableData = ref({})
-// [zh] 声明变量 `loadDataList`
 const loadDataList = async () => {
-  // [zh] 声明变量 `params`
   let params = {
-    // [zh] TypeScript/JS 语句：`pageNo: tableData.value.pageNo,`
     pageNo: tableData.value.pageNo,
-    // [zh] TypeScript/JS 语句：`pageSize: tableData.value.pageSize,`
     pageSize: tableData.value.pageSize,
-  // [zh] 语法符号
   }
-  // [zh] TypeScript/JS 语句：`Object.assign(params, searchForm.value)`
   Object.assign(params, searchForm.value)
-  // [zh] 声明变量 `result`
   let result = await proxy.Request({
-    // [zh] TypeScript/JS 语句：`url: proxy.Api.loadComment,`
     url: proxy.Api.loadComment,
-    // [zh] TypeScript/JS 语句：`params: params,`
     params: params,
-  // [zh] TypeScript/JS 语句：`})`
   })
-  // [zh] 条件判断 if
   if (!result) {
-    // [zh] TypeScript/JS 语句：`return`
     return
-  // [zh] 语法符号
   }
 
-  // [zh] 代码块开始
   (result.data.list || []).forEach((item) => {
-    // [zh] TypeScript/JS 语句：`item.commentImages = item.commentImages ? item.commentI`
     item.commentImages = item.commentImages ? item.commentImages.split(',') : []
-    // [zh] TypeScript/JS 语句：`item.recommentImages = item.recommentImages`
     item.recommentImages = item.recommentImages
-      // [zh] TypeScript/JS 语句：`? item.recommentImages.split(',')`
       ? item.recommentImages.split(',')
-      // [zh] TypeScript/JS 语句：`: []`
       : []
-  // [zh] TypeScript/JS 语句：`})`
   })
-  // [zh] TypeScript/JS 语句：`Object.assign(tableData.value, result.data)`
   Object.assign(tableData.value, result.data)
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `delComment`
 const delComment = (row) => {
-  // [zh] 代码块开始
   proxy.Confirm({
-    // [zh] TypeScript/JS 语句：`message: `确定要删除评论吗？`,`
     message: `确定要删除评论吗？`,
-    // [zh] 代码块开始
     okfun: async () => {
-      // [zh] 声明变量 `result`
       let result = await proxy.Request({
-        // [zh] TypeScript/JS 语句：`url: proxy.Api.delComment,`
         url: proxy.Api.delComment,
-        // [zh] 代码块开始
         params: {
-          // [zh] TypeScript/JS 语句：`orderId: row.orderId,`
           orderId: row.orderId,
-        // [zh] TypeScript/JS 语句：`},`
         },
-      // [zh] TypeScript/JS 语句：`})`
       })
-      // [zh] 条件判断 if
       if (!result) {
-        // [zh] TypeScript/JS 语句：`return`
         return
-      // [zh] 语法符号
       }
-      // [zh] TypeScript/JS 语句：`proxy.Message.success('操作成功')`
       proxy.Message.success('操作成功')
-      // [zh] TypeScript/JS 语句：`loadDataList()`
       loadDataList()
-    // [zh] TypeScript/JS 语句：`},`
     },
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `showAllProducts`
 const showAllProducts = (row) => {
-  // [zh] 声明变量 `items`
   const items = row.orderItems || []
-  // [zh] 声明变量 `html`
   let html = '<div style="max-height:400px;overflow-y:auto;">'
-  // [zh] 代码块开始
   items.forEach((item, idx) => {
-    // [zh] 声明变量 `cover`
     const cover = item.cover ? `<img src="${proxy.AppConfig.imageRootUrl}${item.cover.split(',')[0]}" style="width:60px;height:60px;object-fit:cover;border-radius:6px;flex-shrink:0;" />` : ''
-    // [zh] TypeScript/JS 语句：`html += `<div style="display:flex;gap:12px;padding:10px`
     html += `<div style="display:flex;gap:12px;padding:10px 0;${idx > 0 ? 'border-top:1px solid #eee;' : ''}">
-      // [zh] TypeScript/JS 语句：`${cover}`
       ${cover}
-      // [zh] TypeScript/JS 语句：`<div style="flex:1;min-width:0;">`
       <div style="flex:1;min-width:0;">
-        // [zh] TypeScript/JS 语句：`<div style="font-size:14px;font-weight:500;margin-botto`
         <div style="font-size:14px;font-weight:500;margin-bottom:4px;color:#1d1d1f;">${item.productName || ''}</div>
-        // [zh] TypeScript/JS 语句：`<div style="font-size:12px;color:#86868b;">${item.prope`
         <div style="font-size:12px;color:#86868b;">${item.propertyInfo || ''}</div>
-        // [zh] TypeScript/JS 语句：`<div style="font-size:12px;color:#86868b;margin-top:2px`
         <div style="font-size:12px;color:#86868b;margin-top:2px;">￥${item.itemAmount || 0} × ${item.buyCount || 0}</div>
-      // [zh] TypeScript/JS 语句：`</div>`
       </div>
-    // [zh] TypeScript/JS 语句：`</div>``
     </div>`
-  // [zh] TypeScript/JS 语句：`})`
   })
-  // [zh] TypeScript/JS 语句：`html += '</div>'`
   html += '</div>'
-  // [zh] 代码块开始
   try {
-    // [zh] 代码块开始
     ElMessageBox.alert(html, '该订单商品', {
-      // [zh] TypeScript/JS 语句：`dangerouslyUseHTMLString: true,`
       dangerouslyUseHTMLString: true,
-      // [zh] TypeScript/JS 语句：`confirmButtonText: '关闭',`
       confirmButtonText: '关闭',
-      // [zh] TypeScript/JS 语句：`showCancelButton: false,`
       showCancelButton: false,
-      // [zh] TypeScript/JS 语句：`closeOnClickModal: true,`
       closeOnClickModal: true,
-    // [zh] TypeScript/JS 语句：`})`
     })
-  // [zh] 代码块开始
   } catch (e) {
-    // [zh] TypeScript/JS 语句：`console.error(e)`
     console.error(e)
-  // [zh] 语法符号
   }
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `commentRef`
 const commentRef = ref()
-// [zh] 声明变量 `commentHandler`
 const commentHandler = (orderId) => {
-  // [zh] TypeScript/JS 语句：`commentRef.value.show(orderId)`
   commentRef.value.show(orderId)
-// [zh] 语法符号
 }
 </script>
 

@@ -79,85 +79,48 @@
   </aside>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { ref } from 'vue';
-// [zh] 导入 `vue-router`
 import { RouterLink, useRouter } from 'vue-router';
-// [zh] 导入 `@element-plus/icons-vue`
 import { ArrowRight } from '@element-plus/icons-vue';
 
-// [zh] 声明变量 `props`
 const props = defineProps<{
-  // [zh] 代码块开始
   categories: Array<{
-    // [zh] 语句
     categoryId: string;
-    // [zh] 语句
     categoryName: string;
-    // [zh] 语句
     children?: Array<{ categoryId: string; categoryName: string }>;
-  // [zh] 语句
   }>;
-// [zh] 语句
 }>();
 
-// [zh] 声明变量 `router`
 const router = useRouter();
-// [zh] 声明变量 `activeId`
 const activeId = ref<string | null>(null);
-// [zh] 声明变量 `closeTimer`
 let closeTimer: ReturnType<typeof setTimeout> | null = null;
 
-// [zh] 声明变量 `cancelClose`
 const cancelClose = () => {
-  // [zh] 条件判断 if
   if (closeTimer) {
-    // [zh] 语句
     clearTimeout(closeTimer);
-    // [zh] 语句
     closeTimer = null;
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 声明变量 `scheduleClose`
 const scheduleClose = () => {
-  // [zh] 语句
   cancelClose();
-  // [zh] 代码块开始
   closeTimer = setTimeout(() => {
-    // [zh] 语句
     activeId.value = null;
-    // [zh] 语句
     closeTimer = null;
-  // [zh] 语句
   }, 280);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `setActive`
 const setActive = (id: string) => {
-  // [zh] 语句
   cancelClose();
-  // [zh] 声明变量 `cat`
   const cat = props.categories.find((c) => c.categoryId === id);
-  // [zh] 语句
   activeId.value = cat?.children?.length ? id : null;
-// [zh] 语句
 };
 
-// [zh] 声明变量 `goCategory`
 const goCategory = (id: string) => {
-  // [zh] 语句
   cancelClose();
-  // [zh] 语句
   activeId.value = null;
-  // [zh] 语句
   router.push(`/category/${id}`);
-// [zh] 语句
 };
 </script>
 

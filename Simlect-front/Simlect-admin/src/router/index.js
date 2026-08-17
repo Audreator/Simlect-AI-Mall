@@ -298,7 +298,7 @@ router.beforeEach(async (to) => {
   const checkLogin = async () => {
     try {
       const base = import.meta.env.PROD ? '/admin-api' : '/api'
-      const res = await axios.get(`${base}/admin/account/checkLogin`, { withCredentials: true })
+      const res = await axios.get(`${base}/account/checkLogin`, { withCredentials: true })
       return res.data?.data === true
     } catch (e) {
       return false

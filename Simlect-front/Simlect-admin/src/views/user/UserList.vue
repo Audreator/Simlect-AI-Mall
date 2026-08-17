@@ -88,185 +88,97 @@
   </el-card>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `vue`
 import { ref, reactive, getCurrentInstance, nextTick } from 'vue'
-// [zh] 导入 `vue-router`
 import { useRouter } from 'vue-router'
-// [zh] TypeScript/JS 语句：`const { proxy } = getCurrentInstance()`
 const { proxy } = getCurrentInstance()
-// [zh] 声明变量 `router`
 const router = useRouter()
 
-// [zh] 声明变量 `SEX_MAP`
 const SEX_MAP = {
-  // [zh] TypeScript/JS 语句：`0: '女',`
   0: '女',
-  // [zh] TypeScript/JS 语句：`1: '男',`
   1: '男',
-  // [zh] TypeScript/JS 语句：`2: '保密',`
   2: '保密',
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `columns`
 const columns = [
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '用户ID',`
     label: '用户ID',
-    // [zh] TypeScript/JS 语句：`prop: 'userId',`
     prop: 'userId',
-    // [zh] TypeScript/JS 语句：`width: 220,`
     width: 220,
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '头像',`
     label: '头像',
-    // [zh] TypeScript/JS 语句：`prop: 'avatar',`
     prop: 'avatar',
-    // [zh] TypeScript/JS 语句：`scopedSlots: 'slotAvatar',`
     scopedSlots: 'slotAvatar',
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '昵称',`
     label: '昵称',
-    // [zh] TypeScript/JS 语句：`prop: 'nickName',`
     prop: 'nickName',
-    // [zh] TypeScript/JS 语句：`scopedSlots: 'slotNickName',`
     scopedSlots: 'slotNickName',
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '邮箱',`
     label: '邮箱',
-    // [zh] TypeScript/JS 语句：`prop: 'email',`
     prop: 'email',
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '加入时间',`
     label: '加入时间',
-    // [zh] TypeScript/JS 语句：`prop: 'joinTime',`
     prop: 'joinTime',
-    // [zh] TypeScript/JS 语句：`scopedSlots: 'slotJoinTime',`
     scopedSlots: 'slotJoinTime',
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '最后登录IP',`
     label: '最后登录IP',
-    // [zh] TypeScript/JS 语句：`prop: 'lastLoginIp',`
     prop: 'lastLoginIp',
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '状态',`
     label: '状态',
-    // [zh] TypeScript/JS 语句：`prop: 'status',`
     prop: 'status',
-    // [zh] TypeScript/JS 语句：`scopedSlots: 'slotStatus',`
     scopedSlots: 'slotStatus',
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '操作',`
     label: '操作',
-    // [zh] TypeScript/JS 语句：`prop: 'operation',`
     prop: 'operation',
-    // [zh] TypeScript/JS 语句：`width: 80,`
     width: 80,
-    // [zh] TypeScript/JS 语句：`scopedSlots: 'slotOperation',`
     scopedSlots: 'slotOperation',
-  // [zh] TypeScript/JS 语句：`},`
   },
-// [zh] TypeScript/JS 语句：`]`
 ]
 
-// [zh] 声明变量 `tableInfoRef`
 const tableInfoRef = ref()
-// [zh] 声明变量 `searchForm`
 const searchForm = ref({})
-// [zh] 声明变量 `tableData`
 const tableData = ref({})
-// [zh] 声明变量 `loadDataList`
 const loadDataList = async () => {
-  // [zh] 声明变量 `params`
   let params = {
-    // [zh] TypeScript/JS 语句：`pageNo: tableData.value.pageNo,`
     pageNo: tableData.value.pageNo,
-    // [zh] TypeScript/JS 语句：`pageSize: tableData.value.pageSize,`
     pageSize: tableData.value.pageSize,
-  // [zh] 语法符号
   }
-  // [zh] TypeScript/JS 语句：`Object.assign(params, searchForm.value)`
   Object.assign(params, searchForm.value)
-  // [zh] 声明变量 `result`
   let result = await proxy.Request({
-    // [zh] TypeScript/JS 语句：`url: proxy.Api.loadUser,`
     url: proxy.Api.loadUser,
-    // [zh] TypeScript/JS 语句：`params: params,`
     params: params,
-  // [zh] TypeScript/JS 语句：`})`
   })
-  // [zh] 条件判断 if
   if (!result) {
-    // [zh] TypeScript/JS 语句：`return`
     return
-  // [zh] 语法符号
   }
-  // [zh] TypeScript/JS 语句：`Object.assign(tableData.value, result.data)`
   Object.assign(tableData.value, result.data)
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `changeStatus`
 const changeStatus = (row) => {
-  // [zh] 代码块开始
   proxy.Confirm({
-    // [zh] TypeScript/JS 语句：`message: `确定要${row.status == 0 ? '启用' : '禁用'}吗？`,`
     message: `确定要${row.status == 0 ? '启用' : '禁用'}吗？`,
-    // [zh] 代码块开始
     okfun: async () => {
-      // [zh] 声明变量 `result`
       let result = await proxy.Request({
-        // [zh] TypeScript/JS 语句：`url: proxy.Api.changeStatus,`
         url: proxy.Api.changeStatus,
-        // [zh] 代码块开始
         params: {
-          // [zh] TypeScript/JS 语句：`userId: row.userId,`
           userId: row.userId,
-          // [zh] TypeScript/JS 语句：`status: row.status == 0 ? 1 : 0,`
           status: row.status == 0 ? 1 : 0,
-        // [zh] TypeScript/JS 语句：`},`
         },
-      // [zh] TypeScript/JS 语句：`})`
       })
-      // [zh] 条件判断 if
       if (!result) {
-        // [zh] TypeScript/JS 语句：`return`
         return
-      // [zh] 语法符号
       }
-      // [zh] TypeScript/JS 语句：`proxy.Message.success('操作成功')`
       proxy.Message.success('操作成功')
-      // [zh] TypeScript/JS 语句：`loadDataList()`
       loadDataList()
-    // [zh] TypeScript/JS 语句：`},`
     },
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 </script>
 

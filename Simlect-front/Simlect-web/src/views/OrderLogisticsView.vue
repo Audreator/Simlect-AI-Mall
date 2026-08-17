@@ -91,49 +91,29 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed, onMounted, ref } from 'vue';
-// [zh] 导入 `vue-router`
 import { useRoute } from 'vue-router';
-// [zh] 导入 `@/api/modules`
 import { orderApi } from '@/api/modules';
 
-// [zh] 声明变量 `route`
 const route = useRoute();
-// [zh] 声明变量 `loading`
 const loading = ref(true);
-// [zh] 声明变量 `logistics`
 const logistics = ref<Record<string, any> | null>(null);
 
-// [zh] 声明变量 `recordList`
 const recordList = computed(() => {
-  // [zh] 声明变量 `list`
   const list = logistics.value?.recordList;
-  // [zh] return 返回
   return Array.isArray(list) ? list : [];
-// [zh] 语句
 });
 
-// [zh] 声明变量 `load`
 const load = async () => {
-  // [zh] 语句
   loading.value = true;
-  // [zh] 代码块开始
   try {
-    // [zh] 语句
     logistics.value = (await orderApi.getLogistics(String(route.params.orderId))) || null;
-  // [zh] 代码块开始
   } finally {
-    // [zh] 语句
     loading.value = false;
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 语句
 onMounted(load);
 </script>
 

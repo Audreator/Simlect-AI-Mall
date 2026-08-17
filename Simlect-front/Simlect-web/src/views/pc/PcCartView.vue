@@ -8,8 +8,6 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `@/views/CartView.vue`
 import CartView from '@/views/CartView.vue';
 </script>

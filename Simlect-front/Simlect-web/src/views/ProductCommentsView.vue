@@ -124,361 +124,196 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
-// [zh] 导入 `vue-router`
 import { useRoute } from 'vue-router';
-// [zh] 导入 `@/stores/auth`
 import { useAuthStore } from '@/stores/auth';
-// [zh] 导入 `@/api/modules`
 import { commentApi, userMemberApi } from '@/api/modules';
-// [zh] 导入 `@/composables/pullRefresh`
 import { usePageRefresh } from '@/composables/pullRefresh';
-// [zh] 导入 `@/components/common/UserAvatar.vue`
 import UserAvatar from '@/components/common/UserAvatar.vue';
-// [zh] 导入 `@/components/common/ProductImage.vue`
 import ProductImage from '@/components/common/ProductImage.vue';
-// [zh] 导入 `@/components/business/CommentReportDialog.vue`
 import CommentReportDialog from '@/components/business/CommentReportDialog.vue';
-// [zh] 导入 `@/composables/usePageListCache`
 import { usePageListCache } from '@/composables/usePageListCache';
-// [zh] 导入 `@/utils/comment`
 import { matchCommentLevel, maskCommenterName, type CommentLevel } from '@/utils/comment';
-// [zh] 导入 `@/composables/imagePreview`
 import { openImagePreview } from '@/composables/imagePreview';
-// [zh] 导入 `@/utils/image`
 import { resolveImageUrl, splitImagePaths } from '@/utils/image';
 
-// [zh] 声明变量 `levelCache`
 const levelCache = ref<Map<string, { levelCode: number; levelName: string }>>(new Map());
 
-// [zh] 声明变量 `fetchLevelBadge`
 const fetchLevelBadge = (userId: string) => {
-  // [zh] 条件判断 if
   if (!userId || levelCache.value.has(userId)) return;
-  // [zh] 代码块开始
   userMemberApi.getLevelBadge(userId).then((res: any) => {
-    // [zh] 条件判断 if
     if (res?.levelCode != null) {
-      // [zh] 语句
       levelCache.value.set(userId, { levelCode: res.levelCode, levelName: res.levelName });
 
-      // [zh] 语句
       levelCache.value = new Map(levelCache.value);
-    // [zh] 语法符号
     }
-  // [zh] 语句
   }).catch(() => {});
-// [zh] 语句
 };
 
-// [zh] 声明变量 `getLevelBadge`
 const getLevelBadge = (userId: string) => levelCache.value.get(userId) ?? null;
 
-// [zh] 声明变量 `levelClass`
 const levelClass = (code: number) => {
-  // [zh] 条件判断 if
   if (code >= 3) return 'level-gold';
-  // [zh] 条件判断 if
   if (code >= 2) return 'level-silver';
-  // [zh] return 返回
   return 'level-default';
-// [zh] 语句
 };
 
-// [zh] 声明变量 `levelTabs`
 const levelTabs: { label: string; value: CommentLevel }[] = [
-  // [zh] TypeScript/JS 语句：`{ label: '全部', value: '' },`
   { label: '全部', value: '' },
-  // [zh] TypeScript/JS 语句：`{ label: '好评', value: 'good' },`
   { label: '好评', value: 'good' },
-  // [zh] TypeScript/JS 语句：`{ label: '中评', value: 'medium' },`
   { label: '中评', value: 'medium' },
-  // [zh] TypeScript/JS 语句：`{ label: '差评', value: 'bad' }`
   { label: '差评', value: 'bad' }
-// [zh] 语句
 ];
 
-// [zh] 声明变量 `route`
 const route = useRoute();
-// [zh] 声明变量 `auth`
 const auth = useAuthStore();
-// [zh] 声明变量 `currentUserId`
 const currentUserId = computed(() => auth.userInfo?.userId ?? '');
-// [zh] 声明变量 `commentLevel`
 const commentLevel = ref<CommentLevel>('');
-// [zh] 声明变量 `pageNo`
 const pageNo = ref(0);
-// [zh] 声明变量 `pageTotal`
 const pageTotal = ref(1);
-// [zh] 声明变量 `apiTotal`
 const apiTotal = ref(0);
-// [zh] 声明变量 `rawList`
 const rawList = ref<any[]>([]);
-// [zh] 声明变量 `loading`
 const loading = ref(false);
-// [zh] 声明变量 `finished`
 const finished = ref(false);
-// [zh] 声明变量 `scrollRoot`
 const scrollRoot = ref<HTMLElement>();
-// [zh] 声明变量 `sentinelRef`
 const sentinelRef = ref<HTMLElement>();
-// [zh] 声明变量 `observer`
 let observer: IntersectionObserver | null = null;
 
-// [zh] 声明变量 `productId`
 const productId = () => String(route.params.productId);
 
-// [zh] 声明变量 `reportRef`
 const reportRef = ref<InstanceType<typeof CommentReportDialog>>();
-// [zh] 声明变量 `reportComment`
 const reportComment = (c: any) => {
-  // [zh] 代码块开始
   reportRef.value?.show({
-    // [zh] TypeScript/JS 语句：`orderId: String(c.orderId),`
     orderId: String(c.orderId),
-    // [zh] TypeScript/JS 语句：`productId: productId(),`
     productId: productId(),
-    // [zh] TypeScript/JS 语句：`commentContent: c.commentContent`
     commentContent: c.commentContent
-  // [zh] 语句
   });
-// [zh] 语句
 };
 
-// [zh] 声明变量 `displayList`
 const displayList = computed(() =>
-  // [zh] TypeScript/JS 语句：`rawList.value.filter((c) => matchCommentLevel(c.star, c`
   rawList.value.filter((c) => matchCommentLevel(c.star, commentLevel.value))
-// [zh] 语句
 );
 
-// [zh] 声明变量 `displayTotal`
 const displayTotal = computed(() => {
-  // [zh] 条件判断 if
   if (!commentLevel.value) return apiTotal.value;
-  // [zh] return 返回
   return displayList.value.length;
-// [zh] 语句
 });
 
-// [zh] 声明变量 `commentImages`
 const commentImages = (raw?: string | null) => splitImagePaths(raw);
 
-// [zh] 声明变量 `openCommentImagePreview`
 const openCommentImagePreview = (images: string[], index: number) => {
 
-  // [zh] 声明变量 `fullUrls`
   const fullUrls = images.map((img) => resolveImageUrl(img, { useThumbnail: false }) || img);
-  // [zh] 语句
   openImagePreview(fullUrls, index);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `recommentLabel`
 const recommentLabel = (commentTime?: string, recommentTime?: string) => {
-  // [zh] 条件判断 if
   if (!commentTime || !recommentTime) return '';
-  // [zh] 声明变量 `start`
   const start = new Date(commentTime.replace(/-/g, '/')).getTime();
-  // [zh] 声明变量 `end`
   const end = new Date(recommentTime.replace(/-/g, '/')).getTime();
-  // [zh] 条件判断 if
   if (Number.isNaN(start) || Number.isNaN(end)) return '';
-  // [zh] 声明变量 `days`
   const days = Math.floor((end - start) / 86400000);
-  // [zh] 条件判断 if
   if (days <= 0) return '当天';
-  // [zh] return 返回
   return `${days}天后`;
-// [zh] 语句
 };
 
-// [zh] 声明变量 `setupObserver`
 const setupObserver = () => {
-  // [zh] 语句
   observer?.disconnect();
-  // [zh] 条件判断 if
   if (!sentinelRef.value) return;
-  // [zh] TypeScript/JS 语句：`observer = new IntersectionObserver(`
   observer = new IntersectionObserver(
-    // [zh] 代码块开始
     (entries) => {
-      // [zh] 条件判断 if
       if (entries.some((e) => e.isIntersecting)) loadMore();
-    // [zh] TypeScript/JS 语句：`},`
     },
-    // [zh] TypeScript/JS 语句：`{ root: scrollRoot.value, rootMargin: '80px', threshold`
     { root: scrollRoot.value, rootMargin: '80px', threshold: 0 }
-  // [zh] 语句
   );
-  // [zh] 语句
   observer.observe(sentinelRef.value);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `pageCache`
 const pageCache = usePageListCache({
-  // [zh] TypeScript/JS 语句：`cacheKey: () => `/product/${productId()}/comments|${com`
   cacheKey: () => `/product/${productId()}/comments|${commentLevel.value}`,
-  // [zh] TypeScript/JS 语句：`scrollRef: scrollRoot,`
   scrollRef: scrollRoot,
-  // [zh] 代码块开始
   getState: () => ({
-    // [zh] TypeScript/JS 语句：`commentLevel: commentLevel.value,`
     commentLevel: commentLevel.value,
-    // [zh] TypeScript/JS 语句：`rawList: rawList.value,`
     rawList: rawList.value,
-    // [zh] TypeScript/JS 语句：`pageNo: pageNo.value,`
     pageNo: pageNo.value,
-    // [zh] TypeScript/JS 语句：`pageTotal: pageTotal.value,`
     pageTotal: pageTotal.value,
-    // [zh] TypeScript/JS 语句：`apiTotal: apiTotal.value,`
     apiTotal: apiTotal.value,
-    // [zh] TypeScript/JS 语句：`finished: finished.value`
     finished: finished.value
-  // [zh] TypeScript/JS 语句：`}),`
   }),
-  // [zh] 代码块开始
   setState: (state) => {
-    // [zh] 语句
     commentLevel.value = (state.commentLevel as CommentLevel) ?? '';
-    // [zh] 语句
     rawList.value = (state.rawList as any[]) || [];
-    // [zh] 语句
     pageNo.value = Number(state.pageNo) || 0;
-    // [zh] 语句
     pageTotal.value = Number(state.pageTotal) || 1;
-    // [zh] 语句
     apiTotal.value = Number(state.apiTotal) || 0;
-    // [zh] 语句
     finished.value = !!state.finished;
-    // [zh] 语句
     loading.value = false;
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] TypeScript/JS 语句：`afterRestore: setupObserver`
   afterRestore: setupObserver
-// [zh] 语句
 });
 
-// [zh] 声明变量 `loadMore`
 const loadMore = async () => {
-  // [zh] 条件判断 if
   if (loading.value || finished.value) return;
-  // [zh] 条件判断 if
   if (pageNo.value >= pageTotal.value && pageNo.value > 0) {
-    // [zh] 语句
     finished.value = true;
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
 
-  // [zh] 语句
   loading.value = true;
-  // [zh] 代码块开始
   try {
-    // [zh] 声明变量 `nextPage`
     const nextPage = pageNo.value + 1;
-    // [zh] 声明变量 `r`
     const r = await commentApi.loadComment({ pageNo: nextPage, productId: productId() });
-    // [zh] 声明变量 `chunk`
     const chunk = r?.list || [];
-    // [zh] 条件判断 if
     if (nextPage === 1) rawList.value = chunk;
-    // [zh] else 分支
     else rawList.value = rawList.value.concat(chunk);
 
-    // [zh] 语句
     pageNo.value = r?.pageNo ?? nextPage;
-    // [zh] 语句
     pageTotal.value = r?.pageTotal ?? pageNo.value;
-    // [zh] 语句
     apiTotal.value = r?.totalCount ?? rawList.value.length;
-    // [zh] 语句
     finished.value = pageNo.value >= pageTotal.value;
-  // [zh] 代码块开始
   } finally {
-    // [zh] 语句
     loading.value = false;
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 声明变量 `resetAndLoad`
 const resetAndLoad = async () => {
-  // [zh] 语句
   pageNo.value = 0;
-  // [zh] 语句
   pageTotal.value = 1;
-  // [zh] 语句
   finished.value = false;
-  // [zh] 语句
   rawList.value = [];
-  // [zh] 语句
   apiTotal.value = 0;
-  // [zh] 条件判断 if
   if (scrollRoot.value) scrollRoot.value.scrollTop = 0;
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await loadMore();
-// [zh] 语句
 };
 
-// [zh] 代码块开始
 watch(commentLevel, async () => {
-  // [zh] 语句
   pageCache.clear();
-  // [zh] 条件判断 if
   if (scrollRoot.value) scrollRoot.value.scrollTop = 0;
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await resetAndLoad();
-  // [zh] 语句
   setupObserver();
-// [zh] 语句
 });
 
-// [zh] 代码块开始
 watch(rawList, () => {
-  // [zh] 代码块开始
   rawList.value.forEach((c: any) => {
-    // [zh] 条件判断 if
     if (c.userId) fetchLevelBadge(c.userId);
-  // [zh] 语句
   });
-// [zh] 语句
 }, { deep: false });
 
-// [zh] 代码块开始
 onMounted(async () => {
-  // [zh] 声明变量 `restored`
   const restored = await pageCache.tryRestore();
-  // [zh] 条件判断 if
   if (!restored) {
-    // [zh] await 等待 Promise（类比 CompletableFuture.get）
     await resetAndLoad();
-  // [zh] 语法符号
   }
-  // [zh] 语句
   setupObserver();
-// [zh] 语句
 });
 
-// [zh] 代码块开始
 usePageRefresh(async () => {
-  // [zh] 语句
   pageCache.clear();
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await resetAndLoad();
-  // [zh] 语句
   setupObserver();
-// [zh] 语句
 }, { getScrollEl: () => scrollRoot.value });
 
-// [zh] 语句
 onUnmounted(() => observer?.disconnect());
 </script>
 

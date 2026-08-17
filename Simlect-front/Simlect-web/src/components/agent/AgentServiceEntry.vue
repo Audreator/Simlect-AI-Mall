@@ -16,59 +16,34 @@
   </button>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `@element-plus/icons-vue`
 import { ChatDotRound } from '@element-plus/icons-vue';
-// [zh] 导入 `@/composables/useOpenAgent`
 import { useOpenAgent } from '@/composables/useOpenAgent';
-// [zh] 导入 `模块`
 import type { AgentConsultProduct } from '@/utils/agentProductConsult';
 
-// [zh] 声明变量 `props`
 const props = withDefaults(
-  // [zh] 代码块开始
   defineProps<{
-    // [zh] 语句
     compact?: boolean;
-    // [zh] 语句
     showLabel?: boolean;
-    // [zh] 语句
     iconSize?: number;
 
-    // [zh] 语句
     consultProduct?: AgentConsultProduct | null;
-  // [zh] TypeScript/JS 语句：`}>(),`
   }>(),
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`compact: true,`
     compact: true,
-    // [zh] TypeScript/JS 语句：`showLabel: false,`
     showLabel: false,
-    // [zh] TypeScript/JS 语句：`iconSize: 22,`
     iconSize: 22,
-    // [zh] TypeScript/JS 语句：`consultProduct: null`
     consultProduct: null
-  // [zh] 语法符号
   }
-// [zh] 语句
 );
 
-// [zh] 语句
 const { openAgent } = useOpenAgent();
 
-// [zh] 声明变量 `goAgent`
 const goAgent = () => {
-  // [zh] 代码块开始
   openAgent({
-    // [zh] TypeScript/JS 语句：`consultProduct: props.consultProduct,`
     consultProduct: props.consultProduct,
-    // [zh] TypeScript/JS 语句：`fromProduct: !!props.consultProduct?.productId`
     fromProduct: !!props.consultProduct?.productId
-  // [zh] 语句
   });
-// [zh] 语句
 };
 </script>
 

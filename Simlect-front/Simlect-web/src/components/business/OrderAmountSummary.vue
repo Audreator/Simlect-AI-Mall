@@ -30,63 +30,36 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed } from 'vue';
-// [zh] 导入 `模块`
 import {
-  // [zh] TypeScript/JS 语句：`formatOrderMoney,`
   formatOrderMoney,
-  // [zh] TypeScript/JS 语句：`hasOrderCouponDiscount,`
   hasOrderCouponDiscount,
-  // [zh] TypeScript/JS 语句：`orderCouponSummaryText`
   orderCouponSummaryText
-// [zh] 语句
 } from '@/utils/orderAmount';
 
-// [zh] 声明变量 `props`
 const props = withDefaults(
-  // [zh] 代码块开始
   defineProps<{
-    // [zh] 语句
     order?: Record<string, any> | null;
-    // [zh] 语句
     compact?: boolean;
-    // [zh] 语句
     originalLabel?: string;
-    // [zh] 语句
     payLabel?: string;
-  // [zh] TypeScript/JS 语句：`}>(),`
   }>(),
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`order: null,`
     order: null,
-    // [zh] TypeScript/JS 语句：`compact: false,`
     compact: false,
-    // [zh] TypeScript/JS 语句：`originalLabel: '商品总价',`
     originalLabel: '商品总价',
-    // [zh] TypeScript/JS 语句：`payLabel: '实付款'`
     payLabel: '实付款'
-  // [zh] 语法符号
   }
-// [zh] 语句
 );
 
-// [zh] 声明变量 `showCoupon`
 const showCoupon = computed(() => hasOrderCouponDiscount(props.order));
 
-// [zh] 声明变量 `showOriginal`
 const showOriginal = computed(() => showCoupon.value);
 
-// [zh] 声明变量 `couponLabel`
 const couponLabel = computed(() => {
-  // [zh] 声明变量 `summary`
   const summary = orderCouponSummaryText(props.order);
-  // [zh] return 返回
   return summary ? `优惠券：${summary}` : '优惠券';
-// [zh] 语句
 });
 </script>
 

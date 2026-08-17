@@ -16,119 +16,69 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed } from 'vue';
-// [zh] 导入 `vue-router`
 import { useRoute, useRouter } from 'vue-router';
-// [zh] 导入 `@element-plus/icons-vue`
 import { ArrowLeft } from '@element-plus/icons-vue';
-// [zh] 导入 `@/utils/mobileViewport`
 import { recoverIosViewportZoom } from '@/utils/mobileViewport';
 
-// [zh] 声明变量 `props`
 const props = defineProps<{
-  // [zh] 语句
   title?: string;
-  // [zh] 语句
   fallback?: string;
-// [zh] 语句
 }>();
 
-// [zh] 声明变量 `router`
 const router = useRouter();
-// [zh] 声明变量 `route`
 const route = useRoute();
 
-// [zh] 声明变量 `displayTitle`
 const displayTitle = computed(() => props.title || (route.meta.title as string) || '');
 
-// [zh] 声明变量 `fallbackPath`
 const fallbackPath = computed(() => props.fallback || '/');
 
-// [zh] 声明变量 `isAuthPage`
 const isAuthPage = () => route.path === '/login' || route.path === '/register';
 
-// [zh] 声明变量 `canHistoryBackSafely`
 const canHistoryBackSafely = () => {
-  // [zh] 声明变量 `back`
   const back = window.history.state?.back as string | null | undefined;
-  // [zh] 条件判断 if
   if (!back) return false;
 
-  // [zh] 声明变量 `backResolved`
   let backResolved;
-  // [zh] 代码块开始
   try {
-    // [zh] 语句
     backResolved = router.resolve(back);
-  // [zh] 代码块开始
   } catch {
-    // [zh] return 返回
     return false;
-  // [zh] 语法符号
   }
 
-  // [zh] 条件判断 if
   if (backResolved.fullPath === route.fullPath) return false;
 
-  // [zh] 声明变量 `redirectRaw`
   const redirectRaw = route.query.redirect;
-  // [zh] 条件判断 if
   if (typeof redirectRaw === 'string' && redirectRaw) {
-    // [zh] 代码块开始
     try {
-      // [zh] 条件判断 if
       if (router.resolve(redirectRaw).fullPath === backResolved.fullPath) return false;
-    // [zh] 代码块开始
     } catch {
 
-    // [zh] 语法符号
     }
-  // [zh] 语法符号
   }
 
-  // [zh] return 返回
   return !backResolved.matched.some((r) => r.meta.requiresAuth === true);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `goBack`
 const goBack = () => {
-  // [zh] 语句
   recoverIosViewportZoom();
-  // [zh] 语句
   (document.activeElement as HTMLElement | null)?.blur?.();
 
-  // [zh] 条件判断 if
   if (isAuthPage() && route.query.redirect) {
-    // [zh] 条件判断 if
     if (canHistoryBackSafely()) {
-      // [zh] 语句
       router.back();
-    // [zh] 代码块开始
     } else {
-      // [zh] 语句
       router.replace(fallbackPath.value);
-    // [zh] 语法符号
     }
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
 
-  // [zh] 条件判断 if
   if (window.history.length > 1) {
-    // [zh] 语句
     router.back();
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
-  // [zh] 语句
   router.replace(fallbackPath.value);
-// [zh] 语句
 };
 </script>
 

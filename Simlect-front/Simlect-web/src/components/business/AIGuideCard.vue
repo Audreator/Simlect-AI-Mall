@@ -46,102 +46,57 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { onMounted, ref } from 'vue';
-// [zh] 导入 `@element-plus/icons-vue`
 import { ArrowRight, ChatDotRound } from '@element-plus/icons-vue';
-// [zh] 导入 `@/composables/useOpenAgent`
 import { useOpenAgent } from '@/composables/useOpenAgent';
 
-// [zh] 声明变量 `PROMPT_POOL`
 const PROMPT_POOL = [
-  // [zh] TypeScript/JS 语句：`'通勤路上适合用什么',`
   '通勤路上适合用什么',
-  // [zh] TypeScript/JS 语句：`'厨房好物推荐',`
   '厨房好物推荐',
-  // [zh] TypeScript/JS 语句：`'宿舍生活必备品',`
   '宿舍生活必备品',
-  // [zh] TypeScript/JS 语句：`'运动健身装备推荐',`
   '运动健身装备推荐',
-  // [zh] TypeScript/JS 语句：`'百元以内的实用好物',`
   '百元以内的实用好物',
-  // [zh] TypeScript/JS 语句：`'适合送给妈妈的礼物',`
   '适合送给妈妈的礼物',
-  // [zh] TypeScript/JS 语句：`'居家收纳好物',`
   '居家收纳好物',
-  // [zh] TypeScript/JS 语句：`'学生党平价好物',`
   '学生党平价好物',
-  // [zh] TypeScript/JS 语句：`'数码周边推荐',`
   '数码周边推荐',
-  // [zh] TypeScript/JS 语句：`'秋冬保暖好物',`
   '秋冬保暖好物',
-  // [zh] TypeScript/JS 语句：`'宠物用品推荐',`
   '宠物用品推荐',
-  // [zh] TypeScript/JS 语句：`'旅行出行必备',`
   '旅行出行必备',
-  // [zh] TypeScript/JS 语句：`'适合送给男朋友的礼物',`
   '适合送给男朋友的礼物',
-  // [zh] TypeScript/JS 语句：`'办公桌改造好物',`
   '办公桌改造好物',
-  // [zh] TypeScript/JS 语句：`'卧室好物推荐',`
   '卧室好物推荐',
-  // [zh] TypeScript/JS 语句：`'夏天清凉好物',`
   '夏天清凉好物',
-  // [zh] TypeScript/JS 语句：`'100元内的创意礼物',`
   '100元内的创意礼物',
-  // [zh] TypeScript/JS 语句：`'健康养生好物',`
   '健康养生好物',
-  // [zh] TypeScript/JS 语句：`'宝宝用品推荐',`
   '宝宝用品推荐',
-  // [zh] TypeScript/JS 语句：`'车载好物推荐'`
   '车载好物推荐'
-// [zh] 语句
 ];
 
-// [zh] 函数 `pickRandom`
 function pickRandom<T>(arr: T[], count: number): T[] {
-  // [zh] 声明变量 `shuffled`
   const shuffled = [...arr];
-  // [zh] for 循环
   for (let i = shuffled.length - 1; i > 0; i--) {
-    // [zh] 声明变量 `j`
     const j = Math.floor(Math.random() * (i + 1));
-    // [zh] 语句
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  // [zh] 语法符号
   }
-  // [zh] return 返回
   return shuffled.slice(0, count);
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `samplePrompts`
 const samplePrompts = ref<string[]>([]);
 
-// [zh] 代码块开始
 onMounted(() => {
-  // [zh] 语句
   samplePrompts.value = pickRandom(PROMPT_POOL, 3);
-// [zh] 语句
 });
 
-// [zh] 语句
 const { openAgent } = useOpenAgent();
 
-// [zh] 声明变量 `goAgent`
 const goAgent = () => {
-  // [zh] 语句
   openAgent();
-// [zh] 语句
 };
 
-// [zh] 声明变量 `quickAsk`
 const quickAsk = (prompt: string) => {
-  // [zh] 语句
   openAgent({ presetMessage: prompt });
-// [zh] 语句
 };
 </script>
 

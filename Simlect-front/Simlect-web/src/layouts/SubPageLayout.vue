@@ -32,10 +32,7 @@
         <RouterView v-slot="{ Component }">
           <!-- [zh] 开始标签 `<Transition>` -->
           <Transition name="page-fade" mode="out-in">
-            <!-- [zh] 开始标签 `<component>` -->
-            <component :is="Component" />
-          <!-- [zh] 闭合标签 `</Transition>` -->
-          </Transition>
+            <component :is="Component" /></Transition>
         <!-- [zh] 闭合标签 `</RouterView>` -->
         </RouterView>
       <!-- [zh] 闭合标签 `</div>` -->
@@ -48,112 +45,63 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
-// [zh] 导入 `vue-router`
 import { RouterView, useRoute, useRouter } from 'vue-router';
-// [zh] 导入 `@/components/common/LiquidGlassSurface.vue`
 import LiquidGlassSurface from '@/components/common/LiquidGlassSurface.vue';
-// [zh] 导入 `@/components/layout/PageBackBar.vue`
 import PageBackBar from '@/components/layout/PageBackBar.vue';
-// [zh] 导入 `@/components/layout/MobileTabBar.vue`
 import MobileTabBar from '@/components/layout/MobileTabBar.vue';
-// [zh] 导入 `@/stores/cart`
 import { useCartStore } from '@/stores/cart';
-// [zh] 导入 `@/stores/auth`
 import { useAuthStore } from '@/stores/auth';
-// [zh] 导入 `@/utils/scrollMemory`
 import { restoreScrollForPath, saveScrollForPath } from '@/utils/scrollMemory';
 
-// [zh] 声明变量 `route`
 const route = useRoute();
-// [zh] 声明变量 `router`
 const router = useRouter();
-// [zh] 声明变量 `cartStore`
 const cartStore = useCartStore();
-// [zh] 声明变量 `authStore`
 const authStore = useAuthStore();
-// [zh] 声明变量 `isMobile`
 const isMobile = ref(false);
-// [zh] 声明变量 `subTopRef`
 const subTopRef = ref<InstanceType<typeof LiquidGlassSurface> | null>(null);
 
-// [zh] 代码块开始
 router.beforeEach((to, from) => {
-  // [zh] 条件判断 if
   if (from.fullPath && to.fullPath !== from.fullPath) {
-    // [zh] 语句
     saveScrollForPath(from.fullPath);
-  // [zh] 语法符号
   }
-// [zh] 语句
 });
 
-// [zh] 声明变量 `restoreScrollPosition`
 const restoreScrollPosition = () => {
-  // [zh] 语句
   restoreScrollForPath(route.fullPath);
-// [zh] 语句
 };
 
-// [zh] 代码块开始
 onMounted(() => {
-  // [zh] 语句
   checkMobile();
-  // [zh] 语句
   window.addEventListener('resize', checkMobile);
-  // [zh] 语句
   window.addEventListener('resize', syncSubTopHeight);
-  // [zh] 语句
   syncSubTopHeight();
-  // [zh] 条件判断 if
   if (authStore.isLoggedIn) cartStore.fetchCartCount();
-  // [zh] 语句
   router.afterEach(() => nextTick(() => restoreScrollPosition()));
-  // [zh] 语句
   restoreScrollPosition();
-// [zh] 语句
 });
 
-// [zh] 声明变量 `syncSubTopHeight`
 const syncSubTopHeight = () => {
-  // [zh] 声明变量 `el`
   const el = subTopRef.value?.$el as HTMLElement | undefined;
-  // [zh] 声明变量 `h`
   const h = el?.offsetHeight;
-  // [zh] 条件判断 if
   if (h && h > 0) {
-    // [zh] 语句
     document.documentElement.style.setProperty('--sub-top-height', `${h}px`);
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 声明变量 `hideTabBar`
 const hideTabBar = computed(() => route.matched.some((r) => r.meta.hideTabBar === true));
 
-// [zh] 声明变量 `isAgentPage`
 const isAgentPage = computed(() => route.path === '/ai-assistant' || route.path.endsWith('/ai-assistant'));
 
-// [zh] 声明变量 `checkMobile`
 const checkMobile = () => {
-  // [zh] 语句
   isMobile.value = window.innerWidth < 768;
-// [zh] 语句
 };
 
-// [zh] 代码块开始
 onUnmounted(() => {
-  // [zh] 语句
   window.removeEventListener('resize', checkMobile);
-  // [zh] 语句
   window.removeEventListener('resize', syncSubTopHeight);
-  // [zh] 语句
   document.documentElement.style.removeProperty('--sub-top-height');
-// [zh] 语句
 });
 </script>
 

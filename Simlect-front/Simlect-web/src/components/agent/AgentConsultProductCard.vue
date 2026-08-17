@@ -32,52 +32,31 @@
   </component>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed } from 'vue';
-// [zh] 导入 `@/components/common/ProductImage.vue`
 import ProductImage from '@/components/common/ProductImage.vue';
-// [zh] 导入 `模块`
 import type { AgentConsultProduct } from '@/utils/agentProductConsult';
 
-// [zh] 声明变量 `props`
 const props = withDefaults(
-  // [zh] 代码块开始
   defineProps<{
-    // [zh] 语句
     product: AgentConsultProduct;
-    // [zh] 语句
     variant?: 'composer' | 'bubble';
-    // [zh] 语句
     clickable?: boolean;
 
-    // [zh] 语句
     resuming?: boolean;
-  // [zh] TypeScript/JS 语句：`}>(),`
   }>(),
-  // [zh] TypeScript/JS 语句：`{ variant: 'composer', clickable: false, resuming: fals`
   { variant: 'composer', clickable: false, resuming: false }
-// [zh] 语句
 );
 
-// [zh] 声明变量 `emit`
 const emit = defineEmits<{ send: [] }>();
 
-// [zh] 声明变量 `priceText`
 const priceText = computed(() => {
-  // [zh] 声明变量 `n`
   const n = Number(props.product.minPrice);
-  // [zh] return 返回
   return Number.isFinite(n) ? n.toFixed(2) : '';
-// [zh] 语句
 });
 
-// [zh] 声明变量 `onClick`
 const onClick = () => {
-  // [zh] 条件判断 if
   if (props.clickable) emit('send');
-// [zh] 语句
 };
 </script>
 

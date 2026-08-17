@@ -38,14 +38,9 @@
       <router-view v-slot="{ Component }">
         <!-- [zh] 开始标签 `<transition>` -->
         <transition name="m-fade" mode="out-in">
-          <!-- [zh] 开始标签 `<keep-alive>` -->
           <keep-alive :max="10">
-            <!-- [zh] 开始标签 `<component>` -->
             <component :is="Component" />
-          <!-- [zh] 闭合标签 `</keep-alive>` -->
-          </keep-alive>
-        <!-- [zh] 闭合标签 `</transition>` -->
-        </transition>
+          </keep-alive></transition>
       <!-- [zh] 闭合标签 `</router-view>` -->
       </router-view>
     <!-- [zh] 闭合标签 `</main>` -->
@@ -97,127 +92,72 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `vue`
 import { computed, getCurrentInstance } from 'vue'
-// [zh] 导入 `vue-router`
 import { useRouter, useRoute } from 'vue-router'
-// [zh] 导入 `@/utils/device`
 import { resolveDesktopPath, switchToDesktopView } from '@/utils/device'
-// [zh] 导入 `@/components/LiquidGlassSurface.vue`
 import LiquidGlassSurface from '@/components/LiquidGlassSurface.vue'
-// [zh] 导入 `@/composables/useTabBarJelly.js`
 import { useTabBarJelly } from '@/composables/useTabBarJelly.js'
 
-// [zh] TypeScript/JS 语句：`const { proxy } = getCurrentInstance()`
 const { proxy } = getCurrentInstance()
-// [zh] 声明变量 `router`
 const router = useRouter()
-// [zh] 声明变量 `route`
 const route = useRoute()
 
-// [zh] 声明变量 `tabs`
 const tabs = [
-  // [zh] TypeScript/JS 语句：`{ label: '工作台', path: '/m/home', icon: 'home' },`
   { label: '工作台', path: '/m/home', icon: 'home' },
-  // [zh] TypeScript/JS 语句：`{ label: '商品', path: '/m/product', icon: 'product' },`
   { label: '商品', path: '/m/product', icon: 'product' },
-  // [zh] TypeScript/JS 语句：`{ label: '订单', path: '/m/order', icon: 'order' },`
   { label: '订单', path: '/m/order', icon: 'order' },
-  // [zh] TypeScript/JS 语句：`{ label: '用户', path: '/m/user', icon: 'user' },`
   { label: '用户', path: '/m/user', icon: 'user' },
-  // [zh] TypeScript/JS 语句：`{ label: '更多', path: '/m/more', icon: 'setting' }`
   { label: '更多', path: '/m/more', icon: 'setting' }
-// [zh] TypeScript/JS 语句：`]`
 ]
 
-// [zh] 声明变量 `tabPaths`
 const tabPaths = tabs.map((t) => t.path)
-// [zh] 声明变量 `title`
 const title = computed(() => route.meta?.title || '简选运营')
-// [zh] 声明变量 `showBack`
 const showBack = computed(() => !tabPaths.includes(route.path) && !!route.meta?.showBack)
 
-// [zh] 声明变量 `isTabActive`
 const isTabActive = (tab) => {
-  // [zh] 条件判断 if
   if (route.path === tab.path) return true
 
-  // [zh] return 返回
   return route.meta?.tab === tab.path
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `activeTabIndex`
 const activeTabIndex = computed(() => {
-  // [zh] 声明变量 `idx`
   const idx = tabs.findIndex((tab) => isTabActive(tab))
-  // [zh] return 返回
   return idx >= 0 ? idx : 0
-// [zh] TypeScript/JS 语句：`})`
 })
 
-// [zh] TypeScript/JS 语句：`const { barJelly, glassJelly, onTabPress } = useTabBarJ`
 const { barJelly, glassJelly, onTabPress } = useTabBarJelly(activeTabIndex)
 
-// [zh] 声明变量 `onTabClick`
 const onTabClick = (tab) => {
-  // [zh] TypeScript/JS 语句：`onTabPress()`
   onTabPress()
-  // [zh] TypeScript/JS 语句：`goTab(tab.path)`
   goTab(tab.path)
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `goTab`
 const goTab = (path) => {
-  // [zh] 条件判断 if
   if (route.path !== path) router.push(path)
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `goBack`
 const goBack = () => {
-  // [zh] 条件判断 if
   if (window.history.length > 1) router.back()
-  // [zh] else 分支
   else router.push('/m/home')
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `logout`
 const logout = () => {
-  // [zh] 代码块开始
   proxy.Confirm({
-    // [zh] TypeScript/JS 语句：`message: '确定要退出登录吗?',`
     message: '确定要退出登录吗?',
-    // [zh] 代码块开始
     okfun: async () => {
-      // [zh] await 等待 Promise（类比 CompletableFuture.get）
       await proxy.Request({ url: proxy.Api.logout })
-      // [zh] TypeScript/JS 语句：`router.push('/login')`
       router.push('/login')
-    // [zh] 语法符号
     }
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `switchToDesktop`
 const switchToDesktop = () => {
-  // [zh] 声明变量 `desktopPath`
   const desktopPath = resolveDesktopPath(route.path)
-  // [zh] 代码块开始
   proxy.Confirm({
-    // [zh] TypeScript/JS 语句：`message: '切换到电脑版将使用桌面布局，在当前设备上可能需要横屏或左右滑动查看，确定继续吗？',`
     message: '切换到电脑版将使用桌面布局，在当前设备上可能需要横屏或左右滑动查看，确定继续吗？',
-    // [zh] TypeScript/JS 语句：`okfun: () => switchToDesktopView(desktopPath),`
     okfun: () => switchToDesktopView(desktopPath),
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 </script>
 

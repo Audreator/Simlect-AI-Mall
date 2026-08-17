@@ -144,216 +144,115 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `vue`
 import { ref, reactive, getCurrentInstance, onMounted, onUnmounted } from 'vue'
 
-// [zh] TypeScript/JS 语句：`const { proxy } = getCurrentInstance()`
 const { proxy } = getCurrentInstance()
-// [zh] 声明变量 `searchForm`
 const searchForm = reactive({ idempotencyKeyFuzzy: '', bizScene: '', status: '' })
-// [zh] 声明变量 `list`
 const list = ref([])
-// [zh] 声明变量 `pageNo`
 const pageNo = ref(0)
-// [zh] 声明变量 `pageTotal`
 const pageTotal = ref(1)
-// [zh] 声明变量 `loading`
 const loading = ref(false)
-// [zh] 声明变量 `finished`
 const finished = ref(false)
-// [zh] 声明变量 `sentinel`
 const sentinel = ref(null)
-// [zh] 声明变量 `detailVisible`
 const detailVisible = ref(false)
-// [zh] 声明变量 `currentRow`
 const currentRow = ref(null)
-// [zh] 声明变量 `saving`
 const saving = ref(false)
-// [zh] 声明变量 `replaying`
 const replaying = ref(false)
-// [zh] 声明变量 `handleForm`
 const handleForm = reactive({ status: 0, handleRemark: '' })
-// [zh] 声明变量 `observer`
 let observer = null
 
-// [zh] 声明变量 `STATUS`
 const STATUS = { 0: '待处理', 1: '处理中', 2: '已重放', 3: '重放失败', 4: '已忽略' }
-// [zh] 声明变量 `statusLabel`
 const statusLabel = (s) => STATUS[s] ?? s
 
-// [zh] 声明变量 `loadList`
 const loadList = async (reset = false) => {
-  // [zh] 条件判断 if
   if (loading.value) return
-  // [zh] 条件判断 if
   if (reset) {
-    // [zh] TypeScript/JS 语句：`pageNo.value = 0`
     pageNo.value = 0
-    // [zh] TypeScript/JS 语句：`pageTotal.value = 1`
     pageTotal.value = 1
-    // [zh] TypeScript/JS 语句：`finished.value = false`
     finished.value = false
-    // [zh] TypeScript/JS 语句：`list.value = []`
     list.value = []
-  // [zh] 语法符号
   }
-  // [zh] 条件判断 if
   if (finished.value) return
-  // [zh] TypeScript/JS 语句：`loading.value = true`
   loading.value = true
-  // [zh] 代码块开始
   try {
-    // [zh] 声明变量 `next`
     const next = pageNo.value + 1
-    // [zh] 声明变量 `params`
     const params = { pageNo: next, pageSize: 15 }
-    // [zh] 条件判断 if
     if (searchForm.idempotencyKeyFuzzy) params.idempotencyKeyFuzzy = searchForm.idempotencyKeyFuzzy
-    // [zh] 条件判断 if
     if (searchForm.bizScene) params.bizScene = searchForm.bizScene
-    // [zh] 条件判断 if
     if (searchForm.status !== '') params.status = searchForm.status
-    // [zh] 声明变量 `result`
     const result = await proxy.Request({ url: proxy.Api.mqCompensationLogLoadList, params, showLoading: false })
-    // [zh] 条件判断 if
     if (!result) return
-    // [zh] 声明变量 `data`
     const data = result.data || {}
-    // [zh] 声明变量 `chunk`
     const chunk = data.list || []
-    // [zh] TypeScript/JS 语句：`list.value = next === 1 ? chunk : list.value.concat(chu`
     list.value = next === 1 ? chunk : list.value.concat(chunk)
-    // [zh] TypeScript/JS 语句：`pageNo.value = Number(data.pageNo) || next`
     pageNo.value = Number(data.pageNo) || next
-    // [zh] TypeScript/JS 语句：`pageTotal.value = Number(data.pageTotal) || pageNo.valu`
     pageTotal.value = Number(data.pageTotal) || pageNo.value
-    // [zh] TypeScript/JS 语句：`finished.value = pageNo.value >= pageTotal.value`
     finished.value = pageNo.value >= pageTotal.value
-  // [zh] 代码块开始
   } finally {
-    // [zh] TypeScript/JS 语句：`loading.value = false`
     loading.value = false
-  // [zh] 语法符号
   }
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `reload`
 const reload = () => loadList(true)
 
-// [zh] 声明变量 `openDetail`
 const openDetail = (row) => {
-  // [zh] TypeScript/JS 语句：`currentRow.value = row`
   currentRow.value = row
-  // [zh] TypeScript/JS 语句：`handleForm.status = row.status ?? 0`
   handleForm.status = row.status ?? 0
-  // [zh] TypeScript/JS 语句：`handleForm.handleRemark = row.handleRemark || ''`
   handleForm.handleRemark = row.handleRemark || ''
-  // [zh] TypeScript/JS 语句：`detailVisible.value = true`
   detailVisible.value = true
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `saveStatus`
 const saveStatus = async () => {
-  // [zh] 条件判断 if
   if (!currentRow.value) return
-  // [zh] TypeScript/JS 语句：`saving.value = true`
   saving.value = true
-  // [zh] 代码块开始
   try {
-    // [zh] 声明变量 `result`
     const result = await proxy.Request({
-      // [zh] TypeScript/JS 语句：`url: proxy.Api.mqCompensationLogUpdateStatus,`
       url: proxy.Api.mqCompensationLogUpdateStatus,
-      // [zh] 代码块开始
       params: {
-        // [zh] TypeScript/JS 语句：`logId: currentRow.value.logId,`
         logId: currentRow.value.logId,
-        // [zh] TypeScript/JS 语句：`status: handleForm.status,`
         status: handleForm.status,
-        // [zh] TypeScript/JS 语句：`handleRemark: handleForm.handleRemark`
         handleRemark: handleForm.handleRemark
-      // [zh] TypeScript/JS 语句：`},`
       },
-      // [zh] TypeScript/JS 语句：`showLoading: true`
       showLoading: true
-    // [zh] TypeScript/JS 语句：`})`
     })
-    // [zh] 条件判断 if
     if (!result) return
-    // [zh] TypeScript/JS 语句：`proxy.Message.success('已保存')`
     proxy.Message.success('已保存')
-    // [zh] TypeScript/JS 语句：`detailVisible.value = false`
     detailVisible.value = false
-    // [zh] TypeScript/JS 语句：`reload()`
     reload()
-  // [zh] 代码块开始
   } finally {
-    // [zh] TypeScript/JS 语句：`saving.value = false`
     saving.value = false
-  // [zh] 语法符号
   }
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `doReplay`
 const doReplay = async () => {
-  // [zh] 条件判断 if
   if (!currentRow.value) return
-  // [zh] TypeScript/JS 语句：`replaying.value = true`
   replaying.value = true
-  // [zh] 代码块开始
   try {
-    // [zh] 声明变量 `result`
     const result = await proxy.Request({
-      // [zh] TypeScript/JS 语句：`url: proxy.Api.mqCompensationLogReplay,`
       url: proxy.Api.mqCompensationLogReplay,
-      // [zh] TypeScript/JS 语句：`params: { logId: currentRow.value.logId },`
       params: { logId: currentRow.value.logId },
-      // [zh] TypeScript/JS 语句：`showLoading: true`
       showLoading: true
-    // [zh] TypeScript/JS 语句：`})`
     })
-    // [zh] 条件判断 if
     if (!result) return
-    // [zh] TypeScript/JS 语句：`proxy.Message.success('重放已提交')`
     proxy.Message.success('重放已提交')
-    // [zh] TypeScript/JS 语句：`detailVisible.value = false`
     detailVisible.value = false
-    // [zh] TypeScript/JS 语句：`reload()`
     reload()
-  // [zh] 代码块开始
   } finally {
-    // [zh] TypeScript/JS 语句：`replaying.value = false`
     replaying.value = false
-  // [zh] 语法符号
   }
-// [zh] 语法符号
 }
 
-// [zh] 代码块开始
 onMounted(() => {
-  // [zh] TypeScript/JS 语句：`loadList(true)`
   loadList(true)
-  // [zh] 代码块开始
   observer = new IntersectionObserver((entries) => {
-    // [zh] 条件判断 if
     if (entries[0]?.isIntersecting) loadList(false)
-  // [zh] TypeScript/JS 语句：`}, { rootMargin: '120px' })`
   }, { rootMargin: '120px' })
-  // [zh] 条件判断 if
   if (sentinel.value) observer.observe(sentinel.value)
-// [zh] TypeScript/JS 语句：`})`
 })
 
-// [zh] 代码块开始
 onUnmounted(() => {
-  // [zh] 条件判断 if
   if (observer) observer.disconnect()
-// [zh] TypeScript/JS 语句：`})`
 })
 </script>
 

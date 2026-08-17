@@ -62,38 +62,23 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed, onMounted, ref } from 'vue';
-// [zh] 导入 `@/components/common/UserAvatar.vue`
 import UserAvatar from '@/components/common/UserAvatar.vue';
-// [zh] 导入 `@/api/modules`
 import { accountApi } from '@/api/modules';
-// [zh] 导入 `@/stores/auth`
 import { useAuthStore } from '@/stores/auth';
 
-// [zh] 声明变量 `authStore`
 const authStore = useAuthStore();
-// [zh] 声明变量 `user`
 const user = ref<Record<string, any>>({});
 
-// [zh] 声明变量 `sexLabel`
 const sexLabel = computed(() => {
-  // [zh] 声明变量 `map`
   const map: Record<number, string> = { 0: '女', 1: '男', 2: '保密' };
-  // [zh] 声明变量 `s`
   const s = user.value?.sex;
-  // [zh] return 返回
   return map[s as number] ?? '保密';
-// [zh] 语句
 });
 
-// [zh] 代码块开始
 onMounted(async () => {
-  // [zh] 语句
   user.value = (await accountApi.getUserInfo()) || authStore.userInfo || {};
-// [zh] 语句
 });
 </script>
 

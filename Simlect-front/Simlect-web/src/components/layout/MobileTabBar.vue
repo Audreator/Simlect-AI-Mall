@@ -19,17 +19,11 @@
       <!-- [zh] 开始标签 `<LiquidGlassSurface>` -->
       <LiquidGlassSurface
         v-show="activeIndex >= 0"
-        <!-- [zh] 模板内容：`intensity="strong"` -->
         intensity="strong"
-        <!-- [zh] 模板内容：`variant="active"` -->
         variant="active"
-        <!-- [zh] 模板内容：`class="tab-active-glass"` -->
         class="tab-active-glass"
-        <!-- [zh] 模板内容：`:class="{ 'is-jelly': glassJelly }"` -->
         :class="{ 'is-jelly': glassJelly }"
-        <!-- [zh] 模板内容：`aria-hidden="true"` -->
         aria-hidden="true"
-      <!-- [zh] 模板内容：`/>` -->
       />
 
       <!-- [zh] 开始标签 `<RouterLink>` -->
@@ -70,119 +64,66 @@
   </Teleport>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
-// [zh] 导入 `vue-router`
 import { RouterLink, useRoute } from 'vue-router';
-// [zh] 导入 `@element-plus/icons-vue`
 import { HomeFilled, Grid, ShoppingCart, User } from '@element-plus/icons-vue';
-// [zh] 导入 `@/components/common/LiquidGlassSurface.vue`
 import LiquidGlassSurface from '@/components/common/LiquidGlassSurface.vue';
-// [zh] 导入 `@/composables/useTabBarJelly`
 import { useTabBarJelly } from '@/composables/useTabBarJelly';
-// [zh] 导入 `@/stores/cart`
 import { useCartStore } from '@/stores/cart';
-// [zh] 导入 `@/stores/auth`
 import { useAuthStore } from '@/stores/auth';
 
-// [zh] 声明变量 `route`
 const route = useRoute();
-// [zh] 声明变量 `cartStore`
 const cartStore = useCartStore();
-// [zh] 声明变量 `authStore`
 const authStore = useAuthStore();
-// [zh] 声明变量 `hostRef`
 const hostRef = ref<HTMLElement | null>(null);
-// [zh] 声明变量 `cartCount`
 const cartCount = computed(() => cartStore.cartCount);
 
-// [zh] 声明变量 `syncTabStackHeight`
 const syncTabStackHeight = () => {
-  // [zh] 声明变量 `el`
   const el = hostRef.value;
-  // [zh] 条件判断 if
   if (!el) return;
-  // [zh] 声明变量 `rect`
   const rect = el.getBoundingClientRect();
-  // [zh] 声明变量 `stackHeight`
   const stackHeight = window.innerHeight - rect.top;
-  // [zh] 语句
   document.documentElement.style.setProperty('--mobile-tab-stack-height', `${stackHeight}px`);
-// [zh] 语句
 };
 
-// [zh] 代码块开始
 onMounted(() => {
-  // [zh] 语句
   nextTick(syncTabStackHeight);
-  // [zh] 语句
   window.addEventListener('resize', syncTabStackHeight);
-  // [zh] 语句
   window.visualViewport?.addEventListener('resize', syncTabStackHeight);
-  // [zh] 语句
   window.visualViewport?.addEventListener('scroll', syncTabStackHeight);
-// [zh] 语句
 });
 
-// [zh] 代码块开始
 onUnmounted(() => {
-  // [zh] 语句
   window.removeEventListener('resize', syncTabStackHeight);
-  // [zh] 语句
   window.visualViewport?.removeEventListener('resize', syncTabStackHeight);
-  // [zh] 语句
   window.visualViewport?.removeEventListener('scroll', syncTabStackHeight);
-// [zh] 语句
 });
 
-// [zh] 声明变量 `tabs`
 const tabs = computed(() => [
-  // [zh] TypeScript/JS 语句：`{ path: '/', label: '首页', icon: HomeFilled, match: (p: `
   { path: '/', label: '首页', icon: HomeFilled, match: (p: string) => p === '/' },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`path: '/search',`
     path: '/search',
-    // [zh] TypeScript/JS 语句：`label: '分类',`
     label: '分类',
-    // [zh] TypeScript/JS 语句：`icon: Grid,`
     icon: Grid,
-    // [zh] TypeScript/JS 语句：`match: (p: string) => p === '/search' || p.startsWith('`
     match: (p: string) => p === '/search' || p.startsWith('/category/')
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] TypeScript/JS 语句：`{ path: '/cart', label: '购物车', icon: ShoppingCart, badg`
   { path: '/cart', label: '购物车', icon: ShoppingCart, badge: true, match: (p: string) => p === '/cart' },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`path: authStore.isLoggedIn ? '/account' : '/login',`
     path: authStore.isLoggedIn ? '/account' : '/login',
-    // [zh] TypeScript/JS 语句：`label: '我的',`
     label: '我的',
-    // [zh] TypeScript/JS 语句：`icon: User,`
     icon: User,
-    // [zh] TypeScript/JS 语句：`match: (p: string) => p === '/account' || (!authStore.i`
     match: (p: string) => p === '/account' || (!authStore.isLoggedIn && p === '/login')
-  // [zh] 语法符号
   }
-// [zh] 语句
 ]);
 
-// [zh] 声明变量 `isActive`
 const isActive = (item: (typeof tabs.value)[0]) => item.match(route.path);
 
-// [zh] 声明变量 `activeIndex`
 const activeIndex = computed(() => {
-  // [zh] 声明变量 `idx`
   const idx = tabs.value.findIndex((item) => isActive(item));
-  // [zh] return 返回
   return idx >= 0 ? idx : -1;
-// [zh] 语句
 });
 
-// [zh] 语句
 const { barJelly, glassJelly, onTabPress } = useTabBarJelly();
 </script>
 

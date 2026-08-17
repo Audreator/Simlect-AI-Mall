@@ -14,31 +14,21 @@
     <p class="pc-product-tile__price">
       <!-- [zh] 开始标签 `<span>` -->
       <span class="sym">¥</span>{{ displayPrice }}
-    <!-- [zh] 闭合标签 `</p>` -->
     </p>
   <!-- [zh] 闭合标签 `</article>` -->
   </article>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed } from 'vue';
-// [zh] 导入 `@/components/common/ProductImage.vue`
 import ProductImage from '@/components/common/ProductImage.vue';
 
-// [zh] 声明变量 `props`
 const props = defineProps<{ product: Record<string, any> }>();
-// [zh] 语句
 defineEmits<{ click: [Record<string, any>] }>();
 
-// [zh] 声明变量 `displayPrice`
 const displayPrice = computed(() => {
-  // [zh] 声明变量 `p`
   const p = props.product.price ?? props.product.salePrice ?? props.product.minPrice;
-  // [zh] return 返回
   return p != null ? Number(p).toFixed(2) : '--';
-// [zh] 语句
 });
 </script>
 

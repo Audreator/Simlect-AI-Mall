@@ -30,13 +30,9 @@
 
       <!-- [zh] 开始标签 `<transition>` -->
       <transition name="sl-flyout">
-        <!-- [zh] 开始标签 `<div>` -->
         <div v-if="activeFlyout" class="sl-cat-flyout">
-          <!-- [zh] 开始标签 `<div>` -->
           <div class="sl-flyout-head">{{ activeFlyout.categoryName }}</div>
-          <!-- [zh] 开始标签 `<div>` -->
           <div class="sl-flyout-body">
-            <!-- [zh] 开始标签 `<button>` -->
             <button
               v-for="sub in activeFlyout.children"
               :key="sub.categoryId"
@@ -44,17 +40,11 @@
               class="sl-flyout-sub"
               @click="goCategory(sub.categoryId)"
             >
-              <!-- [zh] Mustache 插值表达式 -->
               {{ sub.categoryName }}
-            <!-- [zh] 闭合标签 `</button>` -->
             </button>
-            <!-- [zh] 开始标签 `<p>` -->
             <p v-if="!activeFlyout.children?.length" class="sl-flyout-empty">暂无子分类</p>
-          <!-- [zh] 闭合标签 `</div>` -->
           </div>
-        <!-- [zh] 闭合标签 `</div>` -->
         </div>
-      <!-- [zh] 闭合标签 `</transition>` -->
       </transition>
     <!-- [zh] 闭合标签 `</aside>` -->
     </aside>
@@ -200,201 +190,110 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { computed, onUnmounted, ref, watch } from 'vue';
-// [zh] 导入 `vue-router`
 import { RouterLink, useRouter } from 'vue-router';
-// [zh] 导入 `模块`
 import {
-  // [zh] TypeScript/JS 语句：`ArrowRight,`
   ArrowRight,
-  // [zh] TypeScript/JS 语句：`ChatDotRound,`
   ChatDotRound,
-  // [zh] TypeScript/JS 语句：`Grid,`
   Grid,
-  // [zh] TypeScript/JS 语句：`List,`
   List,
-  // [zh] TypeScript/JS 语句：`Location,`
   Location,
-  // [zh] TypeScript/JS 语句：`Present,`
   Present,
-  // [zh] TypeScript/JS 语句：`Star,`
   Star,
-  // [zh] TypeScript/JS 语句：`Ticket,`
   Ticket,
-  // [zh] TypeScript/JS 语句：`Wallet`
   Wallet
-// [zh] 语句
 } from '@element-plus/icons-vue';
-// [zh] 导入 `@/components/common/BrandMark.vue`
 import BrandMark from '@/components/common/BrandMark.vue';
-// [zh] 导入 `@/components/common/ProductImage.vue`
 import ProductImage from '@/components/common/ProductImage.vue';
-// [zh] 导入 `@/composables/useOpenAgent`
 import { useOpenAgent } from '@/composables/useOpenAgent';
-// [zh] 导入 `@/stores/auth`
 import { useAuthStore } from '@/stores/auth';
-// [zh] 导入 `@/utils/image`
 import { resolveAvatarUrl } from '@/utils/image';
 
-// [zh] 声明变量 `props`
 const props = defineProps<{
-  // [zh] 代码块开始
   categories: Array<{
-    // [zh] 语句
     categoryId: string;
-    // [zh] 语句
     categoryName: string;
-    // [zh] 语句
     children?: Array<{ categoryId: string; categoryName: string }>;
-  // [zh] 语句
   }>;
-  // [zh] 语句
   hotProducts: any[];
-// [zh] 语句
 }>();
 
-// [zh] 声明变量 `router`
 const router = useRouter();
-// [zh] 语句
 const { openAgent } = useOpenAgent();
-// [zh] 声明变量 `authStore`
 const authStore = useAuthStore();
-// [zh] 声明变量 `carouselIndex`
 const carouselIndex = ref(0);
-// [zh] 声明变量 `hoverCategory`
 const hoverCategory = ref<string | null>(null);
-// [zh] 声明变量 `carouselTimer`
 let carouselTimer: ReturnType<typeof setInterval> | null = null;
 
-// [zh] 声明变量 `avatarUrl`
 const avatarUrl = computed(() => resolveAvatarUrl(authStore.userInfo?.avatar));
-// [zh] 声明变量 `avatarLetter`
 const avatarLetter = computed(() => (authStore.userInfo?.nickName || '访')[0]);
 
-// [zh] 声明变量 `topCategories`
 const topCategories = computed(() => props.categories.slice(0, 11));
 
-// [zh] 声明变量 `activeFlyout`
 const activeFlyout = computed(
-  // [zh] TypeScript/JS 语句：`() => topCategories.value.find((c) => c.categoryId === `
   () => topCategories.value.find((c) => c.categoryId === hoverCategory.value) || null
-// [zh] 语句
 );
 
-// [zh] 声明变量 `formatPrice`
 const formatPrice = (p: Record<string, any>) => {
-  // [zh] 声明变量 `val`
   const val = p?.minPrice ?? p?.price ?? p?.salePrice;
-  // [zh] return 返回
   return val != null ? Number(val).toFixed(2) : '--';
-// [zh] 语句
 };
 
-// [zh] 声明变量 `bannerList`
 const bannerList = computed(() => props.hotProducts.slice(0, 5));
-// [zh] 声明变量 `bannerProduct`
 const bannerProduct = computed(() => bannerList.value[carouselIndex.value] || bannerList.value[0]);
-// [zh] 声明变量 `stripProducts`
 const stripProducts = computed(() => props.hotProducts.slice(0, 4));
 
-// [zh] 声明变量 `startCarousel`
 const startCarousel = () => {
-  // [zh] 条件判断 if
   if (carouselTimer) clearInterval(carouselTimer);
-  // [zh] 条件判断 if
   if (bannerList.value.length <= 1) return;
-  // [zh] 代码块开始
   carouselTimer = setInterval(() => {
-    // [zh] 语句
     carouselIndex.value = (carouselIndex.value + 1) % bannerList.value.length;
-  // [zh] 语句
   }, 4500);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `goBanner`
 const goBanner = (index: number) => {
-  // [zh] 声明变量 `total`
   const total = bannerList.value.length;
-  // [zh] 条件判断 if
   if (!total) return;
-  // [zh] 语句
   carouselIndex.value = (index + total) % total;
-  // [zh] 语句
   startCarousel();
-// [zh] 语句
 };
 
-// [zh] TypeScript/JS 语句：`watch(`
 watch(
-  // [zh] TypeScript/JS 语句：`() => props.hotProducts.length,`
   () => props.hotProducts.length,
-  // [zh] 代码块开始
   (len) => {
-    // [zh] 条件判断 if
     if (len && carouselIndex.value >= len) carouselIndex.value = 0;
-    // [zh] 语句
     startCarousel();
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] TypeScript/JS 语句：`{ immediate: true }`
   { immediate: true }
-// [zh] 语句
 );
 
-// [zh] 代码块开始
 onUnmounted(() => {
-  // [zh] 条件判断 if
   if (carouselTimer) clearInterval(carouselTimer);
-// [zh] 语句
 });
 
-// [zh] 声明变量 `serviceGrid`
 const serviceGrid = [
-  // [zh] TypeScript/JS 语句：`{ label: '全部分类', path: '/search', icon: Grid },`
   { label: '全部分类', path: '/search', icon: Grid },
-  // [zh] TypeScript/JS 语句：`{ label: '优惠券', path: '/coupons', icon: Ticket },`
   { label: '优惠券', path: '/coupons', icon: Ticket },
-  // [zh] TypeScript/JS 语句：`{ label: '我的订单', path: '/orders', icon: List },`
   { label: '我的订单', path: '/orders', icon: List },
-  // [zh] TypeScript/JS 语句：`{ label: '购物车', path: '/cart', icon: Wallet },`
   { label: '购物车', path: '/cart', icon: Wallet },
-  // [zh] TypeScript/JS 语句：`{ label: '签到有礼', path: '/sign', icon: Present },`
   { label: '签到有礼', path: '/sign', icon: Present },
-  // [zh] TypeScript/JS 语句：`{ label: '我的收藏', path: '/wishlist', icon: Star },`
   { label: '我的收藏', path: '/wishlist', icon: Star },
-  // [zh] TypeScript/JS 语句：`{ label: '收货地址', path: '/address', icon: Location },`
   { label: '收货地址', path: '/address', icon: Location },
-  // [zh] TypeScript/JS 语句：`{ label: '消息中心', path: '/notifications', icon: ChatDotR`
   { label: '消息中心', path: '/notifications', icon: ChatDotRound }
-// [zh] 语句
 ];
 
-// [zh] 声明变量 `goCategory`
 const goCategory = (id: string) => {
-  // [zh] 条件判断 if
   if (id) router.push(`/category/${id}`);
-  // [zh] else 分支
   else router.push('/search');
-// [zh] 语句
 };
 
-// [zh] 声明变量 `goDetail`
 const goDetail = (p: any) => {
-  // [zh] 条件判断 if
   if (p?.productId) router.push(`/product/${p.productId}`);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `onServiceClick`
 const onServiceClick = (item: { path: string }) => {
-  // [zh] 条件判断 if
   if (item.path === '/ai-assistant') openAgent();
-  // [zh] else 分支
   else router.push(item.path);
-// [zh] 语句
 };
 </script>

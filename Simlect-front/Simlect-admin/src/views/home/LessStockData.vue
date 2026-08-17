@@ -41,122 +41,66 @@
   <ProductStock ref="productStockRef"></ProductStock>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `@/views/product/edit/ProductStock.vue`
 import ProductStock from '@/views/product/edit/ProductStock.vue'
-// [zh] 导入 `模块`
 import {
-  // [zh] TypeScript/JS 语句：`ref,`
   ref,
-  // [zh] TypeScript/JS 语句：`reactive,`
   reactive,
-  // [zh] TypeScript/JS 语句：`getCurrentInstance,`
   getCurrentInstance,
-  // [zh] TypeScript/JS 语句：`nextTick,`
   nextTick,
-  // [zh] TypeScript/JS 语句：`onMounted,`
   onMounted,
-  // [zh] TypeScript/JS 语句：`onUnmounted,`
   onUnmounted,
-// [zh] TypeScript/JS 语句：`} from 'vue'`
 } from 'vue'
-// [zh] 导入 `vue-router`
 import { useRouter } from 'vue-router'
-// [zh] TypeScript/JS 语句：`const { proxy } = getCurrentInstance()`
 const { proxy } = getCurrentInstance()
-// [zh] 导入 `@/eventbus/eventBus.js`
 import { mitter } from '@/eventbus/eventBus.js'
 
-// [zh] 声明变量 `columns`
 const columns = [
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '库存预警',`
     label: '库存预警',
-    // [zh] TypeScript/JS 语句：`prop: 'avatar',`
     prop: 'avatar',
-    // [zh] TypeScript/JS 语句：`scopedSlots: 'slotProduct',`
     scopedSlots: 'slotProduct',
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '库存',`
     label: '库存',
-    // [zh] TypeScript/JS 语句：`prop: 'stock',`
     prop: 'stock',
-    // [zh] TypeScript/JS 语句：`width: 100,`
     width: 100,
-    // [zh] TypeScript/JS 语句：`scopedSlots: 'slotStock',`
     scopedSlots: 'slotStock',
-  // [zh] TypeScript/JS 语句：`},`
   },
-// [zh] TypeScript/JS 语句：`]`
 ]
 
-// [zh] 声明变量 `searchForm`
 const searchForm = ref({})
-// [zh] 声明变量 `tableData`
 const tableData = ref({ pageNo: 1, pageSize: 4 })
-// [zh] 声明变量 `loadDataList`
 const loadDataList = async () => {
-  // [zh] 声明变量 `params`
   let params = {
-    // [zh] TypeScript/JS 语句：`pageNo: tableData.value.pageNo || 1,`
     pageNo: tableData.value.pageNo || 1,
-    // [zh] TypeScript/JS 语句：`pageSize: tableData.value.pageSize || 4,`
     pageSize: tableData.value.pageSize || 4,
-  // [zh] 语法符号
   }
-  // [zh] TypeScript/JS 语句：`Object.assign(params, searchForm.value)`
   Object.assign(params, searchForm.value)
-  // [zh] 声明变量 `result`
   let result = await proxy.Request({
-    // [zh] TypeScript/JS 语句：`url: proxy.Api.loadLessStockProduct,`
     url: proxy.Api.loadLessStockProduct,
-    // [zh] TypeScript/JS 语句：`params: params,`
     params: params,
-  // [zh] TypeScript/JS 语句：`})`
   })
-  // [zh] 条件判断 if
   if (!result) {
-    // [zh] TypeScript/JS 语句：`return`
     return
-  // [zh] 语法符号
   }
-  // [zh] TypeScript/JS 语句：`Object.assign(tableData.value, result.data)`
   Object.assign(tableData.value, result.data)
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `productStockRef`
 const productStockRef = ref()
-// [zh] 声明变量 `updateStock`
 const updateStock = (row) => {
-  // [zh] TypeScript/JS 语句：`productStockRef.value.show(row.productId, row.propertyV`
   productStockRef.value.show(row.productId, row.propertyValueIdHash)
-// [zh] 语法符号
 }
 
-// [zh] 代码块开始
 onMounted(() => {
-  // [zh] 代码块开始
   mitter.on('updateStockCallback', () => {
-    // [zh] 语句
     productStockRef.value.close();
-    // [zh] TypeScript/JS 语句：`loadDataList()`
     loadDataList()
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] TypeScript/JS 语句：`})`
 })
 
-// [zh] 代码块开始
 onUnmounted(() => {
-  // [zh] TypeScript/JS 语句：`mitter.off('updateStockCallback')`
   mitter.off('updateStockCallback')
-// [zh] TypeScript/JS 语句：`})`
 })
 </script>
 

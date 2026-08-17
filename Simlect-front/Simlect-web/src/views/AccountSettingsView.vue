@@ -84,141 +84,76 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { onMounted, reactive, ref } from 'vue';
-// [zh] 导入 `vue-router`
 import { useRouter } from 'vue-router';
-// [zh] 导入 `element-plus`
 import { ElMessage } from 'element-plus';
-// [zh] 导入 `@/utils/apiError`
 import { formatUploadErrorMessage } from '@/utils/apiError';
-// [zh] 导入 `@/components/common/UserAvatar.vue`
 import UserAvatar from '@/components/common/UserAvatar.vue';
-// [zh] 导入 `@/components/business/AvatarCropperDialog.vue`
 import AvatarCropperDialog from '@/components/business/AvatarCropperDialog.vue';
-// [zh] 导入 `@/api/modules`
 import { accountApi, fileApi } from '@/api/modules';
-// [zh] 导入 `@/stores/auth`
 import { useAuthStore } from '@/stores/auth';
 
-// [zh] 声明变量 `router`
 const router = useRouter();
-// [zh] 声明变量 `authStore`
 const authStore = useAuthStore();
-// [zh] 声明变量 `uploading`
 const uploading = ref(false);
-// [zh] 声明变量 `fileInputRef`
 const fileInputRef = ref<HTMLInputElement>();
-// [zh] 声明变量 `cropperDialogRef`
 const cropperDialogRef = ref<InstanceType<typeof AvatarCropperDialog>>();
-// [zh] 声明变量 `form`
 const form = reactive<any>({ nickName: '', sex: 2, avatar: '' });
 
-// [zh] 声明变量 `load`
 const load = async () => {
-  // [zh] 语句
   Object.assign(form, await accountApi.getUserInfo());
-// [zh] 语句
 };
 
-// [zh] 声明变量 `pickAvatar`
 const pickAvatar = () => {
-  // [zh] 语句
   fileInputRef.value?.click();
-// [zh] 语句
 };
 
-// [zh] 声明变量 `onAvatarChange`
 const onAvatarChange = async (e: Event) => {
-    // [zh] 声明变量 `file`
     const file = (e.target as HTMLInputElement).files?.[0];
-    // [zh] 条件判断 if
     if (!file) return;
-    // [zh] 条件判断 if
     if (!file.type.startsWith('image/')) {
-      // [zh] 语句
       ElMessage.warning('请选择图片文件');
-      // [zh] 语句
       return;
-    // [zh] 语法符号
     }
-    // [zh] 条件判断 if
     if (file.size === 0) {
-      // [zh] 语句
       ElMessage.warning('文件为空，请选择其他图片');
-      // [zh] 语句
       return;
-    // [zh] 语法符号
     }
-    // [zh] 条件判断 if
     if (fileInputRef.value) fileInputRef.value.value = '';
-    // [zh] 语句
     uploading.value = true;
-    // [zh] 代码块开始
     try {
-      // [zh] 声明变量 `blob`
       const blob = await cropperDialogRef.value!.open(file);
-      // [zh] 条件判断 if
       if (!blob || blob.size === 0) {
-        // [zh] 语句
         ElMessage.error('图片处理失败，尝试直接上传原始图片...');
-        // [zh] 声明变量 `uploaded`
         const uploaded = await fileApi.uploadImage(file, true, 'avatar');
-        // [zh] 语句
         form.avatar = uploaded.path;
-        // [zh] await 等待 Promise（类比 CompletableFuture.get）
         await accountApi.updateUserInfo({ nickName: form.nickName, sex: form.sex, avatar: form.avatar });
-        // [zh] await 等待 Promise（类比 CompletableFuture.get）
         await authStore.fetchUserInfo();
-        // [zh] 语句
         ElMessage.success('头像已更新');
-        // [zh] 语句
         uploading.value = false;
-        // [zh] 语句
         return;
-      // [zh] 语法符号
       }
-      // [zh] 声明变量 `uploaded`
       const uploaded = await fileApi.uploadImage(blob, true, 'avatar');
-      // [zh] 语句
       form.avatar = uploaded.path;
-      // [zh] await 等待 Promise（类比 CompletableFuture.get）
       await accountApi.updateUserInfo({ nickName: form.nickName, sex: form.sex, avatar: form.avatar });
-      // [zh] await 等待 Promise（类比 CompletableFuture.get）
       await authStore.fetchUserInfo();
-      // [zh] 语句
       ElMessage.success('头像已更新');
-    // [zh] 代码块开始
     } catch (err) {
-      // [zh] 语句
       console.error('头像上传失败:', err);
-      // [zh] 语句
       ElMessage.error(formatUploadErrorMessage(err));
-    // [zh] 代码块开始
     } finally {
-      // [zh] 语句
       uploading.value = false;
-    // [zh] 语法符号
     }
-  // [zh] 语句
   };
 
-// [zh] 声明变量 `saveInfo`
 const saveInfo = async () => {
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await accountApi.updateUserInfo(form);
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await authStore.fetchUserInfo();
-  // [zh] 语句
   ElMessage.success('资料已保存');
-  // [zh] 语句
   router.push('/account/manage');
-// [zh] 语句
 };
 
-// [zh] 语句
 onMounted(load);
 </script>
 

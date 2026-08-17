@@ -71,119 +71,66 @@
   </el-dialog>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { reactive, ref } from 'vue';
-// [zh] 导入 `模块`
 import type { FormInstance, FormRules } from 'element-plus';
-// [zh] 导入 `@/api/modules`
 import { commentReportApi } from '@/api/modules';
-// [zh] 导入 `@/utils/toast`
 import { toast } from '@/utils/toast';
 
-// [zh] 声明变量 `reasons`
 const reasons = ['广告/垃圾信息', '辱骂攻击', '违法违规', '不实信息', '泄露隐私', '其他'];
 
-// [zh] 声明变量 `visible`
 const visible = ref(false);
-// [zh] 声明变量 `submitting`
 const submitting = ref(false);
-// [zh] 声明变量 `formRef`
 const formRef = ref<FormInstance>();
-// [zh] 声明变量 `snapshot`
 const snapshot = ref('');
 
-// [zh] 声明变量 `form`
 const form = reactive({
-  // [zh] TypeScript/JS 语句：`orderId: '',`
   orderId: '',
-  // [zh] TypeScript/JS 语句：`productId: '',`
   productId: '',
-  // [zh] TypeScript/JS 语句：`reason: '',`
   reason: '',
-  // [zh] TypeScript/JS 语句：`detail: ''`
   detail: ''
-// [zh] 语句
 });
 
-// [zh] 声明变量 `rules`
 const rules: FormRules = {
-  // [zh] TypeScript/JS 语句：`reason: [{ required: true, message: '请选择举报理由', trigger:`
   reason: [{ required: true, message: '请选择举报理由', trigger: 'change' }]
-// [zh] 语句
 };
 
-// [zh] 声明变量 `reset`
 const reset = () => {
-  // [zh] 语句
   form.orderId = '';
-  // [zh] 语句
   form.productId = '';
-  // [zh] 语句
   form.reason = '';
-  // [zh] 语句
   form.detail = '';
-  // [zh] 语句
   snapshot.value = '';
-  // [zh] 语句
   formRef.value?.clearValidate();
-// [zh] 语句
 };
 
-// [zh] 声明变量 `show`
 const show = (payload: { orderId: string; productId?: string; commentContent?: string }) => {
-  // [zh] 语句
   reset();
-  // [zh] 语句
   form.orderId = String(payload.orderId || '');
-  // [zh] 语句
   form.productId = String(payload.productId || '');
-  // [zh] 语句
   snapshot.value = String(payload.commentContent || '').slice(0, 1000);
-  // [zh] 语句
   visible.value = true;
-// [zh] 语句
 };
 
-// [zh] 声明变量 `submit`
 const submit = async () => {
-  // [zh] 声明变量 `valid`
   const valid = await formRef.value?.validate().catch(() => false);
-  // [zh] 条件判断 if
   if (!valid) return;
-  // [zh] 语句
   submitting.value = true;
-  // [zh] 代码块开始
   try {
-    // [zh] await 等待 Promise（类比 CompletableFuture.get）
     await commentReportApi.submitReport({
-      // [zh] TypeScript/JS 语句：`orderId: form.orderId,`
       orderId: form.orderId,
-      // [zh] TypeScript/JS 语句：`productId: form.productId || undefined,`
       productId: form.productId || undefined,
-      // [zh] TypeScript/JS 语句：`reason: form.reason,`
       reason: form.reason,
-      // [zh] TypeScript/JS 语句：`detail: form.detail.trim() || undefined,`
       detail: form.detail.trim() || undefined,
-      // [zh] TypeScript/JS 语句：`commentSnapshot: snapshot.value || undefined`
       commentSnapshot: snapshot.value || undefined
-    // [zh] 语句
     });
-    // [zh] 语句
     toast.success('举报已提交，平台会尽快核实');
-    // [zh] 语句
     visible.value = false;
-  // [zh] 代码块开始
   } finally {
-    // [zh] 语句
     submitting.value = false;
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 语句
 defineExpose({ show });
 </script>
 

@@ -49,132 +49,74 @@
       @current-change="handlePageNoChange" style="text-align: right"></el-pagination>
   </div>
 </template>
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `vue`
 import { ref } from "vue";
 
-// [zh] 声明变量 `emit`
 const emit = defineEmits(["rowSelected", "rowClick"]);
-// [zh] 声明变量 `props`
 const props = defineProps({
-  // [zh] TypeScript/JS 语句：`dataSource: Object,`
   dataSource: Object,
-  // [zh] 代码块开始
   showPagination: {
-    // [zh] TypeScript/JS 语句：`type: Boolean,`
     type: Boolean,
-    // [zh] TypeScript/JS 语句：`default: true,`
     default: true,
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   options: {
-    // [zh] TypeScript/JS 语句：`type: Object,`
     type: Object,
-    // [zh] TypeScript/JS 语句：`default: {},`
     default: {},
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] TypeScript/JS 语句：`columns: Array,`
   columns: Array,
-  // [zh] TypeScript/JS 语句：`fetch: Function,`
   fetch: Function,
-  // [zh] 代码块开始
   initFetch: {
-    // [zh] TypeScript/JS 语句：`type: Boolean,`
     type: Boolean,
-    // [zh] TypeScript/JS 语句：`default: true,`
     default: true,
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] TypeScript/JS 语句：`selected: Function,`
   selected: Function,
-// [zh] 语句
 });
 
-// [zh] 声明变量 `init`
 const init = () => {
-  // [zh] 条件判断 if
   if (props.initFetch && props.fetch) {
-    // [zh] 语句
     props.fetch();
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
-// [zh] 语句
 init();
 
-// [zh] 声明变量 `dataTable`
 const dataTable = ref();
 
-// [zh] 声明变量 `clearSelection`
 const clearSelection = () => {
-  // [zh] 语句
   dataTable.value.clearSelection();
-// [zh] 语句
 };
 
-// [zh] 声明变量 `setCurrentRow`
 const setCurrentRow = (rowKey, rowValue) => {
-  // [zh] 声明变量 `row`
   let row = props.dataSource.list.find((item) => {
-    // [zh] return 返回
     return item[rowKey] === rowValue;
-  // [zh] 语句
   });
-  // [zh] 语句
   dataTable.value.setCurrentRow(row);
-// [zh] 语句
 };
 
-// [zh] 语句
 defineExpose({ setCurrentRow, clearSelection });
 
-// [zh] 声明变量 `handleRowClick`
 const handleRowClick = (row) => {
-  // [zh] 语句
   emit("rowClick", row);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `handleSelectionChange`
 const handleSelectionChange = (row) => {
-  // [zh] 语句
   emit("rowSelected", row);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `handlePageSizeChange`
 const handlePageSizeChange = (size) => {
-  // [zh] 语句
   props.dataSource.pageSize = size;
-  // [zh] 语句
   props.dataSource.pageNo = 1;
-  // [zh] 语句
   props.fetch();
-// [zh] 语句
 };
 
-// [zh] 声明变量 `handlePageNoChange`
 const handlePageNoChange = (pageNo) => {
-  // [zh] 语句
   props.dataSource.pageNo = pageNo;
-  // [zh] 语句
   props.fetch();
-// [zh] 语句
 };
 
-// [zh] 声明变量 `selectedHandler`
 const selectedHandler = (row, index) => {
-  // [zh] 条件判断 if
   if (props.selected) {
-    // [zh] return 返回
     return props.selected(row, index);
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 </script>
 /* [zh] 样式声明 */

@@ -10,60 +10,34 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { onMounted, onUnmounted } from 'vue';
-// [zh] 导入 `@/composables/useAgentSession`
 import { useAgentSession } from '@/composables/useAgentSession';
-// [zh] 导入 `@/composables/useDevice`
 import { useDevice } from '@/composables/useDevice';
-// [zh] 导入 `@/composables/useOpenAgent`
 import { useOpenAgent } from '@/composables/useOpenAgent';
-// [zh] 导入 `@/utils/mobileViewport`
 import { recoverIosViewportZoom, syncVisualViewportHeight } from '@/utils/mobileViewport';
-// [zh] 导入 `@/views/agent/AgentChatList.vue`
 import AgentChatList from '@/views/agent/AgentChatList.vue';
-// [zh] 导入 `@/views/agent/AgentSendPanel.vue`
 import AgentSendPanel from '@/views/agent/AgentSendPanel.vue';
 
-// [zh] 语句
 const { isDesktop } = useDevice();
-// [zh] 语句
 const { openAgent } = useOpenAgent();
-// [zh] 语句
 const { start, stop } = useAgentSession();
 
-// [zh] 代码块开始
 onMounted(async () => {
-  // [zh] 条件判断 if
   if (isDesktop.value) {
-    // [zh] 语句
     openAgent();
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
-  // [zh] 语句
   document.body.classList.add('ios-agent-immersive');
-  // [zh] 语句
   syncVisualViewportHeight();
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await start();
-// [zh] 语句
 });
 
-// [zh] 代码块开始
 onUnmounted(() => {
-  // [zh] 条件判断 if
   if (isDesktop.value) return;
-  // [zh] 语句
   document.body.classList.remove('ios-agent-immersive');
-  // [zh] 语句
   recoverIosViewportZoom();
-  // [zh] 语句
   stop();
-// [zh] 语句
 });
 </script>
 

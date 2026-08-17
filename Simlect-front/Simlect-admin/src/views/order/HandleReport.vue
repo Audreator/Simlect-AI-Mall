@@ -51,124 +51,68 @@
   </el-dialog>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `vue`
 import { reactive, ref, getCurrentInstance } from 'vue'
 
-// [zh] TypeScript/JS 语句：`const { proxy } = getCurrentInstance()`
 const { proxy } = getCurrentInstance()
-// [zh] 声明变量 `emit`
 const emit = defineEmits(['reload'])
 
-// [zh] 声明变量 `visible`
 const visible = ref(false)
-// [zh] 声明变量 `submitting`
 const submitting = ref(false)
 
-// [zh] 声明变量 `form`
 const form = reactive({
-  // [zh] TypeScript/JS 语句：`reportId: '',`
   reportId: '',
-  // [zh] TypeScript/JS 语句：`orderId: '',`
   orderId: '',
-  // [zh] TypeScript/JS 语句：`reporterUserId: '',`
   reporterUserId: '',
-  // [zh] TypeScript/JS 语句：`reason: '',`
   reason: '',
-  // [zh] TypeScript/JS 语句：`detail: '',`
   detail: '',
-  // [zh] TypeScript/JS 语句：`commentSnapshot: '',`
   commentSnapshot: '',
-  // [zh] TypeScript/JS 语句：`handleRemark: ''`
   handleRemark: ''
-// [zh] TypeScript/JS 语句：`})`
 })
 
-// [zh] 声明变量 `reset`
 const reset = () => {
-  // [zh] 代码块开始
   Object.assign(form, {
-    // [zh] TypeScript/JS 语句：`reportId: '',`
     reportId: '',
-    // [zh] TypeScript/JS 语句：`orderId: '',`
     orderId: '',
-    // [zh] TypeScript/JS 语句：`reporterUserId: '',`
     reporterUserId: '',
-    // [zh] TypeScript/JS 语句：`reason: '',`
     reason: '',
-    // [zh] TypeScript/JS 语句：`detail: '',`
     detail: '',
-    // [zh] TypeScript/JS 语句：`commentSnapshot: '',`
     commentSnapshot: '',
-    // [zh] TypeScript/JS 语句：`handleRemark: ''`
     handleRemark: ''
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `show`
 const show = (row) => {
-  // [zh] TypeScript/JS 语句：`reset()`
   reset()
-  // [zh] TypeScript/JS 语句：`form.reportId = row.reportId`
   form.reportId = row.reportId
-  // [zh] TypeScript/JS 语句：`form.orderId = row.orderId || ''`
   form.orderId = row.orderId || ''
-  // [zh] TypeScript/JS 语句：`form.reporterUserId = row.reporterUserId || ''`
   form.reporterUserId = row.reporterUserId || ''
-  // [zh] TypeScript/JS 语句：`form.reason = row.reason || ''`
   form.reason = row.reason || ''
-  // [zh] TypeScript/JS 语句：`form.detail = row.detail || ''`
   form.detail = row.detail || ''
-  // [zh] TypeScript/JS 语句：`form.commentSnapshot = row.commentSnapshot || ''`
   form.commentSnapshot = row.commentSnapshot || ''
-  // [zh] TypeScript/JS 语句：`visible.value = true`
   visible.value = true
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `submit`
 const submit = async (status) => {
-  // [zh] TypeScript/JS 语句：`submitting.value = true`
   submitting.value = true
-  // [zh] 代码块开始
   try {
-    // [zh] 声明变量 `result`
     const result = await proxy.Request({
-      // [zh] TypeScript/JS 语句：`url: proxy.Api.handleCommentReport,`
       url: proxy.Api.handleCommentReport,
-      // [zh] 代码块开始
       params: {
-        // [zh] TypeScript/JS 语句：`reportId: form.reportId,`
         reportId: form.reportId,
-        // [zh] TypeScript/JS 语句：`status: status,`
         status: status,
-        // [zh] TypeScript/JS 语句：`handleRemark: form.handleRemark || undefined`
         handleRemark: form.handleRemark || undefined
-      // [zh] 语法符号
       }
-    // [zh] TypeScript/JS 语句：`})`
     })
-    // [zh] 条件判断 if
     if (!result) return
-    // [zh] TypeScript/JS 语句：`proxy.Message.success(status === 1 ? '已确认处理' : '已驳回举报')`
     proxy.Message.success(status === 1 ? '已确认处理' : '已驳回举报')
-    // [zh] TypeScript/JS 语句：`visible.value = false`
     visible.value = false
-    // [zh] TypeScript/JS 语句：`emit('reload')`
     emit('reload')
-  // [zh] 代码块开始
   } finally {
-    // [zh] TypeScript/JS 语句：`submitting.value = false`
     submitting.value = false
-  // [zh] 语法符号
   }
-// [zh] 语法符号
 }
 
-// [zh] TypeScript/JS 语句：`defineExpose({ show })`
 defineExpose({ show })
 </script>
 

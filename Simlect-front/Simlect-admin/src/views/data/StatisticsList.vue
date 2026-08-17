@@ -1,32 +1,61 @@
+<!-- [zh] SFC 区块开始（单文件组件 template/script/style 三段） -->
 <template>
+  <!-- [zh] 开始标签 `<div>` -->
   <div class="search-panel">
+    <!-- [zh] 开始标签 `<el-form>` -->
     <el-form :model="searchForm" @submit.prevent>
+      <!-- [zh] 开始标签 `<el-row>` -->
       <el-row :gutter="10">
+        <!-- [zh] 开始标签 `<el-col>` -->
         <el-col :span="5">
+          <!-- [zh] 开始标签 `<el-form-item>` -->
           <el-form-item label="统计日期">
+            <!-- [zh] 开始标签 `<el-input>` -->
             <el-input v-model="searchForm.statisticsDate" clearable placeholder="如 2026-05-30" />
+          <!-- [zh] 闭合标签 `</el-form-item>` -->
           </el-form-item>
+        <!-- [zh] 闭合标签 `</el-col>` -->
         </el-col>
+        <!-- [zh] 开始标签 `<el-col>` -->
         <el-col :span="5">
+          <!-- [zh] 开始标签 `<el-form-item>` -->
           <el-form-item label="数据类型">
+            <!-- [zh] 开始标签 `<el-select>` -->
             <el-select v-model="searchForm.dataType" clearable placeholder="全部" style="width: 100%">
+              <!-- [zh] 开始标签 `<el-option>` -->
               <el-option v-for="item in dataTypeOptions" :key="item.type" :value="item.type" :label="item.desc" />
+            <!-- [zh] 闭合标签 `</el-select>` -->
             </el-select>
+          <!-- [zh] 闭合标签 `</el-form-item>` -->
           </el-form-item>
+        <!-- [zh] 闭合标签 `</el-col>` -->
         </el-col>
+        <!-- [zh] 开始标签 `<el-col>` -->
         <el-col :span="8" class="toolbar-actions">
+          <!-- [zh] 开始标签 `<el-button>` -->
           <el-button type="primary" @click="loadDataList">搜索</el-button>
+          <!-- [zh] 开始标签 `<el-button>` -->
           <el-button type="warning" plain @click="syncStatistics">手动同步统计</el-button>
+        <!-- [zh] 闭合标签 `</el-col>` -->
         </el-col>
+      <!-- [zh] 闭合标签 `</el-row>` -->
       </el-row>
+    <!-- [zh] 闭合标签 `</el-form>` -->
     </el-form>
+  <!-- [zh] 闭合标签 `</div>` -->
   </div>
+  <!-- [zh] 开始标签 `<el-card>` -->
   <el-card class="table-data-card">
+    <!-- [zh] 开始标签 `<Table>` -->
     <Table ref="tableRef" :columns="columns" :fetch="loadDataList" :dataSource="tableData">
+      <!-- [zh] SFC 区块开始（单文件组件 template/script/style 三段） -->
       <template #slotType="{ row }">
+        <!-- [zh] Mustache 插值表达式 -->
         {{ dataTypeLabel(row.dataType) }}
       </template>
+      <!-- [zh] SFC 区块开始（单文件组件 template/script/style 三段） -->
       <template #slotValue="{ row }">
+        <!-- [zh] Mustache 插值表达式 -->
         {{ row.dataValue }}
       </template>
     </Table>
@@ -91,11 +120,18 @@ const syncStatistics = () => {
 }
 </script>
 
+/* [zh] 样式声明 */
 <style scoped lang="scss">
+/* [zh] 样式规则 `.toolbar-actions {` */
 .toolbar-actions {
+  /* [zh] 样式规则 `display: flex;` */
   display: flex;
+  /* [zh] 样式规则 `flex-wrap: wrap;` */
   flex-wrap: wrap;
+  /* [zh] 样式规则 `gap: 8px;` */
   gap: 8px;
+  /* [zh] 样式规则 `align-items: center;` */
   align-items: center;
+/* [zh] 样式规则 `}` */
 }
 </style>

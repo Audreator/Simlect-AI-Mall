@@ -18,12 +18,9 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `模块`
 import type { AddressFormItem } from '@/components/business/AddressFormPanel.vue';
 
-// [zh] 语句
 defineProps<{ item: AddressFormItem }>();
 </script>
 

@@ -4,29 +4,18 @@
   <Teleport to="body">
     <!-- [zh] 开始标签 `<Transition>` -->
     <Transition name="sku-sheet-fade">
-      <!-- [zh] 开始标签 `<div>` -->
       <div v-if="visible" class="sku-sheet-root" :class="{ 'is-desktop': isDesktop }" @click.self="close">
-        <!-- [zh] 开始标签 `<Transition>` -->
         <Transition name="sku-sheet-slide">
-          <!-- [zh] 开始标签 `<section>` -->
           <section v-if="visible" class="sku-sheet-panel ignore" role="dialog" aria-modal="true" aria-label="选择规格">
-            <!-- [zh] 开始标签 `<button>` -->
             <button type="button" class="sheet-close" aria-label="关闭" @click="close">
-              <!-- [zh] 开始标签 `<el-icon>` -->
               <el-icon :size="20"><Close /></el-icon>
-            <!-- [zh] 闭合标签 `</button>` -->
             </button>
-            <!-- [zh] 开始标签 `<div>` -->
             <div class="sheet-drag" aria-hidden="true" />
 
-            <!-- [zh] 开始标签 `<el-skeleton>` -->
             <el-skeleton v-if="loading" animated :rows="6" class="sheet-skeleton" />
 
-            <!-- [zh] SFC 区块开始（单文件组件 template/script/style 三段） -->
             <template v-else-if="productInfo">
-              <!-- [zh] 开始标签 `<header>` -->
               <header class="pick-header">
-                <!-- [zh] 开始标签 `<ProductImage>` -->
                 <ProductImage
                   :source="coverImage"
                   width="56px"
@@ -34,38 +23,22 @@
                   fit="contain"
                   class="pick-cover"
                 />
-                <!-- [zh] 开始标签 `<div>` -->
                 <div class="pick-meta">
-                  <!-- [zh] 开始标签 `<h2>` -->
                   <h2 class="pick-name">{{ productInfo.productName }}</h2>
-                  <!-- [zh] 开始标签 `<p>` -->
                   <p class="pick-price">
-                    <!-- [zh] 开始标签 `<span>` -->
                     <span class="sym">¥</span>{{ displayPrice }}
-                  <!-- [zh] 闭合标签 `</p>` -->
                   </p>
-                  <!-- [zh] 开始标签 `<p>` -->
                   <p class="pick-stock">
-                    <!-- [zh] 模板内容：`库存 {{ selectedSku?.stock ?? '--' }}` -->
                     库存 {{ selectedSku?.stock ?? '--' }}
-                    <!-- [zh] 开始标签 `<em>` -->
                     <em v-if="selectedSku?.stock != null && selectedSku.stock <= 5">紧张</em>
-                  <!-- [zh] 闭合标签 `</p>` -->
                   </p>
-                <!-- [zh] 闭合标签 `</div>` -->
                 </div>
-              <!-- [zh] 闭合标签 `</header>` -->
               </header>
 
-              <!-- [zh] 开始标签 `<div>` -->
               <div class="pick-body">
-                <!-- [zh] 开始标签 `<div>` -->
                 <div v-for="prop in productPropertyList" :key="prop.propertyId" class="sku-row">
-                  <!-- [zh] 开始标签 `<div>` -->
                   <div class="sku-label">{{ prop.propertyName }}</div>
-                  <!-- [zh] 开始标签 `<div>` -->
                   <div class="sku-values">
-                    <!-- [zh] 开始标签 `<button>` -->
                     <button
                       v-for="val in prop.propertyValues"
                       :key="val.propertyValueId"
@@ -74,7 +47,6 @@
                       :class="{ active: selectedProperty[prop.propertyId] === val.propertyValueId }"
                       @click="selectProperty(prop, val)"
                     >
-                      <!-- [zh] 开始标签 `<ProductImage>` -->
                       <ProductImage
                         v-if="val.propertyCover"
                         :source="val.propertyCover"
@@ -85,35 +57,21 @@
                         dense
                         class="sku-thumb ignore"
                       />
-                      <!-- [zh] 开始标签 `<span>` -->
                       <span class="sku-text">{{ val.propertyValue }}</span>
-                    <!-- [zh] 闭合标签 `</button>` -->
                     </button>
-                  <!-- [zh] 闭合标签 `</div>` -->
                   </div>
-                <!-- [zh] 闭合标签 `</div>` -->
                 </div>
 
-                <!-- [zh] 开始标签 `<div>` -->
                 <div class="qty-row">
-                  <!-- [zh] 开始标签 `<span>` -->
                   <span class="sku-label">数量</span>
-                  <!-- [zh] 开始标签 `<el-input-number>` -->
                   <el-input-number v-model="quantity" :min="1" :max="maxBuy" size="small" />
-                <!-- [zh] 闭合标签 `</div>` -->
                 </div>
-              <!-- [zh] 闭合标签 `</div>` -->
               </div>
 
-              <!-- [zh] 开始标签 `<footer>` -->
               <footer class="pick-footer">
-                <!-- [zh] 开始标签 `<el-button>` -->
                 <el-button type="primary" round size="large" class="btn-confirm" :loading="submitting" @click="confirmAdd">
-                  <!-- [zh] 模板内容：`加入购物车` -->
                   加入购物车
-                <!-- [zh] 闭合标签 `</el-button>` -->
                 </el-button>
-              <!-- [zh] 闭合标签 `</footer>` -->
               </footer>
             </template>
 
@@ -125,137 +83,74 @@
   </Teleport>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { onBeforeUnmount, watch, ref } from 'vue';
-// [zh] 导入 `vue-router`
 import { useRoute, useRouter } from 'vue-router';
-// [zh] 导入 `@element-plus/icons-vue`
 import { Close } from '@element-plus/icons-vue';
-// [zh] 导入 `@/components/common/ProductImage.vue`
 import ProductImage from '@/components/common/ProductImage.vue';
-// [zh] 导入 `@/api/modules`
 import { cartApi } from '@/api/modules';
-// [zh] 导入 `@/composables/useProductSku`
 import { useProductSku } from '@/composables/useProductSku';
-// [zh] 导入 `@/composables/useProductSkuSheet`
 import { useProductSkuSheet } from '@/composables/useProductSkuSheet';
-// [zh] 导入 `@/stores/auth`
 import { useAuthStore } from '@/stores/auth';
-// [zh] 导入 `@/stores/cart`
 import { useCartStore } from '@/stores/cart';
-// [zh] 导入 `@/utils/toast`
 import { toast } from '@/utils/toast';
-// [zh] 导入 `@/composables/useDevice`
 import { useDevice } from '@/composables/useDevice';
 
-// [zh] 声明变量 `route`
 const route = useRoute();
-// [zh] 声明变量 `router`
 const router = useRouter();
-// [zh] 声明变量 `authStore`
 const authStore = useAuthStore();
-// [zh] 声明变量 `cartStore`
 const cartStore = useCartStore();
-// [zh] 语句
 const { isDesktop } = useDevice();
-// [zh] 语句
 const { visible, productId, close } = useProductSkuSheet();
-// [zh] 声明变量 `submitting`
 const submitting = ref(false);
 
-// [zh] 代码块开始
 const {
-  // [zh] TypeScript/JS 语句：`loading,`
   loading,
-  // [zh] TypeScript/JS 语句：`productInfo,`
   productInfo,
-  // [zh] TypeScript/JS 语句：`productPropertyList,`
   productPropertyList,
-  // [zh] TypeScript/JS 语句：`quantity,`
   quantity,
-  // [zh] TypeScript/JS 语句：`selectedSku,`
   selectedSku,
-  // [zh] TypeScript/JS 语句：`selectedProperty,`
   selectedProperty,
-  // [zh] TypeScript/JS 语句：`displayPrice,`
   displayPrice,
-  // [zh] TypeScript/JS 语句：`maxBuy,`
   maxBuy,
-  // [zh] TypeScript/JS 语句：`coverImage,`
   coverImage,
-  // [zh] TypeScript/JS 语句：`selectProperty,`
   selectProperty,
-  // [zh] TypeScript/JS 语句：`load,`
   load,
-  // [zh] TypeScript/JS 语句：`validateSku`
   validateSku
-// [zh] 语句
 } = useProductSku(() => productId.value);
 
-// [zh] 代码块开始
 watch(visible, (show) => {
-  // [zh] 语句
   document.body.style.overflow = show ? 'hidden' : '';
-  // [zh] 条件判断 if
   if (show && productId.value) {
-    // [zh] 语句
     void load();
-  // [zh] 语法符号
   }
-// [zh] 语句
 });
 
-// [zh] 代码块开始
 onBeforeUnmount(() => {
-  // [zh] 语句
   document.body.style.overflow = '';
-// [zh] 语句
 });
 
-// [zh] 声明变量 `confirmAdd`
 const confirmAdd = async () => {
-  // [zh] 条件判断 if
   if (!authStore.isLoggedIn) {
-    // [zh] 语句
     close();
-    // [zh] 语句
     router.push({ path: '/login', query: { redirect: route.fullPath } });
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
-  // [zh] 条件判断 if
   if (!validateSku() || !productInfo.value) return;
 
-  // [zh] 语句
   submitting.value = true;
-  // [zh] 代码块开始
   try {
-    // [zh] await 等待 Promise（类比 CompletableFuture.get）
     await cartApi.add2Cart({
-      // [zh] TypeScript/JS 语句：`productId: productInfo.value.productId,`
       productId: productInfo.value.productId,
-      // [zh] TypeScript/JS 语句：`buyCount: quantity.value,`
       buyCount: quantity.value,
-      // [zh] TypeScript/JS 语句：`propertyValueIds: selectedSku.value.propertyValueIds`
       propertyValueIds: selectedSku.value.propertyValueIds
-    // [zh] 语句
     });
-    // [zh] await 等待 Promise（类比 CompletableFuture.get）
     await cartStore.fetchCartCount();
-    // [zh] 语句
     toast.success('已加入购物车');
-    // [zh] 语句
     close();
-  // [zh] 代码块开始
   } finally {
-    // [zh] 语句
     submitting.value = false;
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 </script>
 

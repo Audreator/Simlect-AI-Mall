@@ -12,142 +12,79 @@
   <!-- [zh] 闭合标签 `</div>` -->
   </div>
 </template>
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
 
 
-// [zh] 导入 `md-editor-v3`
 import { MdPreview, MdCatalog, config } from 'md-editor-v3'
-// [zh] 导入 `模块`
 import 'md-editor-v3/lib/style.css'
 
-// [zh] 导入 `screenfull`
 import screenfull from 'screenfull'
 
-// [zh] 导入 `highlight.js`
 import highlight from 'highlight.js'
-// [zh] 导入 `模块`
 import 'highlight.js/styles/atom-one-dark.css'
 
-// [zh] 导入 `prettier`
 import * as prettier from 'prettier'
-// [zh] 导入 `prettier/plugins/markdown`
 import parserMarkdown from 'prettier/plugins/markdown'
 
-// [zh] 导入 `katex`
 import katex from 'katex'
 
-// [zh] 导入 `markdown-it-link-attributes`
 import LinkAttr from 'markdown-it-link-attributes'
-// [zh] 代码块开始
 config({
-  // [zh] 代码块开始
   editorExtensions: {
-    // [zh] 代码块开始
     prettier: {
-      // [zh] TypeScript/JS 语句：`prettierInstance: prettier,`
       prettierInstance: prettier,
-      // [zh] TypeScript/JS 语句：`parserMarkdownInstance: parserMarkdown,`
       parserMarkdownInstance: parserMarkdown,
-    // [zh] TypeScript/JS 语句：`},`
     },
-    // [zh] 代码块开始
     highlight: {
-      // [zh] TypeScript/JS 语句：`instance: highlight,`
       instance: highlight,
-    // [zh] TypeScript/JS 语句：`},`
     },
-    // [zh] 代码块开始
     screenfull: {
-      // [zh] TypeScript/JS 语句：`instance: screenfull,`
       instance: screenfull,
-    // [zh] TypeScript/JS 语句：`},`
     },
-    // [zh] 代码块开始
     katex: {
-      // [zh] TypeScript/JS 语句：`instance: katex,`
       instance: katex,
-    // [zh] TypeScript/JS 语句：`},`
     },
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   markdownItPlugins(plugins) {
-    // [zh] return 返回
     return [
-      // [zh] TypeScript/JS 语句：`...plugins,`
       ...plugins,
-      // [zh] 代码块开始
       {
-        // [zh] TypeScript/JS 语句：`type: 'linkAttr',`
         type: 'linkAttr',
-        // [zh] TypeScript/JS 语句：`plugin: LinkAttr,`
         plugin: LinkAttr,
-        // [zh] 代码块开始
         options: {
-          // [zh] 代码块开始
           matcher(href) {
             
             
-            // [zh] return 返回
             return !href.startsWith('#')
-          // [zh] TypeScript/JS 语句：`},`
           },
-          // [zh] 代码块开始
           attrs: {
-            // [zh] TypeScript/JS 语句：`target: '_blank',`
             target: '_blank',
             // 防 tabnabbing：新窗口必须带 rel=noopener noreferrer
             rel: 'noopener noreferrer',
-          // [zh] TypeScript/JS 语句：`},`
           },
-        // [zh] TypeScript/JS 语句：`},`
         },
-      // [zh] TypeScript/JS 语句：`},`
       },
-    // [zh] TypeScript/JS 语句：`]`
     ]
-  // [zh] TypeScript/JS 语句：`},`
   },
-// [zh] TypeScript/JS 语句：`})`
 })
-// [zh] 导入 `模块`
 import {
-  // [zh] TypeScript/JS 语句：`createApp,`
   createApp,
-  // [zh] TypeScript/JS 语句：`ref,`
   ref,
-  // [zh] TypeScript/JS 语句：`reactive,`
   reactive,
-  // [zh] TypeScript/JS 语句：`getCurrentInstance,`
   getCurrentInstance,
-  // [zh] TypeScript/JS 语句：`nextTick,`
   nextTick,
-  // [zh] TypeScript/JS 语句：`onMounted,`
   onMounted,
-  // [zh] TypeScript/JS 语句：`computed,`
   computed,
-// [zh] TypeScript/JS 语句：`} from 'vue'`
 } from 'vue'
-// [zh] TypeScript/JS 语句：`const { proxy } = getCurrentInstance()`
 const { proxy } = getCurrentInstance()
-// [zh] 导入 `vue-router`
 import { useRoute, useRouter } from 'vue-router'
-// [zh] 声明变量 `route`
 const route = useRoute()
-// [zh] 声明变量 `router`
 const router = useRouter()
-// [zh] 声明变量 `props`
 const props = defineProps({
-  // [zh] 代码块开始
   modelValue: {
-    // [zh] TypeScript/JS 语句：`type: String,`
     type: String,
-  // [zh] TypeScript/JS 语句：`},`
   },
-// [zh] TypeScript/JS 语句：`})`
 })
-// [zh] 声明变量 `scrollElement`
 const scrollElement = document.documentElement
 </script>
 

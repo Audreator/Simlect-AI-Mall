@@ -26,36 +26,22 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `vue`
 import { getCurrentInstance } from 'vue'
-// [zh] 导入 `vue-router`
 import { useRouter } from 'vue-router'
-// [zh] 导入 `@/utils/device`
 import { resolveDesktopPath, switchToDesktopView } from '@/utils/device'
 
-// [zh] TypeScript/JS 语句：`const { proxy } = getCurrentInstance()`
 const { proxy } = getCurrentInstance()
-// [zh] 声明变量 `router`
 const router = useRouter()
 
-// [zh] 声明变量 `toDesktop`
 const toDesktop = () => {
-  // [zh] 声明变量 `desktopPath`
   const desktopPath = resolveDesktopPath(router.currentRoute.value.path)
-  // [zh] 代码块开始
   proxy.Confirm({
-    // [zh] TypeScript/JS 语句：`message: '切换到电脑版将使用桌面布局进行商品编辑，确定继续吗？',`
     message: '切换到电脑版将使用桌面布局进行商品编辑，确定继续吗？',
-    // [zh] TypeScript/JS 语句：`okfun: () => switchToDesktopView(desktopPath),`
     okfun: () => switchToDesktopView(desktopPath),
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `back`
 const back = () => router.replace('/m/product')
 </script>
 

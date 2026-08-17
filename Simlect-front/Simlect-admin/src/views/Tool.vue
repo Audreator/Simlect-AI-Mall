@@ -19,63 +19,35 @@
   </Dialog>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `vue`
 import { ref, reactive, getCurrentInstance, nextTick } from "vue"
-// [zh] 语句
 const { proxy } = getCurrentInstance();
-// [zh] 声明变量 `dialogConfig`
 const dialogConfig = ref({
-  // [zh] TypeScript/JS 语句：`show: false,`
   show: false,
-  // [zh] TypeScript/JS 语句：`title: "小工具",`
   title: "小工具",
-// [zh] 语句
 });
 
-// [zh] 声明变量 `show`
 const show = () => {
-  // [zh] 语句
   dialogConfig.value.show = true;
-// [zh] 语法符号
 }
-// [zh] 代码块开始
 defineExpose({
-  // [zh] TypeScript/JS 语句：`show`
   show
-// [zh] TypeScript/JS 语句：`})`
 })
 
-// [zh] 声明变量 `API_MAP`
 const API_MAP = {
-  // [zh] TypeScript/JS 语句：`1: "toolStatistics",`
   1: "toolStatistics",
-  // [zh] TypeScript/JS 语句：`2: "toolProductData",`
   2: "toolProductData",
-  // [zh] TypeScript/JS 语句：`3: "toolRagData",`
   3: "toolRagData",
-  // [zh] TypeScript/JS 语句：`4: "toolAddAllOrderToDelayQueue",`
   4: "toolAddAllOrderToDelayQueue",
-// [zh] 语法符号
 }
-// [zh] 声明变量 `buttonClick`
 const buttonClick = async (type) => {
-  // [zh] 声明变量 `result`
   let result = await proxy.Request({
-    // [zh] TypeScript/JS 语句：`url: proxy.Api[API_MAP[type]],`
     url: proxy.Api[API_MAP[type]],
-  // [zh] TypeScript/JS 语句：`})`
   })
-  // [zh] 条件判断 if
   if (!result) {
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
-  // [zh] 语句
   proxy.Message.success("操作成功");
-// [zh] 语句
 };
 </script>
 

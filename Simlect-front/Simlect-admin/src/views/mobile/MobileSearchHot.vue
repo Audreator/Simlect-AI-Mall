@@ -65,112 +65,62 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `vue`
 import { ref, reactive, getCurrentInstance, onMounted } from 'vue'
 
-// [zh] TypeScript/JS 语句：`const { proxy } = getCurrentInstance()`
 const { proxy } = getCurrentInstance()
-// [zh] 声明变量 `list`
 const list = ref([])
-// [zh] 声明变量 `editing`
 const editing = ref(false)
-// [zh] 声明变量 `form`
 const form = reactive({ keyword: '', sort: 0, status: 1 })
 
-// [zh] 声明变量 `loadList`
 const loadList = async () => {
-  // [zh] 声明变量 `result`
   const result = await proxy.Request({ url: proxy.Api.searchHotKeywordLoadList, showLoading: false })
-  // [zh] 条件判断 if
   if (!result) return
-  // [zh] TypeScript/JS 语句：`list.value = result.data || []`
   list.value = result.data || []
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `resetForm`
 const resetForm = () => {
-  // [zh] TypeScript/JS 语句：`form.keyword = ''`
   form.keyword = ''
-  // [zh] TypeScript/JS 语句：`form.sort = 0`
   form.sort = 0
-  // [zh] TypeScript/JS 语句：`form.status = 1`
   form.status = 1
-  // [zh] TypeScript/JS 语句：`editing.value = false`
   editing.value = false
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `editRow`
 const editRow = (row) => {
-  // [zh] TypeScript/JS 语句：`form.keyword = row.keyword`
   form.keyword = row.keyword
-  // [zh] TypeScript/JS 语句：`form.sort = row.sort ?? 0`
   form.sort = row.sort ?? 0
-  // [zh] TypeScript/JS 语句：`form.status = row.status ?? 1`
   form.status = row.status ?? 1
-  // [zh] TypeScript/JS 语句：`editing.value = true`
   editing.value = true
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `save`
 const save = async () => {
-  // [zh] 条件判断 if
   if (!form.keyword || !form.keyword.trim()) {
-    // [zh] TypeScript/JS 语句：`proxy.Message.warning('请输入热搜词')`
     proxy.Message.warning('请输入热搜词')
-    // [zh] TypeScript/JS 语句：`return`
     return
-  // [zh] 语法符号
   }
-  // [zh] 声明变量 `result`
   const result = await proxy.Request({
-    // [zh] TypeScript/JS 语句：`url: proxy.Api.searchHotKeywordSave,`
     url: proxy.Api.searchHotKeywordSave,
-    // [zh] TypeScript/JS 语句：`params: { keyword: form.keyword.trim(), sort: form.sort`
     params: { keyword: form.keyword.trim(), sort: form.sort, status: form.status },
-    // [zh] TypeScript/JS 语句：`showLoading: true`
     showLoading: true
-  // [zh] TypeScript/JS 语句：`})`
   })
-  // [zh] 条件判断 if
   if (!result) return
-  // [zh] TypeScript/JS 语句：`proxy.Message.success('保存成功')`
   proxy.Message.success('保存成功')
-  // [zh] TypeScript/JS 语句：`resetForm()`
   resetForm()
-  // [zh] TypeScript/JS 语句：`loadList()`
   loadList()
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `delRow`
 const delRow = (row) => {
-  // [zh] 代码块开始
   proxy.Confirm({
-    // [zh] TypeScript/JS 语句：`message: `确定删除热搜词「${row.keyword}」吗？`,`
     message: `确定删除热搜词「${row.keyword}」吗？`,
-    // [zh] 代码块开始
     okfun: async () => {
-      // [zh] 声明变量 `result`
       const result = await proxy.Request({ url: proxy.Api.searchHotKeywordDel, params: { keyword: row.keyword } })
-      // [zh] 条件判断 if
       if (!result) return
-      // [zh] TypeScript/JS 语句：`proxy.Message.success('已删除')`
       proxy.Message.success('已删除')
-      // [zh] TypeScript/JS 语句：`loadList()`
       loadList()
-    // [zh] 语法符号
     }
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 
-// [zh] TypeScript/JS 语句：`onMounted(loadList)`
 onMounted(loadList)
 </script>
 

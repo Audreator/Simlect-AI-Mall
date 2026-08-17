@@ -100,257 +100,135 @@
   <Tool ref="toolRef"></Tool>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `./Tool.vue`
 import Tool from './Tool.vue'
-// [zh] 导入 `@/components/BrandMark.vue`
 import BrandMark from '@/components/BrandMark.vue'
-// [zh] 导入 `vue`
 import { ref, getCurrentInstance, computed } from 'vue'
-// [zh] 导入 `vue-router`
 import { useRouter, useRoute } from 'vue-router'
-// [zh] 导入 `@/utils/device`
 import { switchToMobileView } from '@/utils/device'
 
-// [zh] TypeScript/JS 语句：`const { proxy } = getCurrentInstance()`
 const { proxy } = getCurrentInstance()
-// [zh] 声明变量 `router`
 const router = useRouter()
-// [zh] 声明变量 `route`
 const route = useRoute()
 
-// [zh] 声明变量 `pageTitle`
 const pageTitle = computed(() => {
-  // [zh] 声明变量 `list`
   const list = route.meta.itemList
-  // [zh] 条件判断 if
   if (Array.isArray(list) && list.length) {
-    // [zh] return 返回
     return list[list.length - 1]
-  // [zh] 语法符号
   }
-  // [zh] return 返回
   return '工作台'
-// [zh] TypeScript/JS 语句：`})`
 })
 
-// [zh] 声明变量 `isMenuActive`
 const isMenuActive = (item) => {
-  // [zh] 条件判断 if
   if (item.path && route.path === item.path) return true
-  // [zh] 条件判断 if
   if (item.children) {
-    // [zh] return 返回
     return item.children.some((sub) => route.path === sub.path)
-  // [zh] 语法符号
   }
-  // [zh] return 返回
   return false
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `menuList`
 const menuList = ref([
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`name: '首页',`
     name: '首页',
-    // [zh] TypeScript/JS 语句：`icon: 'home',`
     icon: 'home',
-    // [zh] TypeScript/JS 语句：`path: '/home',`
     path: '/home',
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`name: '商品',`
     name: '商品',
-    // [zh] TypeScript/JS 语句：`icon: 'product',`
     icon: 'product',
-    // [zh] TypeScript/JS 语句：`opened: true,`
     opened: true,
-    // [zh] TypeScript/JS 语句：`children: [`
     children: [
-      // [zh] TypeScript/JS 语句：`{ name: '分类管理', path: '/product/category' },`
       { name: '分类管理', path: '/product/category' },
-      // [zh] TypeScript/JS 语句：`{ name: '商品属性', path: '/product/ProductProperty' },`
       { name: '商品属性', path: '/product/ProductProperty' },
-      // [zh] TypeScript/JS 语句：`{ name: '商品管理', path: '/product' },`
       { name: '商品管理', path: '/product' },
-    // [zh] 语法符号
     ],
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`name: '订单',`
     name: '订单',
-    // [zh] TypeScript/JS 语句：`icon: 'order',`
     icon: 'order',
-    // [zh] TypeScript/JS 语句：`opened: true,`
     opened: true,
-    // [zh] TypeScript/JS 语句：`children: [`
     children: [
-      // [zh] TypeScript/JS 语句：`{ name: '订单管理', path: '/order/orderList' },`
       { name: '订单管理', path: '/order/orderList' },
-      // [zh] TypeScript/JS 语句：`{ name: '订单评论', path: '/order/comment' },`
       { name: '订单评论', path: '/order/comment' },
-      // [zh] TypeScript/JS 语句：`{ name: '举报管理', path: '/order/report' },`
       { name: '举报管理', path: '/order/report' },
-      // [zh] TypeScript/JS 语句：`{ name: '图片违规复核', path: '/setting/imageModeration' },`
       { name: '图片违规复核', path: '/setting/imageModeration' },
-    // [zh] 语法符号
     ],
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`name: '用户管理',`
     name: '用户管理',
-    // [zh] TypeScript/JS 语句：`icon: 'user',`
     icon: 'user',
-    // [zh] TypeScript/JS 语句：`opened: true,`
     opened: true,
-    // [zh] TypeScript/JS 语句：`children: [`
     children: [
-      // [zh] TypeScript/JS 语句：`{ name: '用户列表', path: '/user/userList' },`
       { name: '用户列表', path: '/user/userList' },
-      // [zh] TypeScript/JS 语句：`{ name: '收货地址', path: '/user/address' },`
       { name: '收货地址', path: '/user/address' },
-    // [zh] 语法符号
     ],
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`name: '数据中心',`
     name: '数据中心',
-    // [zh] TypeScript/JS 语句：`icon: 'home',`
     icon: 'home',
-    // [zh] TypeScript/JS 语句：`opened: false,`
     opened: false,
-    // [zh] TypeScript/JS 语句：`children: [`
     children: [
-      // [zh] TypeScript/JS 语句：`{ name: '统计明细', path: '/data/statistics' },`
       { name: '统计明细', path: '/data/statistics' },
-      // [zh] TypeScript/JS 语句：`{ name: 'MQ补偿审查', path: '/data/mqCompensationLog' },`
       { name: 'MQ补偿审查', path: '/data/mqCompensationLog' },
-      // [zh] TypeScript/JS 语句：`{ name: 'RAG同步失败', path: '/data/ragSyncFailure' },`
       { name: 'RAG同步失败', path: '/data/ragSyncFailure' },
-      // [zh] TypeScript/JS 语句：`{ name: '运营工具', path: '/data/tools' },`
       { name: '运营工具', path: '/data/tools' },
-    // [zh] 语法符号
     ],
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`name: '系统设置',`
     name: '系统设置',
-    // [zh] TypeScript/JS 语句：`icon: 'setting',`
     icon: 'setting',
-    // [zh] TypeScript/JS 语句：`opened: true,`
     opened: true,
-    // [zh] TypeScript/JS 语句：`children: [`
     children: [
-      // [zh] TypeScript/JS 语句：`{ name: '发货信息管理', path: '/setting/logistics' },`
       { name: '发货信息管理', path: '/setting/logistics' },
-      // [zh] TypeScript/JS 语句：`{ name: '提示词管理', path: '/setting/prompt' },`
       { name: '提示词管理', path: '/setting/prompt' },
-      // [zh] TypeScript/JS 语句：`{ name: 'RAG知识库', path: '/setting/rag' },`
       { name: 'RAG知识库', path: '/setting/rag' },
-      // [zh] TypeScript/JS 语句：`{ name: '敏感词管理', path: '/setting/sensitiveWord' },`
       { name: '敏感词管理', path: '/setting/sensitiveWord' },
-      // [zh] TypeScript/JS 语句：`{ name: '客服对话记录', path: '/setting/agentMessage' },`
       { name: '客服对话记录', path: '/setting/agentMessage' },
-    // [zh] 语法符号
     ],
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`name: '营销',`
     name: '营销',
-    // [zh] TypeScript/JS 语句：`icon: 'product',`
     icon: 'product',
-    // [zh] TypeScript/JS 语句：`opened: true,`
     opened: true,
-    // [zh] TypeScript/JS 语句：`children: [`
     children: [
-      // [zh] TypeScript/JS 语句：`{ name: '优惠券管理', path: '/discountCoupon' },`
       { name: '优惠券管理', path: '/discountCoupon' },
-      // [zh] TypeScript/JS 语句：`{ name: '热搜词管理', path: '/marketing/searchHot' },`
       { name: '热搜词管理', path: '/marketing/searchHot' },
-      // [zh] TypeScript/JS 语句：`{ name: '签到发券配置', path: '/marketing/signReward' },`
       { name: '签到发券配置', path: '/marketing/signReward' },
-      // [zh] TypeScript/JS 语句：`{ name: '会员升级礼券', path: '/marketing/memberLevelReward' `
       { name: '会员升级礼券', path: '/marketing/memberLevelReward' },
-    // [zh] 语法符号
     ],
-  // [zh] TypeScript/JS 语句：`},`
   },
-// [zh] TypeScript/JS 语句：`])`
 ])
 
-// [zh] 声明变量 `jump`
 const jump = (item) => {
-  // [zh] 条件判断 if
   if (item.children) {
-    // [zh] TypeScript/JS 语句：`item.opened = !item.opened`
     item.opened = !item.opened
-    // [zh] TypeScript/JS 语句：`return`
     return
-  // [zh] 语法符号
   }
-  // [zh] TypeScript/JS 语句：`router.push(item.path)`
   router.push(item.path)
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `logout`
 const logout = () => {
-  // [zh] 代码块开始
   proxy.Confirm({
-    // [zh] TypeScript/JS 语句：`message: '确定要退出吗?',`
     message: '确定要退出吗?',
-    // [zh] 代码块开始
     okfun: async () => {
-      // [zh] 声明变量 `result`
       let result = await proxy.Request({
-        // [zh] TypeScript/JS 语句：`url: proxy.Api.logout,`
         url: proxy.Api.logout,
-      // [zh] TypeScript/JS 语句：`})`
       })
-      // [zh] 条件判断 if
       if (!result) {
-        // [zh] TypeScript/JS 语句：`return`
         return
-      // [zh] 语法符号
       }
-      // [zh] TypeScript/JS 语句：`router.push('/login')`
       router.push('/login')
-    // [zh] TypeScript/JS 语句：`},`
     },
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `toolRef`
 const toolRef = ref()
-// [zh] 声明变量 `tool`
 const tool = () => {
-  // [zh] TypeScript/JS 语句：`toolRef.value.show()`
   toolRef.value.show()
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `switchToMobile`
 const switchToMobile = () => {
-  // [zh] TypeScript/JS 语句：`switchToMobileView('/m/home')`
   switchToMobileView('/m/home')
-// [zh] 语法符号
 }
 </script>
 

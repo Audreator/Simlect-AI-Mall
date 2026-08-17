@@ -285,566 +285,297 @@
   </el-dialog>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `vue`
 import { ref, reactive, getCurrentInstance, computed } from 'vue'
-// [zh] TypeScript/JS 语句：`const { proxy } = getCurrentInstance()`
 const { proxy } = getCurrentInstance()
 
-// [zh] 声明变量 `columns`
 const columns = [
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '优惠券ID',`
     label: '优惠券ID',
-    // [zh] TypeScript/JS 语句：`prop: 'couponId',`
     prop: 'couponId',
-    // [zh] TypeScript/JS 语句：`width: 150,`
     width: 150,
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '优惠券名称',`
     label: '优惠券名称',
-    // [zh] TypeScript/JS 语句：`prop: 'couponName',`
     prop: 'couponName',
-    // [zh] TypeScript/JS 语句：`width: 180,`
     width: 180,
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '类型',`
     label: '类型',
-    // [zh] TypeScript/JS 语句：`prop: 'couponType',`
     prop: 'couponType',
-    // [zh] TypeScript/JS 语句：`width: 100,`
     width: 100,
-    // [zh] TypeScript/JS 语句：`scopedSlots: 'slotType',`
     scopedSlots: 'slotType',
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '门槛金额',`
     label: '门槛金额',
-    // [zh] TypeScript/JS 语句：`prop: 'thresholdAmount',`
     prop: 'thresholdAmount',
-    // [zh] TypeScript/JS 语句：`width: 100,`
     width: 100,
-    // [zh] TypeScript/JS 语句：`formatter: (row) => row.thresholdAmount == 0 ? '无门槛' : `
     formatter: (row) => row.thresholdAmount == 0 ? '无门槛' : '¥' + row.thresholdAmount,
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '优惠金额/折扣',`
     label: '优惠金额/折扣',
-    // [zh] TypeScript/JS 语句：`prop: 'discountAmount',`
     prop: 'discountAmount',
-    // [zh] TypeScript/JS 语句：`width: 140,`
     width: 140,
-    // [zh] TypeScript/JS 语句：`scopedSlots: 'slotAmount',`
     scopedSlots: 'slotAmount',
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '剩余/总量',`
     label: '剩余/总量',
-    // [zh] TypeScript/JS 语句：`prop: 'remainCount',`
     prop: 'remainCount',
-    // [zh] TypeScript/JS 语句：`width: 120,`
     width: 120,
-    // [zh] TypeScript/JS 语句：`scopedSlots: 'slotStock',`
     scopedSlots: 'slotStock',
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '秒杀',`
     label: '秒杀',
-    // [zh] TypeScript/JS 语句：`prop: 'rushingstatus',`
     prop: 'rushingstatus',
-    // [zh] TypeScript/JS 语句：`width: 80,`
     width: 80,
-    // [zh] TypeScript/JS 语句：`scopedSlots: 'slotRush',`
     scopedSlots: 'slotRush',
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '状态',`
     label: '状态',
-    // [zh] TypeScript/JS 语句：`prop: 'status',`
     prop: 'status',
-    // [zh] TypeScript/JS 语句：`width: 100,`
     width: 100,
-    // [zh] TypeScript/JS 语句：`scopedSlots: 'slotStatus',`
     scopedSlots: 'slotStatus',
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '有效期',`
     label: '有效期',
-    // [zh] TypeScript/JS 语句：`prop: 'validStartTime',`
     prop: 'validStartTime',
-    // [zh] TypeScript/JS 语句：`width: 280,`
     width: 280,
-    // [zh] TypeScript/JS 语句：`scopedSlots: 'slotValidTime',`
     scopedSlots: 'slotValidTime',
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   {
-    // [zh] TypeScript/JS 语句：`label: '操作',`
     label: '操作',
-    // [zh] TypeScript/JS 语句：`prop: 'op',`
     prop: 'op',
-    // [zh] TypeScript/JS 语句：`width: 320,`
     width: 320,
-    // [zh] TypeScript/JS 语句：`scopedSlots: 'slotOp',`
     scopedSlots: 'slotOp',
-  // [zh] TypeScript/JS 语句：`},`
   },
-// [zh] TypeScript/JS 语句：`]`
 ]
 
-// [zh] 声明变量 `warmupAllRush`
 const warmupAllRush = () => {
-  // [zh] 代码块开始
   proxy.Confirm({
-    // [zh] TypeScript/JS 语句：`message: '将为全部秒杀券预热 Redis 库存（以 DB 剩余量为准），确定继续？',`
     message: '将为全部秒杀券预热 Redis 库存（以 DB 剩余量为准），确定继续？',
-    // [zh] 代码块开始
     okfun: async () => {
-      // [zh] 声明变量 `result`
       const result = await proxy.Request({
-        // [zh] TypeScript/JS 语句：`url: proxy.Api.warmupRushStock,`
         url: proxy.Api.warmupRushStock,
-        // [zh] TypeScript/JS 语句：`params: {},`
         params: {},
-        // [zh] TypeScript/JS 语句：`showLoading: true,`
         showLoading: true,
-      // [zh] TypeScript/JS 语句：`})`
       })
-      // [zh] 条件判断 if
       if (!result) return
-      // [zh] TypeScript/JS 语句：`proxy.Message.success(`预热完成，共 ${result.data ?? 0} 张券`)`
       proxy.Message.success(`预热完成，共 ${result.data ?? 0} 张券`)
-      // [zh] TypeScript/JS 语句：`loadDataList()`
       loadDataList()
-    // [zh] TypeScript/JS 语句：`},`
     },
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `reconcileAllRush`
 const reconcileAllRush = () => {
-  // [zh] 代码块开始
   proxy.Confirm({
-    // [zh] TypeScript/JS 语句：`message: '将以 DB 剩余库存为准对全部秒杀券 Redis 对账，确定继续？',`
     message: '将以 DB 剩余库存为准对全部秒杀券 Redis 对账，确定继续？',
-    // [zh] 代码块开始
     okfun: async () => {
-      // [zh] 声明变量 `result`
       const result = await proxy.Request({
-        // [zh] TypeScript/JS 语句：`url: proxy.Api.reconcileRushStock,`
         url: proxy.Api.reconcileRushStock,
-        // [zh] TypeScript/JS 语句：`params: {},`
         params: {},
-        // [zh] TypeScript/JS 语句：`showLoading: true,`
         showLoading: true,
-      // [zh] TypeScript/JS 语句：`})`
       })
-      // [zh] 条件判断 if
       if (!result) return
-      // [zh] 声明变量 `list`
       const list = result.data || []
-      // [zh] TypeScript/JS 语句：`proxy.Message.success(`对账完成，共处理 ${Array.isArray(list) ?`
       proxy.Message.success(`对账完成，共处理 ${Array.isArray(list) ? list.length : 0} 张券`)
-      // [zh] TypeScript/JS 语句：`loadDataList()`
       loadDataList()
-    // [zh] TypeScript/JS 语句：`},`
     },
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `warmupOne`
 const warmupOne = (row) => {
-  // [zh] 代码块开始
   proxy.Confirm({
-    // [zh] TypeScript/JS 语句：`message: `预热券「${row.couponName}」的 Redis 秒杀库存？`,`
     message: `预热券「${row.couponName}」的 Redis 秒杀库存？`,
-    // [zh] 代码块开始
     okfun: async () => {
-      // [zh] 声明变量 `result`
       const result = await proxy.Request({
-        // [zh] TypeScript/JS 语句：`url: proxy.Api.warmupRushStock,`
         url: proxy.Api.warmupRushStock,
-        // [zh] TypeScript/JS 语句：`params: { couponId: row.couponId },`
         params: { couponId: row.couponId },
-        // [zh] TypeScript/JS 语句：`showLoading: true,`
         showLoading: true,
-      // [zh] TypeScript/JS 语句：`})`
       })
-      // [zh] 条件判断 if
       if (!result) return
-      // [zh] TypeScript/JS 语句：`proxy.Message.success('预热成功')`
       proxy.Message.success('预热成功')
-      // [zh] TypeScript/JS 语句：`loadDataList()`
       loadDataList()
-    // [zh] TypeScript/JS 语句：`},`
     },
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `reconcileOne`
 const reconcileOne = (row) => {
-  // [zh] 代码块开始
   proxy.Confirm({
-    // [zh] TypeScript/JS 语句：`message: `对券「${row.couponName}」执行 Redis/DB 库存对账？`,`
     message: `对券「${row.couponName}」执行 Redis/DB 库存对账？`,
-    // [zh] 代码块开始
     okfun: async () => {
-      // [zh] 声明变量 `result`
       const result = await proxy.Request({
-        // [zh] TypeScript/JS 语句：`url: proxy.Api.reconcileRushStock,`
         url: proxy.Api.reconcileRushStock,
-        // [zh] TypeScript/JS 语句：`params: { couponId: row.couponId },`
         params: { couponId: row.couponId },
-        // [zh] TypeScript/JS 语句：`showLoading: true,`
         showLoading: true,
-      // [zh] TypeScript/JS 语句：`})`
       })
-      // [zh] 条件判断 if
       if (!result) return
-      // [zh] 声明变量 `data`
       const data = result.data
-      // [zh] 声明变量 `msg`
       const msg = data?.redisStockAfter != null
-        // [zh] TypeScript/JS 语句：`? `DB=${data.dbRemainCount}，Redis ${data.redisStockBefo`
         ? `DB=${data.dbRemainCount}，Redis ${data.redisStockBefore}→${data.redisStockAfter}`
-        // [zh] TypeScript/JS 语句：`: '对账完成'`
         : '对账完成'
-      // [zh] TypeScript/JS 语句：`proxy.Message.success(msg)`
       proxy.Message.success(msg)
-      // [zh] TypeScript/JS 语句：`loadDataList()`
       loadDataList()
-    // [zh] TypeScript/JS 语句：`},`
     },
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `tableInfoRef`
 const tableInfoRef = ref()
-// [zh] 声明变量 `searchForm`
 const searchForm = ref({})
-// [zh] 声明变量 `tableData`
 const tableData = ref({})
-// [zh] 声明变量 `dialogVisible`
 const dialogVisible = ref(false)
-// [zh] 声明变量 `formRef`
 const formRef = ref()
-// [zh] 声明变量 `currentCouponId`
 const currentCouponId = ref(null)
 
-// [zh] 声明变量 `form`
 const form = reactive({
-  // [zh] TypeScript/JS 语句：`couponName: '',`
   couponName: '',
-  // [zh] TypeScript/JS 语句：`couponType: 1,`
   couponType: 1,
-  // [zh] TypeScript/JS 语句：`thresholdAmount: 0,`
   thresholdAmount: 0,
-  // [zh] TypeScript/JS 语句：`discountAmount: 0,`
   discountAmount: 0,
-  // [zh] TypeScript/JS 语句：`discountRate: 0.9,`
   discountRate: 0.9,
-  // [zh] TypeScript/JS 语句：`totalCount: 0,`
   totalCount: 0,
-  // [zh] TypeScript/JS 语句：`validStartTime: '',`
   validStartTime: '',
-  // [zh] TypeScript/JS 语句：`validEndTime: '',`
   validEndTime: '',
-  // [zh] TypeScript/JS 语句：`rushingstatus: 0,`
   rushingstatus: 0,
-  // [zh] TypeScript/JS 语句：`rushingStartTime: '',`
   rushingStartTime: '',
-  // [zh] TypeScript/JS 语句：`rushingEndTime: '',`
   rushingEndTime: '',
-// [zh] TypeScript/JS 语句：`})`
 })
 
-// [zh] 声明变量 `rules`
 const rules = computed(() => {
-  // [zh] 声明变量 `rule`
   const rule = {
-    // [zh] TypeScript/JS 语句：`couponName: [{ required: true, message: '请输入优惠券名称', tri`
     couponName: [{ required: true, message: '请输入优惠券名称', trigger: 'blur' }],
-    // [zh] TypeScript/JS 语句：`couponType: [{ required: true, message: '请选择优惠券类型', tri`
     couponType: [{ required: true, message: '请选择优惠券类型', trigger: 'change' }],
-    // [zh] TypeScript/JS 语句：`discountAmount: [{ required: true, message: '请输入优惠金额', `
     discountAmount: [{ required: true, message: '请输入优惠金额', trigger: 'blur' }],
-    // [zh] TypeScript/JS 语句：`discountRate: [{ required: true, message: '请输入折扣率', tri`
     discountRate: [{ required: true, message: '请输入折扣率', trigger: 'blur' }],
-    // [zh] TypeScript/JS 语句：`totalCount: [{ required: true, message: '请输入发放总量', trig`
     totalCount: [{ required: true, message: '请输入发放总量', trigger: 'blur' }],
-    // [zh] TypeScript/JS 语句：`validStartTime: [{ required: true, message: '请选择有效期开始时间`
     validStartTime: [{ required: true, message: '请选择有效期开始时间', trigger: 'change' }],
-    // [zh] TypeScript/JS 语句：`validEndTime: [{ required: true, message: '请选择有效期结束时间',`
     validEndTime: [{ required: true, message: '请选择有效期结束时间', trigger: 'change' }],
-  // [zh] 语法符号
   }
 
-  // [zh] 条件判断 if
   if (form.couponType !== 3) {
-    // [zh] TypeScript/JS 语句：`rule.thresholdAmount = [{ required: true, message: '请输入`
     rule.thresholdAmount = [{ required: true, message: '请输入使用门槛金额', trigger: 'blur' }]
-  // [zh] 语法符号
   }
 
-  // [zh] 条件判断 if
   if (form.rushingstatus === 1) {
-    // [zh] TypeScript/JS 语句：`rule.rushingStartTime = [{ required: true, message: '请选`
     rule.rushingStartTime = [{ required: true, message: '请选择秒杀开始时间', trigger: 'change' }]
-    // [zh] TypeScript/JS 语句：`rule.rushingEndTime = [{ required: true, message: '请选择秒`
     rule.rushingEndTime = [{ required: true, message: '请选择秒杀结束时间', trigger: 'change' }]
-  // [zh] 语法符号
   }
 
-  // [zh] return 返回
   return rule
-// [zh] TypeScript/JS 语句：`})`
 })
 
-// [zh] 声明变量 `loadDataList`
 const loadDataList = async () => {
-  // [zh] 声明变量 `params`
   let params = {
-    // [zh] TypeScript/JS 语句：`pageNo: tableData.value.pageNo,`
     pageNo: tableData.value.pageNo,
-    // [zh] TypeScript/JS 语句：`pageSize: tableData.value.pageSize,`
     pageSize: tableData.value.pageSize,
-  // [zh] 语法符号
   }
-  // [zh] TypeScript/JS 语句：`Object.assign(params, searchForm.value)`
   Object.assign(params, searchForm.value)
-  // [zh] 声明变量 `result`
   let result = await proxy.Request({
-    // [zh] TypeScript/JS 语句：`url: proxy.Api.loadDiscountCoupon,`
     url: proxy.Api.loadDiscountCoupon,
-    // [zh] TypeScript/JS 语句：`params: params,`
     params: params,
-  // [zh] TypeScript/JS 语句：`})`
   })
-  // [zh] 条件判断 if
   if (!result) {
-    // [zh] TypeScript/JS 语句：`return`
     return
-  // [zh] 语法符号
   }
-  // [zh] TypeScript/JS 语句：`Object.assign(tableData.value, result.data)`
   Object.assign(tableData.value, result.data)
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `toggleStatus`
 const toggleStatus = (row) => {
-  // [zh] 代码块开始
   proxy.ConfirmSensitive({
-    // [zh] TypeScript/JS 语句：`message: `确定要【${row.status == 0 ? '启用' : '停用'}】吗？`,`
     message: `确定要【${row.status == 0 ? '启用' : '停用'}】吗？`,
-    // [zh] 代码块开始
     okfun: async (sensitiveConfirmToken) => {
-      // [zh] 声明变量 `result`
       let result = await proxy.Request({
-        // [zh] TypeScript/JS 语句：`url: proxy.Api.updateDiscountCouponStatus,`
         url: proxy.Api.updateDiscountCouponStatus,
-        // [zh] TypeScript/JS 语句：`sensitiveConfirmToken,`
         sensitiveConfirmToken,
-        // [zh] 代码块开始
         params: {
-          // [zh] TypeScript/JS 语句：`couponId: row.couponId,`
           couponId: row.couponId,
-          // [zh] TypeScript/JS 语句：`status: row.status == 0 ? 1 : 0,`
           status: row.status == 0 ? 1 : 0,
-        // [zh] TypeScript/JS 语句：`},`
         },
-      // [zh] TypeScript/JS 语句：`})`
       })
-      // [zh] 条件判断 if
       if (!result) {
-        // [zh] TypeScript/JS 语句：`return`
         return
-      // [zh] 语法符号
       }
-      // [zh] TypeScript/JS 语句：`proxy.Message.success('操作成功')`
       proxy.Message.success('操作成功')
-      // [zh] TypeScript/JS 语句：`loadDataList()`
       loadDataList()
-    // [zh] TypeScript/JS 语句：`},`
     },
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `showEdit`
 const showEdit = async (couponId) => {
-  // [zh] TypeScript/JS 语句：`currentCouponId.value = couponId`
   currentCouponId.value = couponId
-  // [zh] TypeScript/JS 语句：`dialogVisible.value = true`
   dialogVisible.value = true
-  // [zh] 条件判断 if
   if (formRef.value) {
-    // [zh] TypeScript/JS 语句：`formRef.value.clearValidate()`
     formRef.value.clearValidate()
-  // [zh] 语法符号
   }
 
-  // [zh] 代码块开始
   Object.assign(form, {
-    // [zh] TypeScript/JS 语句：`couponName: '',`
     couponName: '',
-    // [zh] TypeScript/JS 语句：`couponType: 1,`
     couponType: 1,
-    // [zh] TypeScript/JS 语句：`thresholdAmount: 0,`
     thresholdAmount: 0,
-    // [zh] TypeScript/JS 语句：`discountAmount: 0,`
     discountAmount: 0,
-    // [zh] TypeScript/JS 语句：`discountRate: 0.9,`
     discountRate: 0.9,
-    // [zh] TypeScript/JS 语句：`totalCount: 0,`
     totalCount: 0,
-    // [zh] TypeScript/JS 语句：`validStartTime: '',`
     validStartTime: '',
-    // [zh] TypeScript/JS 语句：`validEndTime: '',`
     validEndTime: '',
-    // [zh] TypeScript/JS 语句：`rushingstatus: 0,`
     rushingstatus: 0,
-    // [zh] TypeScript/JS 语句：`rushingStartTime: '',`
     rushingStartTime: '',
-    // [zh] TypeScript/JS 语句：`rushingEndTime: '',`
     rushingEndTime: '',
-  // [zh] TypeScript/JS 语句：`})`
   })
 
-  // [zh] 条件判断 if
   if (couponId) {
-    // [zh] 声明变量 `result`
     let result = await proxy.Request({
-      // [zh] TypeScript/JS 语句：`url: proxy.Api.getDiscountCouponInfo,`
       url: proxy.Api.getDiscountCouponInfo,
-      // [zh] 代码块开始
       params: {
-        // [zh] TypeScript/JS 语句：`couponId: couponId,`
         couponId: couponId,
-      // [zh] TypeScript/JS 语句：`},`
       },
-    // [zh] TypeScript/JS 语句：`})`
     })
-    // [zh] 条件判断 if
     if (!result) {
-      // [zh] TypeScript/JS 语句：`dialogVisible.value = false`
       dialogVisible.value = false
-      // [zh] TypeScript/JS 语句：`return`
       return
-    // [zh] 语法符号
     }
-    // [zh] 声明变量 `data`
     const data = result.data
-    // [zh] TypeScript/JS 语句：`Object.assign(form, data)`
     Object.assign(form, data)
-  // [zh] 语法符号
   }
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `onCouponTypeChange`
 const onCouponTypeChange = () => {
 
-  // [zh] 条件判断 if
   if (form.couponType === 2) {
-    // [zh] TypeScript/JS 语句：`form.discountAmount = 0`
     form.discountAmount = 0
-  // [zh] 代码块开始
   } else {
-    // [zh] TypeScript/JS 语句：`form.discountRate = 0.9`
     form.discountRate = 0.9
-  // [zh] 语法符号
   }
 
-  // [zh] 条件判断 if
   if (form.couponType === 3) {
-    // [zh] TypeScript/JS 语句：`form.thresholdAmount = 0`
     form.thresholdAmount = 0
-  // [zh] 语法符号
   }
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `handleSave`
 const handleSave = async () => {
-  // [zh] 条件判断 if
   if (!formRef.value) return
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await formRef.value.validate(async (valid) => {
-    // [zh] 条件判断 if
     if (valid) {
-      // [zh] 声明变量 `url`
       let url = proxy.Api.saveDiscountCoupon
 
-      // [zh] 声明变量 `params`
       const params = {
-        // [zh] TypeScript/JS 语句：`...form,`
         ...form,
-      // [zh] 语法符号
       }
 
-      // [zh] 条件判断 if
       if (currentCouponId.value) {
-        // [zh] TypeScript/JS 语句：`params.couponId = currentCouponId.value`
         params.couponId = currentCouponId.value
-      // [zh] 语法符号
       }
 
-      // [zh] 声明变量 `result`
       let result = await proxy.Request({
-        // [zh] TypeScript/JS 语句：`url: url,`
         url: url,
-        // [zh] TypeScript/JS 语句：`params: params,`
         params: params,
-      // [zh] TypeScript/JS 语句：`})`
       })
-      // [zh] 条件判断 if
       if (!result) {
-        // [zh] TypeScript/JS 语句：`return`
         return
-      // [zh] 语法符号
       }
-      // [zh] TypeScript/JS 语句：`proxy.Message.success('保存成功')`
       proxy.Message.success('保存成功')
-      // [zh] TypeScript/JS 语句：`dialogVisible.value = false`
       dialogVisible.value = false
-      // [zh] TypeScript/JS 语句：`loadDataList()`
       loadDataList()
-    // [zh] 语法符号
     }
-  // [zh] TypeScript/JS 语句：`})`
   })
-// [zh] 语法符号
 }
 </script>
 

@@ -36,85 +36,47 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup>`
 <script setup>
-// [zh] 导入 `vue`
 import { computed } from 'vue'
 
-// [zh] 声明变量 `props`
 const props = defineProps({
-  // [zh] 代码块开始
   icon: {
-    // [zh] TypeScript/JS 语句：`type: String,`
     type: String,
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   type: {
-    // [zh] TypeScript/JS 语句：`type: String,`
     type: String,
-    // [zh] TypeScript/JS 语句：`default: 'primary',`
     default: 'primary',
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   tips: {
-    // [zh] TypeScript/JS 语句：`type: String,`
     type: String,
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   disabled: {
-    // [zh] TypeScript/JS 语句：`type: Boolean,`
     type: Boolean,
-    // [zh] TypeScript/JS 语句：`default: false,`
     default: false,
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   disabledTips: {
-    // [zh] TypeScript/JS 语句：`type: String,`
     type: String,
-    // [zh] TypeScript/JS 语句：`default: '',`
     default: '',
-  // [zh] TypeScript/JS 语句：`},`
   },
-  // [zh] 代码块开始
   fun: {
-    // [zh] TypeScript/JS 语句：`type: [String, Function],`
     type: [String, Function],
-  // [zh] TypeScript/JS 语句：`},`
   },
-// [zh] TypeScript/JS 语句：`})`
 })
 
-// [zh] 声明变量 `tooltipText`
 const tooltipText = computed(() => (props.disabled && props.disabledTips ? props.disabledTips : props.tips))
 
-// [zh] 声明变量 `TYPE_MAP`
 const TYPE_MAP = {
-  // [zh] TypeScript/JS 语句：`primary: 'var(--primary)',`
   primary: 'var(--primary)',
-  // [zh] TypeScript/JS 语句：`success: 'var(--green)',`
   success: 'var(--green)',
-  // [zh] TypeScript/JS 语句：`warning: '#d4a24e',`
   warning: '#d4a24e',
-  // [zh] TypeScript/JS 语句：`danger: '#e56b5b',`
   danger: '#e56b5b',
-  // [zh] TypeScript/JS 语句：`info: '#8b95a8',`
   info: '#8b95a8',
-// [zh] 语法符号
 }
 
-// [zh] 声明变量 `emit`
 const emit = defineEmits(['click'])
-// [zh] 声明变量 `handleClick`
 const handleClick = (event) => {
-  // [zh] 条件判断 if
   if (props.disabled) return
-  // [zh] TypeScript/JS 语句：`emit('click', event)`
   emit('click', event)
-// [zh] 语法符号
 }
 </script>
 

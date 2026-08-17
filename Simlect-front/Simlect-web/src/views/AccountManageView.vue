@@ -73,63 +73,36 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { onMounted, ref } from 'vue';
-// [zh] 导入 `vue-router`
 import { useRouter } from 'vue-router';
-// [zh] 导入 `@element-plus/icons-vue`
 import { ArrowRight, Edit, Lock, User } from '@element-plus/icons-vue';
-// [zh] 导入 `@/components/common/UserAvatar.vue`
 import UserAvatar from '@/components/common/UserAvatar.vue';
-// [zh] 导入 `@/api/modules`
 import { accountApi } from '@/api/modules';
-// [zh] 导入 `@/stores/auth`
 import { useAuthStore } from '@/stores/auth';
-// [zh] 导入 `@/utils/confirm`
 import { confirmAction } from '@/utils/confirm';
-// [zh] 导入 `@/utils/toast`
 import { toast } from '@/utils/toast';
 
-// [zh] 声明变量 `router`
 const router = useRouter();
-// [zh] 声明变量 `authStore`
 const authStore = useAuthStore();
-// [zh] 声明变量 `user`
 const user = ref<Record<string, any>>({});
 
-// [zh] 声明变量 `load`
 const load = async () => {
-  // [zh] 语句
   user.value = (await accountApi.getUserInfo()) || authStore.userInfo || {};
-// [zh] 语句
 };
 
-// [zh] 声明变量 `logout`
 const logout = async () => {
-  // [zh] 声明变量 `ok`
   const ok = await confirmAction('确定要退出当前账号吗？', {
-    // [zh] TypeScript/JS 语句：`title: '退出登录',`
     title: '退出登录',
-    // [zh] TypeScript/JS 语句：`confirmButtonText: '退出'`
     confirmButtonText: '退出'
-  // [zh] 语句
   });
-  // [zh] 条件判断 if
   if (!ok) return;
-  // [zh] 语句
   authStore.prepareLogoutNavigation();
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await authStore.logout();
-  // [zh] 语句
   toast.success('已退出登录');
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await router.replace({ path: '/login', query: {} });
-// [zh] 语句
 };
 
-// [zh] 语句
 onMounted(load);
 </script>
 

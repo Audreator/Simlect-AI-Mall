@@ -68,179 +68,98 @@
   </div>
 </template>
 
-// [zh] TypeScript/JS 语句：`<script setup lang="ts">`
 <script setup lang="ts">
-// [zh] 导入 `vue`
 import { onMounted, onUnmounted, ref } from 'vue';
-// [zh] 导入 `vue-router`
 import { useRouter } from 'vue-router';
-// [zh] 导入 `@/components/common/ProductImage.vue`
 import ProductImage from '@/components/common/ProductImage.vue';
-// [zh] 导入 `@/api/modules`
 import { favoriteApi } from '@/api/modules';
-// [zh] 导入 `@/utils/confirm`
 import { confirmAction } from '@/utils/confirm';
-// [zh] 导入 `@/utils/toast`
 import { toast } from '@/utils/toast';
-// [zh] 导入 `@/composables/pullRefresh`
 import { usePageRefresh } from '@/composables/pullRefresh';
 
-// [zh] 声明变量 `router`
 const router = useRouter();
-// [zh] 声明变量 `list`
 const list = ref<any[]>([]);
-// [zh] 声明变量 `pageNo`
 const pageNo = ref(0);
-// [zh] 声明变量 `pageTotal`
 const pageTotal = ref(1);
-// [zh] 声明变量 `loading`
 const loading = ref(false);
-// [zh] 声明变量 `loadingMore`
 const loadingMore = ref(false);
-// [zh] 声明变量 `finished`
 const finished = ref(false);
-// [zh] 声明变量 `editing`
 const editing = ref(false);
 
-// [zh] 声明变量 `scrollRoot`
 const scrollRoot = ref<HTMLElement>();
-// [zh] 声明变量 `sentinelRef`
 const sentinelRef = ref<HTMLElement>();
-// [zh] 声明变量 `observer`
 let observer: IntersectionObserver | null = null;
 
-// [zh] 声明变量 `formatMoney`
 const formatMoney = (val: unknown) => Number(val ?? 0).toFixed(2);
 
-// [zh] 声明变量 `setupObserver`
 const setupObserver = () => {
-  // [zh] 语句
   observer?.disconnect();
-  // [zh] 条件判断 if
   if (!sentinelRef.value) return;
-  // [zh] TypeScript/JS 语句：`observer = new IntersectionObserver(`
   observer = new IntersectionObserver(
-    // [zh] 代码块开始
     (entries) => {
-      // [zh] 条件判断 if
       if (entries.some((e) => e.isIntersecting)) loadMore();
-    // [zh] TypeScript/JS 语句：`},`
     },
-    // [zh] TypeScript/JS 语句：`{ root: scrollRoot.value, rootMargin: '120px' }`
     { root: scrollRoot.value, rootMargin: '120px' }
-  // [zh] 语句
   );
-  // [zh] 语句
   observer.observe(sentinelRef.value);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `loadMore`
 const loadMore = async () => {
-  // [zh] 条件判断 if
   if (loadingMore.value || finished.value) return;
-  // [zh] 条件判断 if
   if (pageNo.value >= pageTotal.value && pageNo.value > 0) {
-    // [zh] 语句
     finished.value = true;
-    // [zh] 语句
     return;
-  // [zh] 语法符号
   }
-  // [zh] 语句
   loadingMore.value = true;
-  // [zh] 条件判断 if
   if (!list.value.length) loading.value = true;
-  // [zh] 代码块开始
   try {
-    // [zh] 声明变量 `next`
     const next = pageNo.value + 1;
-    // [zh] 声明变量 `r`
     const r = await favoriteApi.loadFavorite({ pageNo: next });
-    // [zh] 声明变量 `chunk`
     const chunk = r?.list || [];
-    // [zh] 条件判断 if
     if (next === 1) list.value = chunk;
-    // [zh] else 分支
     else list.value = list.value.concat(chunk);
-    // [zh] 语句
     pageNo.value = r?.pageNo ?? next;
-    // [zh] 语句
     pageTotal.value = r?.pageTotal ?? pageNo.value;
-    // [zh] 语句
     finished.value = pageNo.value >= pageTotal.value;
-  // [zh] 代码块开始
   } finally {
-    // [zh] 语句
     loadingMore.value = false;
-    // [zh] 语句
     loading.value = false;
-  // [zh] 语法符号
   }
-// [zh] 语句
 };
 
-// [zh] 声明变量 `goDetail`
 const goDetail = (productId: string) => {
-  // [zh] 条件判断 if
   if (productId) router.push(`/product/${productId}`);
-// [zh] 语句
 };
 
-// [zh] 声明变量 `remove`
 const remove = async (favoriteId: string) => {
-  // [zh] 声明变量 `ok`
   const ok = await confirmAction('确定要删除该收藏吗？', { title: '删除收藏', confirmButtonText: '删除' });
-  // [zh] 条件判断 if
   if (!ok) return;
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await favoriteApi.removeFavorite(favoriteId);
-  // [zh] 语句
   toast.success('已删除');
 
-  // [zh] 语句
   list.value = [];
-  // [zh] 语句
   pageNo.value = 0;
-  // [zh] 语句
   pageTotal.value = 1;
-  // [zh] 语句
   finished.value = false;
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await loadMore();
-// [zh] 语句
 };
 
-// [zh] 声明变量 `reloadFromStart`
 const reloadFromStart = async () => {
-  // [zh] 语句
   list.value = [];
-  // [zh] 语句
   pageNo.value = 0;
-  // [zh] 语句
   pageTotal.value = 1;
-  // [zh] 语句
   finished.value = false;
-  // [zh] 条件判断 if
   if (scrollRoot.value) scrollRoot.value.scrollTop = 0;
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await loadMore();
-// [zh] 语句
 };
 
-// [zh] 代码块开始
 onMounted(async () => {
-  // [zh] await 等待 Promise（类比 CompletableFuture.get）
   await loadMore();
-  // [zh] 语句
   setupObserver();
-// [zh] 语句
 });
 
-// [zh] 语句
 usePageRefresh(reloadFromStart, { getScrollEl: () => scrollRoot.value });
 
-// [zh] 语句
 onUnmounted(() => observer?.disconnect());
 </script>
 
