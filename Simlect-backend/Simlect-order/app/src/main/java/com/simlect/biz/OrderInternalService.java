@@ -11,27 +11,30 @@ import com.simlect.api.vo.OrderRangeStatsVO;
 import com.simlect.api.dto.CouponRushPrepareDTO;
 import com.simlect.api.dto.PayInfoDTO;
 import com.simlect.api.dto.PayOrderNotifyDTO;
-import com.simlect.entity.enums.DateTimePatternEnum;
 import com.simlect.api.enums.OrderItemStatusEnum;
 import com.simlect.api.enums.OrderStatusEnum;
 import com.simlect.entity.po.OrderInfo;
 import com.simlect.entity.po.OrderItem;
 import com.simlect.entity.query.OrderInfoQuery;
-import com.simlect.utils.DateUtil;
 import com.simlect.utils.StringTools;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 @Service
 public class OrderInternalService {
+
+    private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Shanghai");
 
     private static final Integer[] SALE_STATUSES = new Integer[]{
             OrderStatusEnum.PAID.getStatus(),
@@ -93,7 +96,11 @@ public class OrderInternalService {
     }
 
     public void cancelOrder(OrderIdDTO dto) {
-        orderInfoService.cancelOrder(dto.getUserId(), dto.getOrderId(), OrderStatusEnum.WAIT_PAYMENT);
+        String userId = StringTools.isEmpty(dto.getUserId()) ? null : dto.getUserId();
+        OrderStatusEnum expectedStatus = userId == null
+                ? OrderStatusEnum.CLOSED
+                : OrderStatusEnum.WAIT_PAYMENT;
+        orderInfoService.cancelOrder(userId, dto.getOrderId(), expectedStatus);
     }
 
     public OrderRangeStatsVO aggregateRange(OrderStatsRangeDTO dto) {
@@ -132,47 +139,32 @@ public class OrderInternalService {
             return Collections.emptyList();
         }
 
-        List<OrderDailyStatsVO> result = new ArrayList<>();
-        OrderInfo first = orderInfoList.get(0);
-        String pDate = DateUtil.format(first.getOrderTime(), DateTimePatternEnum.YYYY_MM_DD_HH_MM_SS.getPattern());
-        BigDecimal valueSaleAmount = BigDecimal.ZERO;
-        BigDecimal valueSaleCount = BigDecimal.ZERO;
-        BigDecimal valueRefundAmount = BigDecimal.ZERO;
-        BigDecimal valueRefundCount = BigDecimal.ZERO;
-
+        Map<String, OrderDailyStatsVO> buckets = new TreeMap<>();
         for (OrderInfo orderInfo : orderInfoList) {
-            if (StringTools.isEmpty(orderInfo.getChannelOrderId())) {
+            if (StringTools.isEmpty(orderInfo.getChannelOrderId()) || orderInfo.getOrderTime() == null) {
                 continue;
             }
-            String tempDate = DateUtil.format(orderInfo.getOrderTime(), DateTimePatternEnum.YYYY_MM_DD_HH_MM_SS.getPattern());
-            if (Boolean.TRUE.equals(DateUtil.isAfterOneAM(tempDate))
-                    && Boolean.TRUE.equals(DateUtil.isDayDifferenceAtLeastOne(tempDate, pDate))) {
-                result.add(toDailyVo(pDate, valueSaleAmount, valueSaleCount, valueRefundAmount, valueRefundCount));
-                pDate = tempDate;
-                valueSaleAmount = BigDecimal.ZERO;
-                valueSaleCount = BigDecimal.ZERO;
-                valueRefundAmount = BigDecimal.ZERO;
-                valueRefundCount = BigDecimal.ZERO;
-            }
-            valueSaleCount = valueSaleCount.add(BigDecimal.ONE);
+            String businessDate = orderInfo.getOrderTime().toInstant()
+                    .atZone(BUSINESS_ZONE)
+                    .minusHours(1)
+                    .toLocalDate()
+                    .toString();
+            OrderDailyStatsVO bucket = buckets.computeIfAbsent(businessDate,
+                    day -> toDailyVo(day, BigDecimal.ZERO, BigDecimal.ZERO,
+                            BigDecimal.ZERO, BigDecimal.ZERO));
+            bucket.setSaleCount(bucket.getSaleCount().add(BigDecimal.ONE));
             Integer status = orderInfo.getOrderStatus();
             if (OrderStatusEnum.REFUNDED.getStatus().equals(status)
                     || OrderStatusEnum.PARTIALLY_REFUNDED.getStatus().equals(status)) {
-                valueRefundCount = valueRefundCount.add(BigDecimal.ONE);
+                bucket.setRefundCount(bucket.getRefundCount().add(BigDecimal.ONE));
             }
             BigDecimal saleAmount = calcEffectiveSaleAmount(orderInfo);
             if (saleAmount.compareTo(BigDecimal.ZERO) > 0) {
-                valueSaleAmount = valueSaleAmount.add(saleAmount);
+                bucket.setSaleAmount(bucket.getSaleAmount().add(saleAmount));
             }
-            valueRefundAmount = valueRefundAmount.add(sumNonNormalItemAmount(orderInfo));
+            bucket.setRefundAmount(bucket.getRefundAmount().add(sumNonNormalItemAmount(orderInfo)));
         }
-        if (valueSaleCount.compareTo(BigDecimal.ZERO) > 0
-                || valueSaleAmount.compareTo(BigDecimal.ZERO) > 0
-                || valueRefundCount.compareTo(BigDecimal.ZERO) > 0
-                || valueRefundAmount.compareTo(BigDecimal.ZERO) > 0) {
-            result.add(toDailyVo(pDate, valueSaleAmount, valueSaleCount, valueRefundAmount, valueRefundCount));
-        }
-        return result;
+        return new ArrayList<>(buckets.values());
     }
 
     private OrderInfoQuery baseQuery(String start, String end) {
@@ -184,13 +176,10 @@ public class OrderInternalService {
         return query;
     }
 
-    private OrderDailyStatsVO toDailyVo(String dateStr, BigDecimal saleAmount, BigDecimal saleCount,
+    private OrderDailyStatsVO toDailyVo(String businessDate, BigDecimal saleAmount, BigDecimal saleCount,
                                         BigDecimal refundAmount, BigDecimal refundCount) {
-        String day = DateUtil.format(
-                DateUtil.parse(dateStr, DateTimePatternEnum.YYYY_MM_DD.getPattern()),
-                DateTimePatternEnum.YYYY_MM_DD.getPattern());
         OrderDailyStatsVO vo = new OrderDailyStatsVO();
-        vo.setStatisticsDate(day);
+        vo.setStatisticsDate(businessDate);
         vo.setSaleAmount(saleAmount);
         vo.setSaleCount(saleCount);
         vo.setRefundAmount(refundAmount);

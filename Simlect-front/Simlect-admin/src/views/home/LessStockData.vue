@@ -17,11 +17,10 @@
           <!-- [zh] 开始标签 `<div>` -->
           <div class="property-name">
             <!-- [zh] 开始标签 `<div>` -->
-            <div v-for="(item, index) in row.propertyData">
+            <div v-for="(item, index) in row.propertyData" :key="`${item.propertyName}-${index}`">
               <!-- [zh] Mustache 插值表达式 -->
-              {{ item.propertyName }}:{{ item.propertyValue }} <el-divider direction="vertical"
-                <!-- [zh] 模板内容：`v-if="index < row.propertyData.length - 1" />` -->
-                v-if="index < row.propertyData.length - 1" />
+              {{ item.propertyName }}:{{ item.propertyValue }}
+              <el-divider v-if="index < row.propertyData.length - 1" direction="vertical" />
             <!-- [zh] 闭合标签 `</div>` -->
             </div>
 

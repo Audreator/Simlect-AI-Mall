@@ -13,6 +13,8 @@ import com.simlect.entity.config.AppConfig;
 import com.simlect.entity.po.OrderInfo;
 import com.simlect.entity.po.OrderLogisticsInfo;
 import com.simlect.entity.po.OrderLogisticsInfoRecord;
+import com.simlect.state.OrderStateEvent;
+import com.simlect.state.OrderStateMachine;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -64,6 +66,8 @@ class RabbitMQPayOrderDeadListenerComponentTest {
     private AppConfig appConfig;
     @Mock
     private MqListenerHelper mqListenerHelper;
+    @Mock
+    private OrderStateMachine orderStateMachine;
     @Mock
     private Channel channel;
 
@@ -207,12 +211,13 @@ class RabbitMQPayOrderDeadListenerComponentTest {
         logistics.setReceiverAddress("北京市朝阳区");
         when(orderLogisticsInfoService.getOrderLogisticsInfoByOrderId(ORDER_ID)).thenReturn(logistics);
         when(orderLogisticsInfoRecordService.findCountByParam(any())).thenReturn(0);
+        when(orderStateMachine.transition(ORDER_ID, OrderStatusEnum.PAID, OrderStateEvent.SHIP)).thenReturn(1);
         when(orderLogisticsInfoService.updateByParam(any(), any())).thenReturn(1);
         when(orderLogisticsInfoRecordService.add(any())).thenReturn(1);
 
         component.processOrderLogistics(message(ORDER_ID), 10L, channel, mqMessage(10L));
 
-        verify(orderInfoService).updateOrderInfoByOrderId(paid, ORDER_ID);
+        verify(orderStateMachine).transition(ORDER_ID, OrderStatusEnum.PAID, OrderStateEvent.SHIP);
         assertEquals(OrderStatusEnum.SHIPPED.getStatus(), paid.getOrderStatus());
         assertEquals(LogisticsStatusEnum.IN_TRANSIT.getStatus(), logistics.getLogisticsStatus());
         assertNotNull(logistics.getLogisticsNo());

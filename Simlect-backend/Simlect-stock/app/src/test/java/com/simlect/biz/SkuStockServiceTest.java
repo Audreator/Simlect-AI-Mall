@@ -208,6 +208,84 @@ class SkuStockServiceTest {
         assertEquals("库存不足", e.getMessage());
     }
 
+    @Test
+    void changeStockBatch_duplicateOperation_returnsStoredResultWithoutChangingStock() {
+        SkuStockBatchChangeDTO request = batch(changeDto(3));
+        request.setOperationId("order-close-restock:PO1");
+        when(skuStockMapper.insertChangeOperation(request.getOperationId())).thenReturn(0);
+        when(skuStockMapper.selectChangeOperationResult(request.getOperationId())).thenReturn(1);
+
+        assertEquals(1, skuStockService.changeStockBatch(request));
+        verify(skuStockMapper, never()).changeStock(anyString(), anyString(), anyInt());
+    }
+
+    @Test
+    void changeStockBatch_newOperation_changesStockAndCompletesRecord() {
+        SkuStockBatchChangeDTO request = batch(changeDto(3));
+        request.setOperationId("order-close-restock:PO1");
+        when(skuStockMapper.insertChangeOperation(request.getOperationId())).thenReturn(1);
+        when(skuStockMapper.changeStock(PRODUCT_ID, SKU_HASH, 3)).thenReturn(1);
+        when(skuStockMapper.completeChangeOperation(request.getOperationId(), 1)).thenReturn(1);
+
+        assertEquals(1, skuStockService.changeStockBatch(request));
+        verify(skuStockMapper).completeChangeOperation(request.getOperationId(), 1);
+    }
+
+    @Test
+    void changeStockBatch_missingRequiredOperation_isSafeNoOp() {
+        SkuStockBatchChangeDTO request = batch(changeDto(3));
+        request.setOperationId("order-create-compensate:PO1");
+        request.setRequiredOperationId("order-create-deduct:PO1");
+        when(skuStockMapper.selectChangeOperationIdForUpdate(request.getRequiredOperationId())).thenReturn(null);
+        when(skuStockMapper.insertCancelledChangeOperation(request.getRequiredOperationId())).thenReturn(1);
+
+        assertEquals(0, skuStockService.changeStockBatch(request));
+        verify(skuStockMapper, never()).insertChangeOperation(anyString());
+        verify(skuStockMapper, never()).changeStock(anyString(), anyString(), anyInt());
+    }
+
+    @Test
+    void changeStockBatch_cancelledOperation_cannotRunWhenDelayed() {
+        SkuStockBatchChangeDTO request = batch(changeDto(-3));
+        request.setOperationId("order-create-deduct:PO1");
+        when(skuStockMapper.insertChangeOperation(request.getOperationId())).thenReturn(0);
+        when(skuStockMapper.selectChangeOperationResult(request.getOperationId())).thenReturn(-1);
+
+        assertEquals(0, skuStockService.changeStockBatch(request));
+        verify(skuStockMapper, never()).changeStock(anyString(), anyString(), anyInt());
+    }
+
+    @Test
+    void changeStockBatch_concurrentRequiredOperationWonRace_allowsCompensation() {
+        SkuStockBatchChangeDTO request = batch(changeDto(3));
+        request.setOperationId("order-create-compensate:PO1");
+        request.setRequiredOperationId("order-create-deduct:PO1");
+        when(skuStockMapper.selectChangeOperationIdForUpdate(request.getRequiredOperationId()))
+                .thenReturn(null, request.getRequiredOperationId());
+        when(skuStockMapper.insertCancelledChangeOperation(request.getRequiredOperationId())).thenReturn(0);
+        when(skuStockMapper.selectChangeOperationResult(request.getRequiredOperationId())).thenReturn(1);
+        when(skuStockMapper.insertChangeOperation(request.getOperationId())).thenReturn(1);
+        when(skuStockMapper.changeStock(PRODUCT_ID, SKU_HASH, 3)).thenReturn(1);
+        when(skuStockMapper.completeChangeOperation(request.getOperationId(), 1)).thenReturn(1);
+
+        assertEquals(1, skuStockService.changeStockBatch(request));
+    }
+
+    @Test
+    void changeStockBatch_committedRequiredOperation_allowsCompensation() {
+        SkuStockBatchChangeDTO request = batch(changeDto(3));
+        request.setOperationId("order-create-compensate:PO1");
+        request.setRequiredOperationId("order-create-deduct:PO1");
+        when(skuStockMapper.selectChangeOperationIdForUpdate(request.getRequiredOperationId()))
+                .thenReturn(request.getRequiredOperationId());
+        when(skuStockMapper.selectChangeOperationResult(request.getRequiredOperationId())).thenReturn(1);
+        when(skuStockMapper.insertChangeOperation(request.getOperationId())).thenReturn(1);
+        when(skuStockMapper.changeStock(PRODUCT_ID, SKU_HASH, 3)).thenReturn(1);
+        when(skuStockMapper.completeChangeOperation(request.getOperationId(), 1)).thenReturn(1);
+
+        assertEquals(1, skuStockService.changeStockBatch(request));
+    }
+
     // ==================== lockAndVerify（行锁校验） ====================
 
     @Test

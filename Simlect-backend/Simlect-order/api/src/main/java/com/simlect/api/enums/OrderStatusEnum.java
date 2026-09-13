@@ -1,7 +1,6 @@
 package com.simlect.api.enums;
 
 import java.util.Arrays;
-import java.util.Optional;
 
 public enum OrderStatusEnum {
     DELETE(-1, "已删除"),
@@ -32,7 +31,12 @@ public enum OrderStatusEnum {
     }
 
     public static OrderStatusEnum getByStatus(Integer status) {
-        Optional<OrderStatusEnum> typeEnum = Arrays.stream(OrderStatusEnum.values()).filter(value -> value.getStatus().equals(status)).findFirst();
-        return typeEnum == null ? null : typeEnum.get();
+        if (status == null) {
+            return null;
+        }
+        return Arrays.stream(OrderStatusEnum.values())
+                .filter(value -> value.getStatus().equals(status))
+                .findFirst()
+                .orElse(null);
     }
 }

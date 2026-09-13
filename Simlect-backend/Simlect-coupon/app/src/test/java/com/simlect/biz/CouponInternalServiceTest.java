@@ -1,8 +1,11 @@
 package com.simlect.biz;
 
 import com.simlect.api.dto.CouponValidateAndLockDTO;
+import com.simlect.api.dto.NotificationMessageDTO;
+import com.simlect.api.dto.SignStreakCouponMessageDTO;
 import com.simlect.api.dto.UserCouponCreateDTO;
 import com.simlect.api.dto.UserCouponStatusChangeDTO;
+import com.simlect.api.enums.CouponStatusEnum;
 import com.simlect.api.enums.CouponTypeEnum;
 import com.simlect.api.enums.UserCouponStatusEnum;
 import com.simlect.api.vo.CouponBriefVO;
@@ -11,15 +14,22 @@ import com.simlect.api.vo.DiscountCouponVO;
 import com.simlect.api.vo.UserCouponVO;
 import com.simlect.component.CouponRushStockService;
 import com.simlect.component.DiscountCouponCacheComponent;
+import com.simlect.constants.RabbitMQConfig;
+import com.simlect.constants.TransactionalMqSender;
+import com.simlect.entity.enums.MessageReliabilityLevelEnum;
 import com.simlect.entity.po.DiscountCoupon;
+import com.simlect.entity.po.SignStreakCouponGrant;
 import com.simlect.entity.po.UserCoupon;
 import com.simlect.entity.query.DiscountCouponQuery;
 import com.simlect.entity.query.UserCouponQuery;
 import com.simlect.exception.BusinessException;
 import com.simlect.mappers.DiscountCouponMapper;
+import com.simlect.mappers.SignStreakCouponGrantMapper;
 import com.simlect.mappers.UserCouponMapper;
+import com.simlect.support.MqIdempotencyKeys;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -30,6 +40,7 @@ import java.util.Date;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -50,6 +61,10 @@ class CouponInternalServiceTest {
     private DiscountCouponService discountCouponService;
     @Mock
     private DiscountCouponCacheComponent discountCouponCacheComponent;
+    @Mock
+    private SignStreakCouponGrantMapper signStreakCouponGrantMapper;
+    @Mock
+    private TransactionalMqSender transactionalMqSender;
 
     @InjectMocks
     private CouponInternalService couponInternalService;
@@ -84,6 +99,18 @@ class CouponInternalServiceTest {
         dto.setUserCouponId(USER_COUPON_ID);
         dto.setOrderAmount(orderAmount);
         return dto;
+    }
+
+    private SignStreakCouponMessageDTO streakCouponDto() {
+        return new SignStreakCouponMessageDTO(USER_ID, COUPON_ID, 7);
+    }
+
+    private DiscountCoupon streakCoupon(boolean unlimited) {
+        DiscountCoupon coupon = discountCoupon(CouponTypeEnum.FULL.getStatus());
+        coupon.setStatus(CouponStatusEnum.NORMAL.getStatus());
+        coupon.setTotalCount(unlimited ? 0 : 10);
+        coupon.setRemainCount(unlimited ? 0 : 1);
+        return coupon;
     }
 
     // ==================== validateAndLock ====================
@@ -340,6 +367,16 @@ class CouponInternalServiceTest {
     }
 
     @Test
+    void deductStock_unlimitedCoupon_returnsSuccessWithoutChangingCounter() {
+        when(discountCouponMapper.selectByCouponIdForUpdate(COUPON_ID))
+                .thenReturn(streakCoupon(true));
+
+        assertEquals(1, couponInternalService.deductStock(COUPON_ID));
+
+        verify(discountCouponMapper, never()).deductStock(anyString());
+    }
+
+    @Test
     void deductStock_nullAffected_returnsZero() {
         when(discountCouponMapper.selectByCouponIdForUpdate(COUPON_ID))
                 .thenReturn(discountCoupon(CouponTypeEnum.FULL.getStatus()));
@@ -369,5 +406,159 @@ class CouponInternalServiceTest {
 
         couponInternalService.invalidateCouponCache(COUPON_ID);
         verify(discountCouponCacheComponent).invalidateAfterWrite(COUPON_ID);
+    }
+
+    // ==================== 连续签到奖励 ====================
+
+    @Test
+    void grantSignStreakCoupon_invalidPayload_throwsBeforeWriting() {
+        SignStreakCouponMessageDTO dto = new SignStreakCouponMessageDTO(USER_ID, COUPON_ID, 0);
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> couponInternalService.grantSignStreakCoupon(dto));
+
+        assertEquals("连续签到奖励消息参数错误", exception.getMessage());
+        verify(signStreakCouponGrantMapper, never()).insertPending(any());
+    }
+
+    @Test
+    void grantSignStreakCoupon_duplicateGranted_returnsExistingResult() {
+        SignStreakCouponGrant existing = new SignStreakCouponGrant();
+        existing.setStatus(1);
+        existing.setUserCouponId(USER_COUPON_ID);
+        when(signStreakCouponGrantMapper.insertPending(any())).thenReturn(0);
+        when(signStreakCouponGrantMapper.selectByIdempotencyKey(
+                MqIdempotencyKeys.signStreakCoupon(USER_ID, COUPON_ID, 7))).thenReturn(existing);
+
+        CouponInternalService.StreakCouponGrantResult result =
+                couponInternalService.grantSignStreakCoupon(streakCouponDto());
+
+        assertEquals("ALREADY_GRANTED", result.outcome());
+        assertEquals(USER_COUPON_ID, result.userCouponId());
+        verify(discountCouponMapper, never()).selectByCouponIdForUpdate(anyString());
+    }
+
+    @Test
+    void grantSignStreakCoupon_duplicateRejected_returnsExistingReason() {
+        SignStreakCouponGrant existing = new SignStreakCouponGrant();
+        existing.setStatus(2);
+        existing.setRejectReason("奖励优惠券库存不足");
+        when(signStreakCouponGrantMapper.insertPending(any())).thenReturn(0);
+        when(signStreakCouponGrantMapper.selectByIdempotencyKey(anyString())).thenReturn(existing);
+
+        CouponInternalService.StreakCouponGrantResult result =
+                couponInternalService.grantSignStreakCoupon(streakCouponDto());
+
+        assertEquals("ALREADY_REJECTED", result.outcome());
+        assertEquals("奖励优惠券库存不足", result.reason());
+        verify(discountCouponMapper, never()).selectByCouponIdForUpdate(anyString());
+    }
+
+    @Test
+    void grantSignStreakCoupon_existingPending_throwsForRetry() {
+        SignStreakCouponGrant existing = new SignStreakCouponGrant();
+        existing.setStatus(0);
+        when(signStreakCouponGrantMapper.insertPending(any())).thenReturn(0);
+        when(signStreakCouponGrantMapper.selectByIdempotencyKey(anyString())).thenReturn(existing);
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class,
+                () -> couponInternalService.grantSignStreakCoupon(streakCouponDto()));
+
+        assertTrue(exception.getMessage().contains("长期处于处理中"));
+    }
+
+    @Test
+    void grantSignStreakCoupon_missingCoupon_recordsBusinessRejection() {
+        when(signStreakCouponGrantMapper.insertPending(any())).thenReturn(1);
+        when(discountCouponMapper.selectByCouponIdForUpdate(COUPON_ID)).thenReturn(null);
+        when(signStreakCouponGrantMapper.markRejected(anyString(), anyString(), any(Date.class))).thenReturn(1);
+
+        CouponInternalService.StreakCouponGrantResult result =
+                couponInternalService.grantSignStreakCoupon(streakCouponDto());
+
+        assertEquals("REJECTED", result.outcome());
+        assertEquals("奖励优惠券不存在", result.reason());
+        verify(signStreakCouponGrantMapper).markRejected(
+                eq(MqIdempotencyKeys.signStreakCoupon(USER_ID, COUPON_ID, 7)),
+                eq("奖励优惠券不存在"), any(Date.class));
+        verify(userCouponMapper, never()).insert(any());
+    }
+
+    @Test
+    void grantSignStreakCoupon_limitedStock_successWritesCouponAndNotification() {
+        when(signStreakCouponGrantMapper.insertPending(any())).thenReturn(1);
+        when(discountCouponMapper.selectByCouponIdForUpdate(COUPON_ID)).thenReturn(streakCoupon(false));
+        when(discountCouponMapper.deductStock(COUPON_ID)).thenReturn(1);
+        when(userCouponMapper.insert(any())).thenReturn(1);
+        when(signStreakCouponGrantMapper.markGranted(anyString(), anyString(), any(Date.class))).thenReturn(1);
+
+        CouponInternalService.StreakCouponGrantResult result =
+                couponInternalService.grantSignStreakCoupon(streakCouponDto());
+
+        assertEquals("GRANTED", result.outcome());
+        assertNotNull(result.userCouponId());
+        verify(discountCouponMapper).deductStock(COUPON_ID);
+        ArgumentCaptor<UserCoupon> userCouponCaptor = ArgumentCaptor.forClass(UserCoupon.class);
+        verify(userCouponMapper).insert(userCouponCaptor.capture());
+        UserCoupon created = userCouponCaptor.getValue();
+        assertEquals(USER_ID, created.getUserId());
+        assertEquals(COUPON_ID, created.getCouponId());
+        assertEquals(UserCouponStatusEnum.NOUSE.getStatus(), created.getStatus());
+        assertNotNull(created.getReceiveTime());
+        assertEquals(result.userCouponId(), created.getUserCouponId());
+        verify(transactionalMqSender).sendAfterCommit(
+                eq(RabbitMQConfig.NOTIFY_EXCHANGE),
+                eq(RabbitMQConfig.NOTIFY_KEY),
+                any(NotificationMessageDTO.class),
+                eq(MqIdempotencyKeys.notification(USER_ID, "sign_reward", result.userCouponId())),
+                eq(MessageReliabilityLevelEnum.HIGH));
+    }
+
+    @Test
+    void grantSignStreakCoupon_unlimitedStock_doesNotDeductCounter() {
+        when(signStreakCouponGrantMapper.insertPending(any())).thenReturn(1);
+        when(discountCouponMapper.selectByCouponIdForUpdate(COUPON_ID)).thenReturn(streakCoupon(true));
+        when(userCouponMapper.insert(any())).thenReturn(1);
+        when(signStreakCouponGrantMapper.markGranted(anyString(), anyString(), any(Date.class))).thenReturn(1);
+
+        CouponInternalService.StreakCouponGrantResult result =
+                couponInternalService.grantSignStreakCoupon(streakCouponDto());
+
+        assertEquals("GRANTED", result.outcome());
+        verify(discountCouponMapper, never()).deductStock(anyString());
+        verify(userCouponMapper).insert(any(UserCoupon.class));
+    }
+
+    @Test
+    void grantSignStreakCoupon_stockRace_recordsRejectionWithoutCreatingCoupon() {
+        when(signStreakCouponGrantMapper.insertPending(any())).thenReturn(1);
+        when(discountCouponMapper.selectByCouponIdForUpdate(COUPON_ID)).thenReturn(streakCoupon(false));
+        when(discountCouponMapper.deductStock(COUPON_ID)).thenReturn(0);
+        when(signStreakCouponGrantMapper.markRejected(anyString(), anyString(), any(Date.class))).thenReturn(1);
+
+        CouponInternalService.StreakCouponGrantResult result =
+                couponInternalService.grantSignStreakCoupon(streakCouponDto());
+
+        assertEquals("REJECTED", result.outcome());
+        assertEquals("奖励优惠券库存不足", result.reason());
+        verify(userCouponMapper, never()).insert(any());
+        verify(transactionalMqSender, never()).sendAfterCommit(
+                anyString(), anyString(), any(), anyString(), any());
+    }
+
+    @Test
+    void grantSignStreakCoupon_userCouponWriteFailure_throwsForTransactionRollback() {
+        when(signStreakCouponGrantMapper.insertPending(any())).thenReturn(1);
+        when(discountCouponMapper.selectByCouponIdForUpdate(COUPON_ID)).thenReturn(streakCoupon(false));
+        when(discountCouponMapper.deductStock(COUPON_ID)).thenReturn(1);
+        when(userCouponMapper.insert(any())).thenReturn(0);
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class,
+                () -> couponInternalService.grantSignStreakCoupon(streakCouponDto()));
+
+        assertEquals("连续签到奖励用户券写入失败", exception.getMessage());
+        verify(signStreakCouponGrantMapper, never()).markGranted(anyString(), anyString(), any(Date.class));
+        verify(transactionalMqSender, never()).sendAfterCommit(
+                anyString(), anyString(), any(), anyString(), any());
     }
 }

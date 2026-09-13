@@ -156,13 +156,26 @@ class SignRewardConfigServiceImplTest {
     }
 
     @Test
-    void resolveActiveConfig_disabledRedisConfig_ignored() {
+    void resolveActiveConfig_disabledRedisConfig_overridesYmlFallback() {
         SignRewardConfigDTO cached = new SignRewardConfigDTO();
         cached.setEnabled(false);
         cached.setCouponId("CP1");
         when(redisComponent.getSignRewardConfig()).thenReturn(cached);
-        when(appConfig.getSignStreakCouponId()).thenReturn(null);
 
         assertNull(signRewardConfigService.resolveActiveConfig());
+        verify(appConfig, never()).getSignStreakCouponId();
+    }
+
+    @Test
+    void resolveActiveConfig_redisFailure_usesYmlWithoutBreakingSignFlow() {
+        when(redisComponent.getSignRewardConfig()).thenThrow(new IllegalStateException("redis down"));
+        when(appConfig.getSignStreakCouponId()).thenReturn("CP-yml");
+
+        SignRewardConfigDTO dto = signRewardConfigService.resolveActiveConfig();
+
+        assertNotNull(dto);
+        assertTrue(dto.getEnabled());
+        assertEquals("CP-yml", dto.getCouponId());
+        assertEquals(7, dto.getStreakDays());
     }
 }

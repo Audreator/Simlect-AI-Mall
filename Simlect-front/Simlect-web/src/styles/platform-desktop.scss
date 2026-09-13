@@ -75,7 +75,7 @@ html[data-platform='desktop'] {
       overflow: hidden;
       margin-bottom: 8px;
 
-      :deep(.product-image) {
+      .product-image {
         transition: transform $transition-normal;
       }
     }
@@ -84,7 +84,7 @@ html[data-platform='desktop'] {
       transform: translateY(-2px);
       box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
 
-      .cover-wrap :deep(.product-image) {
+      .cover-wrap .product-image {
         transform: scale(1.04);
       }
     }
@@ -223,27 +223,27 @@ html[data-platform='desktop'] {
     .search-category {
       position: relative;
 
-      :deep(.el-select__wrapper) {
+      .el-select__wrapper {
         justify-content: center;
         padding-left: 8px;
         padding-right: 22px;
       }
 
-      :deep(.el-select__selection) {
+      .el-select__selection {
         flex: 1;
         min-width: 0;
         justify-content: center;
         text-align: center;
       }
 
-      :deep(.el-select__selected-item),
-      :deep(.el-select__placeholder) {
+      .el-select__selected-item,
+      .el-select__placeholder {
         width: 100%;
         text-align: center;
         justify-content: center;
       }
 
-      :deep(.el-select__suffix) {
+      .el-select__suffix {
         position: absolute;
         right: 6px;
       }
@@ -304,7 +304,7 @@ html[data-platform='desktop'] {
       flex: 1;
       min-width: 0;
 
-      :deep(.el-input__wrapper) {
+      .el-input__wrapper {
         height: 44px;
         border-radius: $radius-search !important;
         background: $color-bg-subtle !important;

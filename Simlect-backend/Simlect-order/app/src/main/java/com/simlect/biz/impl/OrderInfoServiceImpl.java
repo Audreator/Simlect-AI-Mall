@@ -26,6 +26,8 @@ import com.simlect.mappers.OrderInfoMapper;
 import com.simlect.mappers.OrderItemMapper;
 import com.simlect.mappers.OrderLogisticsInfoMapper;
 import com.simlect.support.MqIdempotencyKeys;
+import com.simlect.state.OrderStateEvent;
+import com.simlect.state.OrderStateMachine;
 import com.simlect.utils.OrderListPayAmountHelper;
 import com.simlect.utils.OrderPayAmountUtil;
 import com.simlect.utils.StringTools;
@@ -35,6 +37,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -106,6 +110,8 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 	private TransactionalMqSender transactionalMqSender;
 	@Resource
 	private RemoteCompensateRecorder remoteCompensateRecorder;
+	@Resource
+	private OrderStateMachine orderStateMachine;
 
 	@Override
 	public List<OrderInfo> findListByParam(OrderInfoQuery param) {
@@ -140,6 +146,7 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 
 	@Override
 	public Integer add(OrderInfo bean) {
+		orderStateMachine.initialize(bean);
 		return this.orderInfoMapper.insert(bean);
 	}
 
@@ -148,6 +155,7 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 		if (listBean == null || listBean.isEmpty()) {
 			return 0;
 		}
+		listBean.forEach(orderStateMachine::initialize);
 		return this.orderInfoMapper.insertBatch(listBean);
 	}
 
@@ -156,19 +164,28 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 		if (listBean == null || listBean.isEmpty()) {
 			return 0;
 		}
-		return this.orderInfoMapper.insertOrUpdateBatch(listBean);
+		for (OrderInfo orderInfo : listBean) {
+			if (orderInfo == null || StringTools.isEmpty(orderInfo.getOrderId())) {
+				throw new BusinessException("订单ID不能为空");
+			}
+			if (orderInfoMapper.selectByOrderId(orderInfo.getOrderId()) != null) {
+				throw new BusinessException("不允许批量覆盖已有订单");
+			}
+			orderStateMachine.initialize(orderInfo);
+		}
+		return this.orderInfoMapper.insertBatch(listBean);
 	}
 
 	@Override
 	public Integer updateByParam(OrderInfo bean, OrderInfoQuery param) {
 		StringTools.checkParam(param);
+		assertNoDirectStatusMutation(bean);
 		return this.orderInfoMapper.updateByParam(bean, param);
 	}
 
 	@Override
 	public Integer deleteByParam(OrderInfoQuery param) {
-		StringTools.checkParam(param);
-		return this.orderInfoMapper.deleteByParam(param);
+		throw new BusinessException("订单不允许物理删除，请通过状态机逻辑删除");
 	}
 
 	@Override
@@ -178,12 +195,30 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 
 	@Override
 	public Integer updateOrderInfoByOrderId(OrderInfo bean, String orderId) {
+		assertNoDirectStatusMutation(bean);
 		return this.orderInfoMapper.updateByOrderId(bean, orderId);
+	}
+
+	private void assertNoDirectStatusMutation(OrderInfo bean) {
+		if (bean != null && bean.getOrderStatus() != null) {
+			throw new BusinessException("订单状态必须通过状态机流转");
+		}
 	}
 
 	@Override
 	public Integer deleteOrderInfoByOrderId(String orderId) {
-		return this.orderInfoMapper.deleteByOrderId(orderId);
+		OrderInfo existing = orderInfoMapper.selectByOrderId(orderId);
+		if (existing == null) {
+			throw new BusinessException("订单不存在");
+		}
+		if (OrderStatusEnum.DELETE.getStatus().equals(existing.getOrderStatus())) {
+			return 0;
+		}
+		OrderStatusEnum current = OrderStatusEnum.getByStatus(existing.getOrderStatus());
+		if (!orderStateMachine.canTransition(existing.getOrderStatus(), OrderStateEvent.DELETE)) {
+			throw new BusinessException("当前订单状态无法删除！");
+		}
+		return orderStateMachine.transition(orderId, current, OrderStateEvent.DELETE);
 	}
 
 	/**
@@ -292,7 +327,7 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 				orderInfo.setUserId(userId);
 				orderInfo.setOrderTime(now);
 				// 订单状态为待付款
-				orderInfo.setOrderStatus(OrderStatusEnum.WAIT_PAYMENT.getStatus());
+				orderStateMachine.initialize(orderInfo);
 				// 评论状态为未评论
 				orderInfo.setCommentStatus(CommentStatusEnum.NORMAL.getStatus());
 				orderInfo.setPayChannel(postOrderDTO.getPayMethod());
@@ -416,6 +451,8 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 			throw new BusinessException("请选择商品");
 		}
 		boolean stockDeducted = false;
+		boolean stockChangeAttempted = false;
+		String stockDeductOperationId = "order-create-deduct:" + unifiedPayOrderId;
 		try {
 			stockFeignSupport.lockAndVerify(newList);
 			// 插入数据库
@@ -424,7 +461,8 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 			orderLogisticsInfoMapper.insert(orderLogisticsInfo);
 			// 远程扣减库存（与本地订单事务分离；后续步骤失败时补偿回补）
 			List<ProductItem> deductList = copyItemsWithSignedBuyCount(newList, true);
-			stockFeignSupport.changeStockBatch(deductList);
+			stockChangeAttempted = true;
+			stockFeignSupport.changeStockBatchIdempotent(deductList, stockDeductOperationId);
 			stockDeducted = true;
 			if (OrderFromTypeEnum.CART == orderFromTypeEnum) {
 				cartFeignSupport.deleteBatch(productCartList);
@@ -452,13 +490,17 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 			}
 			return payInfoDTO;
 		} catch (RuntimeException ex) {
-			if (stockDeducted) {
+			if (stockDeducted || stockChangeAttempted) {
+				String compensateOperationId = "order-create-compensate:" + unifiedPayOrderId;
 				try {
-					stockFeignSupport.changeStockBatch(copyItemsWithSignedBuyCount(newList, false));
+					stockFeignSupport.changeStockBatchIdempotent(
+							copyItemsWithSignedBuyCount(newList, false), compensateOperationId,
+							stockDeductOperationId);
 				} catch (Exception compensateEx) {
 					log.error("下单失败后库存回补失败, payOrderId={}", unifiedPayOrderId, compensateEx);
 					remoteCompensateRecorder.recordStockChangeBatch(
-							unifiedPayOrderId, copyItemsWithSignedBuyCount(newList, false), compensateEx);
+							unifiedPayOrderId, compensateOperationId, stockDeductOperationId,
+							copyItemsWithSignedBuyCount(newList, false), compensateEx);
 				}
 			}
 			if (couponLocked) {
@@ -531,7 +573,7 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 		orderInfo.setAmount(payAmount);
 		orderInfo.setUserId(userId);
 		orderInfo.setOrderTime(now);
-		orderInfo.setOrderStatus(OrderStatusEnum.WAIT_PAYMENT.getStatus());
+		orderStateMachine.initialize(orderInfo);
 		orderInfo.setCommentStatus(OrderCommentStatusEnum.NOT_EVALUATED.getStatus());
 		orderInfo.setPayScene(String.valueOf(OrderFromTypeEnum.COUPON.getType()));
 		orderInfo.setPayChannel(PayChannelEnum.ALIPAY_PC.getPayScene());
@@ -592,8 +634,6 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 		return orderInfoMapper.selectByOrderId(rels.get(0).getOrderId());
 	}
 
-	@Override
-	@Transactional(rollbackFor = Exception.class)
 	/**
 	 * 【功能】优惠券秒杀：Redis Lua 预占 + DB 扣券 + 建待支付订单。
 	 * <p>
@@ -796,28 +836,34 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 
 	// 取消订单
 	// 从orderStatusEnum状态取消
-	@Override
-	@Transactional(rollbackFor = Exception.class)
 	/**
 	 * 【功能】关单（用户取消或系统超时），回补库存/释券并关闭支付单。
 	 * <p>
 	 * 【角色】与 {@link #paySuccess} 对称的「关单侧」：同一生命周期锁串行，状态机保证只成功一次。
 	 * MQ 至少一次投递下本方法必须幂等（已关/已付直接返回）。
 	 */
+	@Transactional(rollbackFor = Exception.class)
 	public void cancelOrder(String userId, String orderId, OrderStatusEnum orderStatusEnum) {
+		OrderStateEvent cancelEvent = userId == null
+				? OrderStateEvent.PAYMENT_TIMEOUT : OrderStateEvent.USER_CANCEL;
+		if ((userId == null && orderStatusEnum != OrderStatusEnum.CLOSED)
+				|| (userId != null && orderStatusEnum != OrderStatusEnum.WAIT_PAYMENT)) {
+			throw new BusinessException("取消订单事件与目标状态不匹配");
+		}
 		OrderInfo orderInfo = orderInfoMapper.selectByOrderId(orderId);
 		if (orderInfo == null) {
 			throw new BusinessException("订单不存在");
 		}
 		String payOrderId = orderInfo.getPayOrderId();
 		if (StringTools.isEmpty(payOrderId)) {
-			cancelOrderInLock(userId, orderId);
+			cancelOrderInLock(userId, orderId, cancelEvent);
 			return;
 		}
-		redisComponent.runWithPayOrderLifecycleLock(payOrderId, () -> cancelOrderInLock(userId, orderId));
+		redisComponent.runWithPayOrderLifecycleLock(payOrderId,
+				() -> cancelOrderInLock(userId, orderId, cancelEvent));
 	}
 
-	private void cancelOrderInLock(String userId, String orderId) {
+	private void cancelOrderInLock(String userId, String orderId, OrderStateEvent cancelEvent) {
 		OrderInfo orderInfo = orderInfoMapper.selectByOrderId(orderId);
 		if (orderInfo == null) {
 			throw new BusinessException("订单不存在");
@@ -828,27 +874,19 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 		if (userId != null && !orderInfo.getUserId().equals(userId)) {
 			throw new BusinessException("订单不存在");
 		}
-		if (orderInfo.getOrderStatus() != OrderStatusEnum.WAIT_PAYMENT.getStatus()) {
+		if (!orderStateMachine.canTransition(orderInfo.getOrderStatus(), cancelEvent)) {
 			throw new BusinessException("当前订单状态不能取消");
 		}
 		if (isCouponRushOrder(orderInfo)) {
-			cancelCouponRushOrder(orderId, userId);
+			cancelCouponRushOrder(orderId, userId, cancelEvent);
 			return;
 		}
 		if (userId == null && !StringTools.isEmpty(orderInfo.getPayOrderId())) {
 			closeUnpaidPayOrderForTimeout(orderInfo.getPayOrderId());
 			return;
 		}
-		OrderInfo updateBean = new OrderInfo();
-		if (userId != null) {
-			updateBean.setOrderStatus(OrderStatusEnum.CANCELLED.getStatus());
-		} else {
-			updateBean.setOrderStatus(OrderStatusEnum.CLOSED.getStatus());
-		}
-		OrderInfoQuery statusQuery = new OrderInfoQuery();
-		statusQuery.setOrderId(orderId);
-		statusQuery.setOrderStatus(OrderStatusEnum.WAIT_PAYMENT.getStatus());
-		Integer rows = orderInfoMapper.updateByParam(updateBean, statusQuery);
+		Integer rows = orderStateMachine.transition(
+				orderId, OrderStatusEnum.WAIT_PAYMENT, cancelEvent);
 		if (rows == null || rows == 0) {
 			if (userId != null) {
 				throw new BusinessException("当前订单状态不能取消");
@@ -890,17 +928,14 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 				return;
 			}
 		}
-		if (!redisComponent.tryMarkPayOrderCloseOnce(payOrderId)) {
+		if (!tryMarkPayOrderClosedForCurrentTransaction(payOrderId)) {
 			log.info("支付超时关单幂等跳过 payOrderId={}", payOrderId);
 			return;
 		}
-		OrderInfo updateBean = new OrderInfo();
-		updateBean.setOrderStatus(OrderStatusEnum.CLOSED.getStatus());
-		OrderInfoQuery statusQuery = new OrderInfoQuery();
-		statusQuery.setPayOrderId(payOrderId);
-		statusQuery.setOrderStatus(OrderStatusEnum.WAIT_PAYMENT.getStatus());
-		Integer rows = orderInfoMapper.updateByParam(updateBean, statusQuery);
+		Integer rows = orderStateMachine.transitionPayOrder(
+				payOrderId, OrderStatusEnum.WAIT_PAYMENT, OrderStateEvent.PAYMENT_TIMEOUT);
 		if (rows == null || rows == 0) {
+			redisComponent.clearPayOrderCloseMark(payOrderId);
 			log.info("支付超时关单无待付款子单 payOrderId={}", payOrderId);
 			return;
 		}
@@ -939,11 +974,12 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 		if (newList.isEmpty()) {
 			throw new BusinessException("商品列表为空");
 		}
+		String operationId = "order-close-restock:" + payOrderId;
 		try {
-			stockFeignSupport.changeStockBatch(newList);
+			stockFeignSupport.changeStockBatchIdempotent(newList, operationId);
 		} catch (Exception e) {
 			log.error("关单库存回补失败, payOrderId={}", payOrderId, e);
-			remoteCompensateRecorder.recordStockChangeBatch(payOrderId, newList, e);
+			remoteCompensateRecorder.recordStockChangeBatch(payOrderId, operationId, newList, e);
 			throw new BusinessException("库存回补失败，已登记补偿任务，请稍后重试或联系客服");
 		}
 	}
@@ -1043,15 +1079,16 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 				orderLogisticsInfoMapper.updateByParam(orderLogisticsInfo, orderLogisticsInfoQuery);
 			}
 		}
-		OrderInfoQuery updateQuery = new OrderInfoQuery();
-		updateQuery.setOrderStatus(OrderStatusEnum.WAIT_PAYMENT.getStatus());
 		int updatedCount = 0;
 		for (OrderInfo orderInfo : orderInfoList) {
-			updateQuery.setOrderId(orderInfo.getOrderId());
-			orderInfo.setChannelOrderId(payOrderNotifyDTO.getChannelOrderId());
-			orderInfo.setOrderStatus(OrderStatusEnum.PAID.getStatus());
-			Integer rows = orderInfoMapper.updateByParam(orderInfo, updateQuery);
+			OrderInfo payPatch = new OrderInfo();
+			payPatch.setChannelOrderId(payOrderNotifyDTO.getChannelOrderId());
+			Integer rows = orderStateMachine.transition(
+					orderInfo.getOrderId(), OrderStatusEnum.WAIT_PAYMENT,
+					OrderStateEvent.PAY_SUCCESS, payPatch);
 			if (rows != null && rows > 0) {
+				orderInfo.setChannelOrderId(payOrderNotifyDTO.getChannelOrderId());
+				orderInfo.setOrderStatus(OrderStatusEnum.PAID.getStatus());
 				updatedCount++;
 				PayOrderMessageDTO dto = new PayOrderMessageDTO();
 				dto.setOrderId(orderInfo.getOrderId());
@@ -1104,17 +1141,9 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 		return String.valueOf(OrderFromTypeEnum.COUPON.getType()).equals(orderInfo.getPayScene());
 	}
 
-	private void cancelCouponRushOrder(String orderId, String userId) {
-		OrderInfo updateBean = new OrderInfo();
-		if (userId != null) {
-			updateBean.setOrderStatus(OrderStatusEnum.CANCELLED.getStatus());
-		} else {
-			updateBean.setOrderStatus(OrderStatusEnum.CLOSED.getStatus());
-		}
-		OrderInfoQuery statusQuery = new OrderInfoQuery();
-		statusQuery.setOrderId(orderId);
-		statusQuery.setOrderStatus(OrderStatusEnum.WAIT_PAYMENT.getStatus());
-		Integer rows = orderInfoMapper.updateByParam(updateBean, statusQuery);
+	private void cancelCouponRushOrder(String orderId, String userId, OrderStateEvent cancelEvent) {
+		Integer rows = orderStateMachine.transition(
+				orderId, OrderStatusEnum.WAIT_PAYMENT, cancelEvent);
 		if (rows == null || rows == 0) {
 			return;
 		}
@@ -1192,15 +1221,16 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 		}
 		int updatedCount = 0;
 		for (OrderInfo orderInfo : orderInfoList) {
-			OrderInfoQuery updateQuery = new OrderInfoQuery();
-			updateQuery.setOrderId(orderInfo.getOrderId());
-			updateQuery.setOrderStatus(OrderStatusEnum.WAIT_PAYMENT.getStatus());
-			orderInfo.setChannelOrderId(payOrderNotifyDTO.getChannelOrderId());
-			orderInfo.setOrderStatus(OrderStatusEnum.COMPLETED.getStatus());
-			Integer rows = orderInfoMapper.updateByParam(orderInfo, updateQuery);
+			OrderInfo payPatch = new OrderInfo();
+			payPatch.setChannelOrderId(payOrderNotifyDTO.getChannelOrderId());
+			Integer rows = orderStateMachine.transition(
+					orderInfo.getOrderId(), OrderStatusEnum.WAIT_PAYMENT,
+					OrderStateEvent.COUPON_RUSH_PAY_SUCCESS, payPatch);
 			if (rows == null || rows == 0) {
 				continue;
 			}
+			orderInfo.setChannelOrderId(payOrderNotifyDTO.getChannelOrderId());
+			orderInfo.setOrderStatus(OrderStatusEnum.COMPLETED.getStatus());
 			updatedCount++;
 			OrderCouponRelQuery relQuery = new OrderCouponRelQuery();
 			relQuery.setOrderId(orderInfo.getOrderId());
@@ -1259,8 +1289,25 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 
 	private void markPayOrderClosedIfNeeded(String payOrderId) {
 		if (!StringTools.isEmpty(payOrderId)) {
-			redisComponent.tryMarkPayOrderCloseOnce(payOrderId);
+			tryMarkPayOrderClosedForCurrentTransaction(payOrderId);
 		}
+	}
+
+	private boolean tryMarkPayOrderClosedForCurrentTransaction(String payOrderId) {
+		if (!redisComponent.tryMarkPayOrderCloseOnce(payOrderId)) {
+			return false;
+		}
+		if (TransactionSynchronizationManager.isSynchronizationActive()) {
+			TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+				@Override
+				public void afterCompletion(int status) {
+					if (status != TransactionSynchronization.STATUS_COMMITTED) {
+						redisComponent.clearPayOrderCloseMark(payOrderId);
+					}
+				}
+			});
+		}
+		return true;
 	}
 
 	private void handlePaySuccessConflict(String payOrderId, PayOrderNotifyDTO payOrderNotifyDTO) {
@@ -1485,16 +1532,11 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 			throw new BusinessException("当前订单项状态不能申请退款");
 		}
 		// 订单状态：全部退则已退款，否则部分退款（乐观锁：仅当订单仍处于原状态）
-		OrderInfo updateOrder = new OrderInfo();
-		if (normalCount == 1) {
-			updateOrder.setOrderStatus(OrderStatusEnum.REFUNDED.getStatus());
-		} else {
-			updateOrder.setOrderStatus(OrderStatusEnum.PARTIALLY_REFUNDED.getStatus());
-		}
-		OrderInfoQuery orderStatusQuery = new OrderInfoQuery();
-		orderStatusQuery.setOrderId(orderInfo.getOrderId());
-		orderStatusQuery.setOrderStatus(orderInfo.getOrderStatus());
-		Integer orderRows = orderInfoMapper.updateByParam(updateOrder, orderStatusQuery);
+		OrderStateEvent refundEvent = normalCount == 1
+				? OrderStateEvent.FULL_REFUND : OrderStateEvent.PARTIAL_REFUND;
+		OrderStatusEnum currentStatus = OrderStatusEnum.getByStatus(orderInfo.getOrderStatus());
+		Integer orderRows = orderStateMachine.transition(
+				orderInfo.getOrderId(), currentStatus, refundEvent);
 		if (orderRows == null || orderRows == 0) {
 			throw new BusinessException("订单状态已变更，请刷新后重试");
 		}
@@ -1513,28 +1555,30 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 		productItem.setBuyCount(orderItem.getBuyCount());
 		restockList.add(productItem);
 		final String restockPayOrderId = sourcePayOrderId + ":" + refundOrderId;
+		final String restockOperationId = "order-refund-restock:" + restockPayOrderId;
 		if (org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
 			org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
 					new org.springframework.transaction.support.TransactionSynchronization() {
 						@Override
 						public void afterCommit() {
 							try {
-								stockFeignSupport.changeStockBatch(restockList);
+								stockFeignSupport.changeStockBatchIdempotent(restockList, restockOperationId);
 							} catch (Exception e) {
 								log.error("退款成功但库存回补失败 orderId={}, productId={}",
 										orderInfo.getOrderId(), orderItem.getProductId(), e);
 								remoteCompensateRecorder.recordStockChangeBatch(
-										restockPayOrderId, restockList, e);
+										restockPayOrderId, restockOperationId, restockList, e);
 							}
 						}
 					});
 		} else {
 			try {
-				stockFeignSupport.changeStockBatch(restockList);
+				stockFeignSupport.changeStockBatchIdempotent(restockList, restockOperationId);
 			} catch (Exception e) {
 				log.error("退款成功但库存回补失败 orderId={}, productId={}",
 						orderInfo.getOrderId(), orderItem.getProductId(), e);
-				remoteCompensateRecorder.recordStockChangeBatch(restockPayOrderId, restockList, e);
+				remoteCompensateRecorder.recordStockChangeBatch(
+						restockPayOrderId, restockOperationId, restockList, e);
 			}
 		}
 	}
@@ -1811,15 +1855,15 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 		if (OrderStatusEnum.COMPLETED.getStatus().equals(existing.getOrderStatus())) {
 			return false;
 		}
-		OrderInfoQuery statusQuery = new OrderInfoQuery();
-		statusQuery.setOrderId(orderId);
-		statusQuery.setOrderStatusList(new Integer[]{
-				OrderStatusEnum.SHIPPED.getStatus(),
-				OrderStatusEnum.PARTIALLY_REFUNDED.getStatus()
-		});
-		OrderInfo updateBean = new OrderInfo();
-		updateBean.setOrderStatus(OrderStatusEnum.COMPLETED.getStatus());
-		Integer rows = orderInfoMapper.updateByParam(updateBean, statusQuery);
+		if (!orderStateMachine.canTransition(existing.getOrderStatus(), OrderStateEvent.CONFIRM_RECEIPT)) {
+			throw new BusinessException("当前订单状态无法确认！");
+		}
+		OrderStatusEnum current = OrderStatusEnum.getByStatus(existing.getOrderStatus());
+		Integer rows = orderStateMachine.transition(
+				orderId,
+				current,
+				OrderStateEvent.CONFIRM_RECEIPT,
+				null);
 		if (rows == null || rows == 0) {
 			return false;
 		}
@@ -1828,11 +1872,33 @@ public class OrderInfoServiceImpl implements OrderInfoService {
 	}
 
 	@Override
+	@Transactional(rollbackFor = Exception.class)
+	public boolean deleteOrder(String userId, String orderId) {
+		OrderInfo existing = orderInfoMapper.selectByOrderId(orderId);
+		if (existing == null || !Objects.equals(userId, existing.getUserId())) {
+			throw new BusinessException("订单不存在");
+		}
+		if (OrderStatusEnum.DELETE.getStatus().equals(existing.getOrderStatus())) {
+			return false;
+		}
+		OrderStatusEnum current = OrderStatusEnum.getByStatus(existing.getOrderStatus());
+		if (!orderStateMachine.canTransition(existing.getOrderStatus(), OrderStateEvent.DELETE)) {
+			throw new BusinessException("当前订单状态无法删除！");
+		}
+		int rows = orderStateMachine.transition(orderId, current, OrderStateEvent.DELETE);
+		if (rows != 1) {
+			throw new BusinessException("订单状态已变更，请刷新后重试");
+		}
+		return true;
+	}
+
 	/**
 	 * 【功能】支付超时 MQ 消费入口：系统关单，userId 传 null。
 	 * <p>
 	 * 【调用链】TTL 延迟队列 → DLX → 消费者 → 本方法 → {@link #cancelOrder}。
 	 */
+	@Override
+	@Transactional(rollbackFor = Exception.class)
 	public boolean cancelUnpaidOrderForPayTimeout(String orderId) {
 		OrderInfo orderInfo = orderInfoMapper.selectByOrderId(orderId);
 		if (orderInfo == null) {

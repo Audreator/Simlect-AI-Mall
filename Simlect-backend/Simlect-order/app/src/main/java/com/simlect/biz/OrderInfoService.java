@@ -61,6 +61,8 @@ public interface OrderInfoService {
 
 	boolean confirmOrderReceipt(String userId, String orderId);
 
+	boolean deleteOrder(String userId, String orderId);
+
 	boolean cancelUnpaidOrderForPayTimeout(String orderId);
 
     PaginationResultVO<OrderInfo> findByProductNameFuzzy(PaginationResultVO<OrderInfo> resultVO, String productNameFuzzy);

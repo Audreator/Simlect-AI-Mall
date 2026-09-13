@@ -17,6 +17,8 @@ import com.simlect.biz.OrderInfoService;
 import com.simlect.biz.OrderLogisticsInfoRecordService;
 import com.simlect.biz.OrderLogisticsInfoService;
 import com.simlect.support.MqIdempotencyKeys;
+import com.simlect.state.OrderStateEvent;
+import com.simlect.state.OrderStateMachine;
 import com.simlect.utils.StringTools;
 import com.rabbitmq.client.Channel;
 import jakarta.annotation.Resource;
@@ -72,6 +74,8 @@ public class RabbitMQPayOrderDeadListenerComponent {
 
     @Resource
     private OrderInfoService orderInfoService;
+    @Resource
+    private OrderStateMachine orderStateMachine;
     @Resource
     private OrderLogisticsInfoService orderLogisticsInfoService;
     @Resource
@@ -253,8 +257,12 @@ public class RabbitMQPayOrderDeadListenerComponent {
             orderLogisticsInfo.setLogisticsStatus(LogisticsStatusEnum.IN_TRANSIT.getStatus());
             orderLogisticsInfo.setLogisticsCompany("顺丰");
             orderLogisticsInfo.setLogisticsNo("SF" + StringTools.getRandomNumber(Constants.LENGTH_30));
+            int transitioned = orderStateMachine.transition(
+                    orderId, OrderStatusEnum.PAID, OrderStateEvent.SHIP);
+            if (transitioned != 1) {
+                return;
+            }
             orderInfo.setOrderStatus(OrderStatusEnum.SHIPPED.getStatus());
-            orderInfoService.updateOrderInfoByOrderId(orderInfo, orderId);
             OrderLogisticsInfoQuery logisticsQuery = new OrderLogisticsInfoQuery();
             logisticsQuery.setOrderId(orderId);
             orderLogisticsInfoService.updateByParam(orderLogisticsInfo, logisticsQuery);

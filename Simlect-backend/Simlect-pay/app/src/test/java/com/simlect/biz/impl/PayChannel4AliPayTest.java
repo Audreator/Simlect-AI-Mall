@@ -33,6 +33,7 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -120,6 +121,35 @@ class PayChannel4AliPayTest {
     }
 
     // ==================== getPayUrl：PC ====================
+
+    @Test
+    void getPayUrl_localMock_returnsPayOrderWithoutCallingAlipayOrMarkingInitiated() {
+        ReflectionTestUtils.setField(payChannel4AliPay, "localMockEnabled", true);
+
+        PayInfoDTO result = payChannel4AliPay.getPayUrl(
+                PayChannelEnum.ALIPAY_PC, PAY_ORDER_ID, SUBJECT, new BigDecimal("33.9"));
+
+        assertEquals(PAY_ORDER_ID, result.getPayOrderId());
+        assertEquals(new BigDecimal("33.90"), result.getAmount());
+        assertNull(result.getPayInfo());
+        verify(redisComponent, org.mockito.Mockito.never()).markPayTradeInitiated(anyString());
+    }
+
+    @Test
+    void localMock_queryRefundAndCloseNeverConstructAlipayClient() {
+        ReflectionTestUtils.setField(payChannel4AliPay, "localMockEnabled", true);
+
+        try (MockedConstruction<DefaultAlipayClient> construction = mockConstruction(DefaultAlipayClient.class)) {
+            assertNull(payChannel4AliPay.queryOrder(PAY_ORDER_ID));
+            assertDoesNotThrow(() -> payChannel4AliPay.refund(
+                    PAY_ORDER_ID, "R20260815001", new BigDecimal("10.00")));
+            assertDoesNotThrow(() -> payChannel4AliPay.closeOrder(PAY_ORDER_ID));
+
+            assertTrue(construction.constructed().isEmpty());
+            verify(redisComponent, org.mockito.Mockito.never())
+                    .setIfAbsent(anyString(), anyString(), anyLong(), any());
+        }
+    }
 
     @Test
     void getPayUrl_pc_success_returnsPayInfoAndMarksInitiated() {

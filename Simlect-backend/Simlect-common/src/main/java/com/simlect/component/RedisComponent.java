@@ -345,6 +345,7 @@ public class RedisComponent {
                 String.valueOf(totalSignDays == null ? 0 : totalSignDays));
         stringRedisTemplate.opsForHash().put(hashKey, Constants.USED_COUNT,
                 String.valueOf(usedCount == null ? 0 : usedCount));
+        stringRedisTemplate.expire(hashKey, 30, TimeUnit.DAYS);
     }
 
     public String signNullCacheKey(String userId) {
@@ -400,6 +401,57 @@ public class RedisComponent {
         int dayOfMonth = Integer.parseInt(yyyyMMdd.substring(6, 8));
         String bitmapKey = getSignMonthBitmapKey(userId, yyyyMM);
         stringRedisTemplate.opsForValue().setBit(bitmapKey, dayOfMonth - 1, true);
+        stringRedisTemplate.expire(bitmapKey, 30, TimeUnit.DAYS);
+    }
+
+    private static final String REPLACE_SIGN_BITMAP_LUA =
+            "local key = KEYS[1]; " +
+                    "local bits = tonumber(ARGV[1]) or 0; " +
+                    "local ttl = tonumber(ARGV[2]); " +
+                    "redis.call('del', key); " +
+                    "redis.call('setbit', key, 30, 0); " +
+                    "for offset = 0, 30 do " +
+                    "  if math.floor(bits / (2 ^ offset)) % 2 == 1 then " +
+                    "    redis.call('setbit', key, offset, 1); " +
+                    "  end; " +
+                    "end; " +
+                    "redis.call('expire', key, ttl); " +
+                    "return 1;";
+
+    /**
+     * 返回 Redis 中的月位图快照；key 不存在时返回 null，由调用方回源 MySQL。
+     */
+    public Long getSignMonthBits(String userId, String yyyyMM) {
+        if (StringTools.isEmpty(userId) || StringTools.isEmpty(yyyyMM)) {
+            return null;
+        }
+        String bitmapKey = getSignMonthBitmapKey(userId, yyyyMM);
+        if (!Boolean.TRUE.equals(stringRedisTemplate.hasKey(bitmapKey))) {
+            return null;
+        }
+        long bits = 0L;
+        for (int offset = 0; offset < 31; offset++) {
+            if (Boolean.TRUE.equals(stringRedisTemplate.opsForValue().getBit(bitmapKey, offset))) {
+                bits |= 1L << offset;
+            }
+        }
+        return bits;
+    }
+
+    /**
+     * 用 MySQL 快照原子覆盖 Redis 月位图并设置 30 天 TTL，避免只加位造成幽灵签到。
+     */
+    public void writeSignMonthBitmap(String userId, String yyyyMM, Long bits) {
+        if (StringTools.isEmpty(userId) || StringTools.isEmpty(yyyyMM)) {
+            return;
+        }
+        DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+        script.setScriptText(REPLACE_SIGN_BITMAP_LUA);
+        script.setResultType(Long.class);
+        stringRedisTemplate.execute(script,
+                java.util.Collections.singletonList(getSignMonthBitmapKey(userId, yyyyMM)),
+                String.valueOf(bits == null ? 0L : bits),
+                String.valueOf(TimeUnit.DAYS.toSeconds(30)));
     }
 
     public boolean ensureSignBitmapBit(String userId, String yyyyMMdd) {
@@ -522,6 +574,8 @@ public class RedisComponent {
                     "redis.call('del', ARGV[3]); " +
                     "return {1, continuousDays, totalDays};";
 
+    /** @deprecated MySQL 位图已经是唯一写入权威，仅保留脚本供迁移期回溯。 */
+    @Deprecated
     public void sign(String userId) {
         LocalDate now = LocalDate.now();
         LocalDate yesterday = now.minusDays(1);
@@ -584,6 +638,8 @@ public class RedisComponent {
                     "redis.call('del', ARGV[2]); " +
                     "return 1;";
 
+    /** @deprecated MySQL 位图已经是唯一写入权威，仅保留脚本供迁移期回溯。 */
+    @Deprecated
     public void supplementSign(String userId, String yyyyMM, int dayOfMonth) {
         // 1. Lua 原子补签
         String bitmapKey = Constants.REDIS_KEY_SIGN_MONTH + yyyyMM + ":"
@@ -692,6 +748,12 @@ public class RedisComponent {
                 "1",
                 3L * 24 * 3600, // 覆盖支付宝异步通知窗口（>24h）
                 TimeUnit.SECONDS);
+    }
+
+    public void clearPayOrderCloseMark(String payOrderId) {
+        if (!StringTools.isEmpty(payOrderId)) {
+            stringRedisTemplate.delete(Constants.REDIS_KEY_PAY_ORDER_CLOSE_DONE + payOrderId);
+        }
     }
 
     public boolean isPayOrderCloseMarked(String payOrderId) {

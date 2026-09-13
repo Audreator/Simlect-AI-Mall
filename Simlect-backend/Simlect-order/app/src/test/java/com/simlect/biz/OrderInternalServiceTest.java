@@ -23,6 +23,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Date;
 import java.util.List;
 
@@ -141,6 +143,15 @@ class OrderInternalServiceTest {
         verify(orderInfoService).cancelOrder(USER_ID, ORDER_ID, OrderStatusEnum.WAIT_PAYMENT);
     }
 
+    @Test
+    void cancelOrder_withoutUserDelegatesAsPaymentTimeout() {
+        OrderIdDTO dto = new OrderIdDTO(ORDER_ID);
+
+        service.cancelOrder(dto);
+
+        verify(orderInfoService).cancelOrder(null, ORDER_ID, OrderStatusEnum.CLOSED);
+    }
+
     // ==================== 统计 ====================
 
     @Test
@@ -225,5 +236,33 @@ class OrderInternalServiceTest {
         assertEquals(new BigDecimal("1"), vo.getRefundCount());
         assertEquals(new BigDecimal("200.00"), vo.getSaleAmount());
         assertEquals(BigDecimal.ZERO, vo.getRefundAmount());
+    }
+
+    @Test
+    void aggregateDaily_adjacentOneAmWindowsUseDistinctBusinessDates() {
+        OrderStatsRangeDTO firstWindow = new OrderStatsRangeDTO(
+                "2026-09-11 01:00:00", "2026-09-12 00:59:59");
+        OrderStatsRangeDTO secondWindow = new OrderStatsRangeDTO(
+                "2026-09-12 01:00:00", "2026-09-13 00:59:59");
+        OrderInfo beforeBoundary = order(OrderStatusEnum.PAID);
+        beforeBoundary.setChannelOrderId("CH-BEFORE");
+        beforeBoundary.setOrderTime(atShanghai(2026, 9, 12, 0, 59, 59));
+        OrderInfo atBoundary = order(OrderStatusEnum.PAID);
+        atBoundary.setChannelOrderId("CH-AT");
+        atBoundary.setOrderTime(atShanghai(2026, 9, 12, 1, 0, 0));
+        when(orderInfoService.findListByParam(any(OrderInfoQuery.class)))
+                .thenReturn(List.of(beforeBoundary), List.of(atBoundary));
+
+        List<OrderDailyStatsVO> first = service.aggregateDaily(firstWindow);
+        List<OrderDailyStatsVO> second = service.aggregateDaily(secondWindow);
+
+        assertEquals("2026-09-11", first.get(0).getStatisticsDate());
+        assertEquals("2026-09-12", second.get(0).getStatisticsDate());
+    }
+
+    private Date atShanghai(int year, int month, int day, int hour, int minute, int second) {
+        return Date.from(LocalDateTime.of(year, month, day, hour, minute, second)
+                .atZone(ZoneId.of("Asia/Shanghai"))
+                .toInstant());
     }
 }

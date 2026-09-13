@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.simlect.mappers.SignGrowthRecordMapper">
+    <insert id="insertIgnore">
+        INSERT IGNORE INTO sign_growth_record (user_id, sign_date, amount, create_time)
+        VALUES (#{userId}, #{signDate}, #{amount}, #{createTime})
+    </insert>
+</mapper>

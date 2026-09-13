@@ -39,6 +39,13 @@ public final class MqIdempotencyKeys {
         return "sign:record:" + require(userId) + ":" + require(yyyyMMdd);
     }
 
+    public static String signStreakCoupon(String userId, String couponId, int streakDays) {
+        if (streakDays < 1) {
+            throw new IllegalArgumentException("连续签到天数必须大于 0");
+        }
+        return "sign:streak:coupon:" + require(userId) + ":" + require(couponId) + ":" + streakDays;
+    }
+
     public static String notification(String userId, String bizType, String bizId) {
         return "notify:" + require(userId) + ":"
                 + (bizType == null ? "" : bizType) + ":"

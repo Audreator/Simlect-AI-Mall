@@ -17,9 +17,13 @@ public class UserCoupon implements Serializable {
 
 	private String couponId;
 
+	private Date receiveTime;
+
 	@JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
 	@DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
 	private Date useTime;
+
+	private String orderId;
 
 	private Integer status;
 
@@ -47,12 +51,28 @@ public class UserCoupon implements Serializable {
 		return this.couponId;
 	}
 
+	public Date getReceiveTime() {
+		return receiveTime;
+	}
+
+	public void setReceiveTime(Date receiveTime) {
+		this.receiveTime = receiveTime;
+	}
+
 	public void setUseTime(Date useTime){
 		this.useTime = useTime;
 	}
 
 	public Date getUseTime(){
 		return this.useTime;
+	}
+
+	public String getOrderId() {
+		return orderId;
+	}
+
+	public void setOrderId(String orderId) {
+		this.orderId = orderId;
 	}
 
 	public void setStatus(Integer status){

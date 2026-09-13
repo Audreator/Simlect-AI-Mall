@@ -29,3 +29,19 @@ create table if not exists user_coupon
     order_id       varchar(32)          null comment '核销订单号 order_info.order_id',
     status         tinyint(1) default 0 null comment '状态 0:未使用 1:已使用 2:已过期 3:已作废'
 ) comment '用户优惠券关联表' collate = utf8mb4_general_ci row_format = DYNAMIC;
+
+create table if not exists sign_streak_coupon_grant
+(
+    id                bigint auto_increment primary key,
+    idempotency_key   varchar(128) not null comment '用户+优惠券+连续天数幂等键',
+    user_id           varchar(32)  not null comment '用户ID',
+    coupon_id         varchar(20)  not null comment '优惠券ID',
+    streak_days       int          not null comment '触发时连续签到天数',
+    user_coupon_id    varchar(32)  null comment '发放成功后的用户券ID',
+    status            tinyint default 0 not null comment '0处理中 1已发放 2业务拒绝',
+    reject_reason     varchar(255) null comment '业务拒绝原因',
+    create_time       datetime     not null,
+    update_time       datetime     null,
+    constraint uk_sign_streak_grant_key unique (idempotency_key),
+    constraint uk_sign_streak_grant_biz unique (user_id, coupon_id, streak_days)
+) comment '连续签到发券幂等结果' charset = utf8mb4;

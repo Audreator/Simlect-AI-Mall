@@ -1,8 +1,10 @@
 package com.simlect.entity.query;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
+@EqualsAndHashCode(callSuper = true)
 public class UserSignRecordDetailQuery extends BaseParam {
 
     private String userId;

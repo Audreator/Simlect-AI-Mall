@@ -11,6 +11,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 
@@ -21,24 +25,37 @@ public class RemoteCompensateRecorder {
     @Resource
     private MqCompensationLogService mqCompensationLogService;
 
-    public void recordStockChangeBatch(String bizKey, List<ProductItem> items, Throwable error) {
-        if (StringTools.isEmpty(bizKey) || items == null || items.isEmpty()) {
+    public void recordStockChangeBatch(String bizKey, String operationId,
+                                       List<ProductItem> items, Throwable error) {
+        recordStockChangeBatch(bizKey, operationId, null, items, error);
+    }
+
+    public void recordStockChangeBatch(String bizKey, String operationId, String requiredOperationId,
+                                       List<ProductItem> items, Throwable error) {
+        if (StringTools.isEmpty(bizKey) || StringTools.isEmpty(operationId)
+                || items == null || items.isEmpty()) {
             return;
         }
-        // 按 SKU 拆分为独立补偿记录：key 带 productId+hash，
-        // 防同 payOrderId 多商品回补失败互相覆盖导致第二条永久不补
-        for (ProductItem item : items) {
-            if (item == null || StringTools.isEmpty(item.getProductId())) {
-                continue;
-            }
-            String skuKey = "remote:stock:changeBatch:" + bizKey + ":" + item.getProductId()
-                    + ":" + (item.getPropertyValueIdHash() == null ? "" : item.getPropertyValueIdHash());
-            MqCompensationRecord record = baseRecord(
-                    skuKey,
-                    InternalApiHeaders.REMOTE_STOCK_CHANGE_BATCH,
-                    List.of(item),
-                    error);
-            persist(record);
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("operationId", operationId);
+        if (!StringTools.isEmpty(requiredOperationId)) {
+            payload.put("requiredOperationId", requiredOperationId);
+        }
+        payload.put("items", items);
+        MqCompensationRecord record = baseRecord(
+                "remote:stock:" + sha256(operationId),
+                InternalApiHeaders.REMOTE_STOCK_CHANGE_BATCH,
+                payload,
+                error);
+        persist(record);
+    }
+
+    private String sha256(String value) {
+        try {
+            return HexFormat.of().formatHex(
+                    MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 unavailable", e);
         }
     }
 

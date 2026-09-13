@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.simlect.mappers.SignSupplementUsedMapper">
+    <select id="countByUserId" resultType="java.lang.Integer">
+        SELECT COALESCE(legacy.used_count, 0)
+             + GREATEST(dated.used_count - COALESCE(legacy.detail_count_at_cutover, 0), 0)
+        FROM (SELECT COUNT(1) AS used_count
+              FROM sign_supplement_used
+              WHERE user_id = #{userId}) dated
+        LEFT JOIN sign_supplement_legacy_used legacy ON legacy.user_id = #{userId}
+    </select>
+
+    <insert id="insert">
+        INSERT INTO sign_supplement_used (user_id, sign_date, create_time)
+        VALUES (#{userId}, #{signDate}, #{createTime})
+    </insert>
+</mapper>

@@ -5,12 +5,15 @@ import com.simlect.entity.dto.MqCompensationRecord;
 import com.simlect.entity.enums.MessageReliabilityLevelEnum;
 import com.simlect.entity.po.ProductItem;
 import com.simlect.service.MqCompensationLogService;
+import com.simlect.service.impl.MqCompensationLogServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
@@ -40,24 +43,29 @@ class RemoteCompensateRecorderTest {
 
     @Test
     void recordStockChangeBatch_persistsHighLevelRecord() {
-        recorder.recordStockChangeBatch("biz-1", List.of(item()), new RuntimeException("stock err"));
+        recorder.recordStockChangeBatch("biz-1", "op-1", List.of(item()), new RuntimeException("stock err"));
 
         ArgumentCaptor<MqCompensationRecord> captor = ArgumentCaptor.forClass(MqCompensationRecord.class);
         verify(mqCompensationLogService).saveFromFailure(captor.capture());
         MqCompensationRecord record = captor.getValue();
-        assertEquals("remote:stock:changeBatch:biz-1:P1:", record.getIdempotencyKey());
+        assertEquals(77, record.getIdempotencyKey().length());
+        assertEquals(true, record.getIdempotencyKey().startsWith("remote:stock:"));
         assertEquals(InternalApiHeaders.REMOTE_COMPENSATE_EXCHANGE, record.getExchange());
         assertEquals(InternalApiHeaders.REMOTE_STOCK_CHANGE_BATCH, record.getRoutingKey());
         assertEquals(MessageReliabilityLevelEnum.HIGH, record.getReliabilityLevel());
         assertEquals(0, record.getRetryCount());
         assertEquals("stock err", record.getErrorMessage());
         assertNotNull(record.getPayload());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> payload = (Map<String, Object>) record.getPayload();
+        assertEquals("op-1", payload.get("operationId"));
+        assertEquals(1, ((List<?>) payload.get("items")).size());
         assertNotNull(record.getFailedAt());
     }
 
     @Test
     void recordStockChangeBatch_nullError_usesDefaultMessage() {
-        recorder.recordStockChangeBatch("biz-1", List.of(item()), null);
+        recorder.recordStockChangeBatch("biz-1", "op-1", List.of(item()), null);
 
         ArgumentCaptor<MqCompensationRecord> captor = ArgumentCaptor.forClass(MqCompensationRecord.class);
         verify(mqCompensationLogService).saveFromFailure(captor.capture());
@@ -66,9 +74,10 @@ class RemoteCompensateRecorderTest {
 
     @Test
     void recordStockChangeBatch_emptyArgs_skips() {
-        recorder.recordStockChangeBatch(null, List.of(item()), null);
-        recorder.recordStockChangeBatch("biz-1", null, null);
-        recorder.recordStockChangeBatch("biz-1", List.of(), null);
+        recorder.recordStockChangeBatch(null, "op-1", List.of(item()), null);
+        recorder.recordStockChangeBatch("biz-1", null, List.of(item()), null);
+        recorder.recordStockChangeBatch("biz-1", "op-1", null, null);
+        recorder.recordStockChangeBatch("biz-1", "op-1", List.of(), null);
 
         verifyNoInteractions(mqCompensationLogService);
     }
@@ -103,6 +112,24 @@ class RemoteCompensateRecorderTest {
     void persist_serviceThrows_exceptionSwallowed() {
         doThrow(new RuntimeException("db down")).when(mqCompensationLogService).saveFromFailure(any());
 
-        recorder.recordStockChangeBatch("biz-1", List.of(item()), null);
+        recorder.recordStockChangeBatch("biz-1", "op-1", List.of(item()), null);
+    }
+
+    @Test
+    void stockCompensationKey_isBoundedForMaxOperationId() {
+        recorder.recordStockChangeBatch("biz-1", "x".repeat(128), List.of(item()), null);
+
+        ArgumentCaptor<MqCompensationRecord> captor = ArgumentCaptor.forClass(MqCompensationRecord.class);
+        verify(mqCompensationLogService).saveFromFailure(captor.capture());
+        assertEquals(77, captor.getValue().getIdempotencyKey().length());
+    }
+
+    @Test
+    void saveFromFailure_usesIndependentTransaction() throws Exception {
+        Transactional transactional = MqCompensationLogServiceImpl.class
+                .getMethod("saveFromFailure", MqCompensationRecord.class)
+                .getAnnotation(Transactional.class);
+        assertNotNull(transactional);
+        assertEquals(Propagation.REQUIRES_NEW, transactional.propagation());
     }
 }

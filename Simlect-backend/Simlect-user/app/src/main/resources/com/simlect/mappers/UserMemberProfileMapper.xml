@@ -198,4 +198,14 @@
 		WHERE user_id = #{userId}
 	</update>
 
+	<insert id="insertDefaultIgnore">
+		INSERT IGNORE INTO user_member_profile
+		(user_id, level_code, growth_value, level_name, update_time)
+		VALUES (#{userId}, 1, 0, '普通会员', NOW())
+	</insert>
+
+	<select id="selectUserIdForUpdate" resultType="java.lang.String">
+		SELECT user_id FROM user_member_profile WHERE user_id = #{userId} FOR UPDATE
+	</select>
+
 </mapper>

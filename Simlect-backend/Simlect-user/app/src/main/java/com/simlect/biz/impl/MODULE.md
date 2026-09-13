@@ -10,8 +10,7 @@
 - `ImageModerationServiceImpl.java`
 - `LocationWeatherServiceImpl.java`
 - `MemberLevelRewardConfigServiceImpl.java`
-- `SignCalendarCacheServiceImpl.java`
-- `SignRecordSyncServiceImpl.java`
+- `SignStreakServiceImpl.java`
 - `SignRewardConfigServiceImpl.java`
 - `SignServiceImpl.java`
 - `UserAddressServiceImpl.java`

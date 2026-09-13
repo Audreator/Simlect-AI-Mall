@@ -36,22 +36,6 @@
       </div>
       <p class="tool-hint">延时队列用于支付超时关单；秒杀操作请先在「营销 → 优惠券管理」配置秒杀券。</p>
     </el-card>
-    <el-card class="tool-card">
-      <!-- [zh] SFC 区块开始（单文件组件 template/script/style 三段） -->
-      <template #header>
-        <!-- [zh] 开始标签 `<span>` -->
-        <span>签到数据</span>
-      </template>
-      <div class="tool-grid">
-        <el-button type="warning" @click="runApi('signRecordSyncAllFromDb', { force: true }, '将 DB 全部签到汇总覆盖同步到 Redis？')">
-          同步签到汇总（Hash）
-        </el-button>
-      </div>
-      <p class="tool-hint">
-        仅恢复连续天数、总天数、补签次数（Redis Hash），不含签到日历 Bitmap。
-        历史签到日期请前往「营销 → 签到发券配置 → 同步历史签到日期」，默认截止昨天、不含今天。
-      </p>
-    </el-card>
   </div>
 </template>
 

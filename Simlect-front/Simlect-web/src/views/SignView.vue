@@ -50,7 +50,7 @@
       <!-- [zh] 闭合标签 `</svg>` -->
       </svg>
       <!-- [zh] 开始标签 `<span>` -->
-      <span>连续签到满 <strong>7</strong> 天、<strong>14</strong> 天、<strong>21</strong> 天……即送优惠券奖励！</span>
+      <span>达到运营配置的连续签到周期后，将自动发放优惠券奖励。</span>
     <!-- [zh] 闭合标签 `</section>` -->
     </section>
 
@@ -102,9 +102,9 @@
     <!-- [zh] 开始标签 `<footer>` -->
     <footer class="sign-action">
       <!-- [zh] 开始标签 `<el-button>` -->
-      <el-button type="primary" size="large" round :disabled="todaySigned" @click="doSign">
+      <el-button type="primary" size="large" round :disabled="isViewingCurrentMonth && todaySigned" @click="doSign">
         <!-- [zh] Mustache 插值表达式 -->
-        {{ todaySigned ? '今日已签到' : '立即签到' }}
+        {{ !isViewingCurrentMonth ? '返回本月签到' : todaySigned ? '今日已签到' : '立即签到' }}
       <!-- [zh] 闭合标签 `</el-button>` -->
       </el-button>
     <!-- [zh] 闭合标签 `</footer>` -->
@@ -128,7 +128,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { signApi } from '@/api/modules';
-import { ElMessageBox } from 'element-plus';
 import { toast } from '@/utils/toast';
 import { usePageRefresh } from '@/composables/pullRefresh';
 
@@ -136,7 +135,6 @@ const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
 const today = new Date();
 const currentYear = ref(today.getFullYear());
 const currentMonth = ref(today.getMonth());
-const todaySigned = ref(false);
 const supplementVisible = ref(false);
 const supplementLoading = ref(false);
 const supplementLabel = ref('');
@@ -151,6 +149,16 @@ const signData = reactive({
 
 const yearMonth = () =>
   `${currentYear.value}${String(currentMonth.value + 1).padStart(2, '0')}`;
+
+const isViewingCurrentMonth = computed(
+  () => currentYear.value === today.getFullYear() && currentMonth.value === today.getMonth()
+);
+const todayDate = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(
+  today.getDate()
+).padStart(2, '0')}`;
+const todaySigned = computed(
+  () => isViewingCurrentMonth.value && signData.signDays.includes(todayDate)
+);
 
 const calendarDays = computed(() => {
   const days: Array<{
@@ -186,7 +194,8 @@ const calendarDays = computed(() => {
         d < today.getDate());
 
     const signed = signData.signDays.includes(dateStr);
-    const canSupplement = !signed && !isToday && isPast && signData.supplementCount > 0;
+    const canSupplement =
+      isViewingCurrentMonth.value && !signed && !isToday && isPast && signData.supplementCount > 0;
 
     let className = '';
     if (isToday) className += ' is-today';
@@ -201,7 +210,6 @@ const calendarDays = computed(() => {
       className
     });
 
-    if (isToday) todaySigned.value = signed;
   }
 
   const remain = 42 - days.length;
@@ -241,24 +249,16 @@ const nextMonth = () => {
 };
 
 const doSign = async () => {
+  if (!isViewingCurrentMonth.value) {
+    currentYear.value = today.getFullYear();
+    currentMonth.value = today.getMonth();
+    await loadSignCalendar();
+    return;
+  }
   if (todaySigned.value) return;
   await signApi.sign();
   toast.success('签到成功');
   await loadSignCalendar();
-  const days = signData.continuousDays;
-  if (days > 0 && days % 7 === 0) {
-    ElMessageBox.alert(
-      `连续签到 ${days} 天，恭喜您获得签到奖励！请前往「优惠券」查看。`,
-      '签到奖励',
-      {
-        confirmButtonText: '知道了',
-        type: 'success',
-        customClass: 'sign-reward-alert',
-        showClose: false,
-        roundButton: true
-      }
-    );
-  }
 };
 
 const handleDayClick = (day: { supplement?: boolean; date?: string | null; day: number }) => {

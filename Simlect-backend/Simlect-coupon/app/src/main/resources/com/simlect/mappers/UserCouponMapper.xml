@@ -11,8 +11,10 @@
 		<result column="user_id" property="userId"  />
 		<!--优惠券ID-->
 		<result column="coupon_id" property="couponId"  />
+		<result column="receive_time" property="receiveTime"  />
 		<!--使用时间-->
 		<result column="use_time" property="useTime"  />
+		<result column="order_id" property="orderId"  />
 		<!--状态 0:未使用 1:已使用 2:已过期 3:已作废-->
 		<result column="status" property="status"  />
 	</resultMap>
@@ -21,7 +23,7 @@
 	<!-- 通用查询结果列-->
 	<sql id="base_column_list">
 		 u.user_coupon_id,u.user_id,u.coupon_id,
-		 u.use_time,u.status
+		 u.receive_time,u.use_time,u.order_id,u.status
 	</sql>
 
 	<sql id="base_condition_filed">
@@ -99,8 +101,14 @@
 			<if test="bean.couponId != null">
 				 coupon_id,
 			</if>
+			<if test="bean.receiveTime != null">
+				 receive_time,
+			</if>
 			<if test="bean.useTime != null">
 				 use_time,
+			</if>
+			<if test="bean.orderId != null">
+				 order_id,
 			</if>
 			<if test="bean.status != null">
 				 status,
@@ -116,8 +124,14 @@
 			<if test="bean.couponId!=null">
 				 #{bean.couponId},
 			</if>
+			<if test="bean.receiveTime!=null">
+				 #{bean.receiveTime},
+			</if>
 			<if test="bean.useTime!=null">
 				 #{bean.useTime},
+			</if>
+			<if test="bean.orderId!=null">
+				 #{bean.orderId},
 			</if>
 			<if test="bean.status!=null">
 				 #{bean.status},

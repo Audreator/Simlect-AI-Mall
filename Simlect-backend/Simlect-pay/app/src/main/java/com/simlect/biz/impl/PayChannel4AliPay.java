@@ -31,7 +31,9 @@ import com.simlect.biz.PayChannel;
 import com.simlect.utils.DateUtil;
 import com.simlect.utils.OrderPayAmountUtil;
 import jakarta.annotation.Resource;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -39,8 +41,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.Map;
 
 @Service("payChannel4Alipay")
-@Slf4j
 public class PayChannel4AliPay implements PayChannel {
+
+    private static final Logger log = LoggerFactory.getLogger(PayChannel4AliPay.class);
 
     static {
         // 设置SSL协议版本
@@ -59,8 +62,18 @@ public class PayChannel4AliPay implements PayChannel {
     private AppConfig appConfig;
     @Resource
     private RedisComponent redisComponent;
+
+    @Value("${simlect.pay.local-mock-enabled:false}")
+    private boolean localMockEnabled;
+
     @Override
     public PayInfoDTO getPayUrl(PayChannelEnum payChannelEnum, String payOrderId, String subject, BigDecimal amount) {
+        if (localMockEnabled) {
+            BigDecimal payAmount = OrderPayAmountUtil.normalizeChannelPayAmount(amount);
+            log.info("本地支付占位模式：跳过支付宝下单 payOrderId={}, scene={}, amount={}",
+                    payOrderId, payChannelEnum, payAmount);
+            return new PayInfoDTO(null, payOrderId, payAmount);
+        }
         try {
             BigDecimal payAmount = OrderPayAmountUtil.normalizeChannelPayAmount(amount);
             String payAmountText = OrderPayAmountUtil.formatChannelPayAmount(amount);
@@ -181,6 +194,10 @@ public class PayChannel4AliPay implements PayChannel {
 
     @Override
     public PayOrderNotifyDTO queryOrder(String payOrderId) {
+        if (localMockEnabled) {
+            log.info("本地支付联调模式跳过支付宝查单 payOrderId={}", payOrderId);
+            return null;
+        }
         try {
             // 初始化SDK
             AlipayClient alipayClient = new DefaultAlipayClient(getAlipayConfig());
@@ -215,6 +232,11 @@ public class PayChannel4AliPay implements PayChannel {
 
     @Override
     public void refund(String sourcePayOrderId, String payOrderId, BigDecimal refundAmount) {
+        if (localMockEnabled) {
+            log.info("本地支付联调模式跳过支付宝退款 sourcePayOrderId={}, refundOrderId={}",
+                    sourcePayOrderId, payOrderId);
+            return;
+        }
         // 退款幂等闸：以 out_request_no（order 侧稳定的 refundOrderId）为幂等键；
         // 成功保留（防重放二次退款），失败清理（允许重试）
         String refundIdempotencyKey = "mall:pay:refund:req:" + payOrderId;
@@ -252,6 +274,10 @@ public class PayChannel4AliPay implements PayChannel {
 
     @Override
     public void closeOrder(String payOrderId) {
+        if (localMockEnabled) {
+            log.info("本地支付联调模式跳过支付宝关单 payOrderId={}", payOrderId);
+            return;
+        }
         try {
             AlipayClient alipayClient = new DefaultAlipayClient(getAlipayConfig());
             AlipayTradeCloseRequest request = new AlipayTradeCloseRequest();

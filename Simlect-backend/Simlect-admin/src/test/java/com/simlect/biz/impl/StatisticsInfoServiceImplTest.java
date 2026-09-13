@@ -12,13 +12,17 @@ import com.simlect.entity.vo.StatisticsDataVO;
 import com.simlect.entity.vo.TodayDataVO;
 import com.simlect.exception.BusinessException;
 import com.simlect.mappers.StatisticsInfoMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,8 +41,18 @@ class StatisticsInfoServiceImplTest {
     @Mock
     private UserFeignSupport userFeignSupport;
 
-    @InjectMocks
     private StatisticsInfoServiceImpl statisticsInfoService;
+
+    @BeforeEach
+    void setUp() {
+        Clock fixedShanghaiClock = Clock.fixed(
+                Instant.parse("2026-09-11T17:05:00Z"),
+                ZoneId.of("Asia/Shanghai"));
+        statisticsInfoService = new StatisticsInfoServiceImpl(fixedShanghaiClock);
+        ReflectionTestUtils.setField(statisticsInfoService, "statisticsInfoMapper", statisticsInfoMapper);
+        ReflectionTestUtils.setField(statisticsInfoService, "orderFeignSupport", orderFeignSupport);
+        ReflectionTestUtils.setField(statisticsInfoService, "userFeignSupport", userFeignSupport);
+    }
 
     @Test
     void findListByPage_delegates() {
@@ -108,9 +122,12 @@ class StatisticsInfoServiceImplTest {
 
     @Test
     void statistics_noBuckets_returnsSilently() {
-        when(orderFeignSupport.aggregateDaily(anyString(), anyString())).thenReturn(null);
+        when(orderFeignSupport.aggregateDaily("2026-08-29 01:00:00", "2026-09-12 00:59:59"))
+                .thenReturn(null);
 
         assertDoesNotThrow(() -> statisticsInfoService.statistics(null, null));
+        verify(orderFeignSupport).aggregateDaily(
+                "2026-08-29 01:00:00", "2026-09-12 00:59:59");
         verify(statisticsInfoMapper, never()).insertOrUpdate(any());
     }
 

@@ -30,10 +30,10 @@ Java 侧按领域拆成商品、订单、支付、营销（优惠券）、库存
 | 能力            | 说明                                                                                              |
 | ------------- | ----------------------------------------------------------------------------------------------- |
 | **AI + 传统电商** | LangGraph 编排 LLM + 10 个业务工具（6 读 / 4 写提案）；**自主规划**优先，少强制调工具；流式 WebSocket（复用站内通知）；商品/订单卡片由前端结构化渲染 |
-| **交易与库存**     | SKU：MySQL 行锁预检 + 条件更新防超卖；超时未支付经 RabbitMQ TTL/DLX 关单并回补。秒杀券：Redis Lua 原子预扣 + DB 兜底               |
-| **签到与异步**     | Redis Bitmap + Lua 签到/补签与跨月连续天数（Lua offset 边界校验）；签到落库、通知削峰经 MQ，消费端手动 ACK；通知死信队列**有限退避重投 + 超限丢弃审计**，消息不静默丢失 |
+| **交易与库存**     | SKU：MySQL 行锁预检 + 条件更新防超卖；批量扣减/回补以操作号幂等，超时未支付经 RabbitMQ TTL/DLX 关单并回补。秒杀券：Redis Lua 原子预扣 + DB 兜底 |
+| **签到与异步**     | MySQL 月位图为签到权威数据源，Redis 只做可重建缓存；签到/补签、跨月连续天数、成长值与连续签到发券均具备事务与幂等保障；通知死信队列**有限退避重投 + 超限丢弃审计**，消息不静默丢失 |
 | **搜索与 RAG**   | ES 关键词 + 向量 RRF；**标题相关性过滤**；未命中时热销/足迹兜底并明确告知「未搜到 + 另荐」；FAQ 向量检索；商品变更 MQ 异步向量化                   |
-| **支付与订单**     | 支付宝异步回调；延时关单 / 自动收货；状态条件更新，处理支付与关单并发                                                            |
+| **支付与订单**     | 支付宝异步回调；延时关单 / 自动收货；订单状态机集中约束合法流转，并以条件更新处理支付、取消、关单等并发；支持显式开启的本地支付联调模式 |
 | **微服务边界**     | 一域一库；跨库禁止直连 Mapper，统一 OpenFeign `/internal/`** + MQ；Gateway 鉴权与限流                               |
 | **可靠性与安全**   | 退款单号 Redis 锚点与支付幂等键对齐（防二次退款）；pending 提案 confirm 经 **Lua CAS 原子落定状态**消除写操作重复执行；MCP Server 强制 `X-Internal-Token` 令牌（`/health` 探活白名单）；WS Origin 精确白名单；管理端敏感操作一次性票据绑定路径 |
 
@@ -178,7 +178,7 @@ Agent 不直连业务库改写；读/写工具由 **MCP Server** 实现，经 Ga
 
 | 范围 | 覆盖内容 | 规模 |
 |---|---|---|
-| Java 单元/集成测试 | 26 个 Maven 模块：`mvn test` 全绿（含 Mockito 单测、控制器/服务/组件/任务/工具类全覆盖，安全敏感项均有专项用例，如退款幂等锚点、MCP 令牌、网关 IP/Origin、Redis Lua、MQ 幂等/补偿/死信） | 150 个测试类 · **1327 个用例** |
+| Java 单元/集成测试 | 26 个 Maven 模块：`mvn test` 全绿（含 Mockito 单测、控制器/服务/组件/任务/工具类全覆盖，安全敏感项均有专项用例，如退款幂等锚点、MCP 令牌、网关 IP/Origin、Redis Lua、MQ 幂等/补偿/死信） | 162 个测试类 · **1341 个用例** |
 | Python 测试 | Agent 79 个源文件语法校验 0 错误；集成用例覆盖：pending 提案 confirm 五场景（CAS 落定/delete 失败/业务回滚/系统异常保持/CAS 拒绝）、ws_token 废弃分支、checkpoint 签名与脏 key 清理、MCP 中间件令牌矩阵 | 多组场景用例 |
 | 前端构建校验 | 311 个 Vue/TS/JS 文件全部通过 esbuild 与 `@vue/compiler-sfc` 编译（含 style 块 SCSS） | 311 文件 0 失败 |
 | 真实环境冒烟 | 全中间件 + 11 个微服务 + Agent + 双端前端联调：管理端登录跳转、C 端登录、AI 客服对话（商品搜索/物流查询/订单查询/退款与评价提案卡）、支付与订单状态机 | 全链路 |
@@ -215,9 +215,11 @@ Agent 通过 **MCP Streamable HTTP**（默认 `:7060/mcp`）调用 10 个工具�
 - **写类**（确认收货、退款、评价、追评）只写入 Redis **待确认提案**（`【act_<32位hex>】`），用户点确认后由 Java 真正改库；确认执行前经 **Lua CAS 把提案状态原子落为 CONFIRMED**（业务失败才回滚）——即便删除/崩溃，重试也会被状态检查拒绝，写操作不会二次执行；拦截伪造 token、确认/取消用 Redis NX 防双击。
 - **自主性**：默认不靠关键词强行塞工具（`FORCE_MCP_ON_LLM_SKIP=false`）；<如何取消订单 / 优惠券怎么用>等 how to 走说明，不强行查单/查券。UI 明确要<我的订单>时仍会拉订单卡。
 
-### 下单超时关单
+### 订单状态机与超时关单
 
-下单事务提交后经 Outbox/MQ 投递 **支付超时延迟队列**（TTL → 死信）。消费者校验仍为待支付后关单，并按订单行回补库存（秒杀券走券库存释放 + Lua 对齐）。支付成功与关单并发时，依赖”仅当 `WAIT_PAYMENT` 才更新“的条件写与关单标记，晚到支付走退款路径。
+订单状态流转统一由状态机校验，控制器、支付回调、物流、超时任务不再各自硬编码目标状态；数据库更新同时携带期望源状态，避免并发请求越级或重复流转。
+
+下单事务提交后经 Outbox/MQ 投递 **支付超时延迟队列**（TTL → 死信）。消费者仅在状态机允许且订单仍为待支付时关单，并按订单行以操作号幂等回补库存（秒杀券走券库存释放 + Lua 对齐）。支付成功与关单并发时，由状态机、条件写与关单标记共同收敛；晚到支付走退款路径。
 
 ### 搜索：RRF + 相关性过滤 + 兜底文案
 
@@ -270,6 +272,26 @@ powershell -ExecutionPolicy Bypass -File .\deploy\init-mysql-meta.ps1
 ```
 
 再按 [deploy/GO_LIVE.md](deploy/GO_LIVE.md) 补全 `01`～`10`、`13`。
+
+#### 存量库升级（签到权威切换）
+
+已有环境切换到 MySQL 权威签到前，需要保留旧 Redis Hash 中的补签已消费总数。请安排签到停写/切流窗口，并确保脚本仍能访问承载旧数据的 Redis；以下顺序不可省略：
+
+```powershell
+# 1. 创建 MySQL 位图权威表、成长值及奖励幂等表
+Get-Content -Raw .\sql\17_sign_bitmap_authority.sql | docker exec -i simlect-mysql mysql -uroot -proot simlect_user
+
+# 2. 将旧 Redis usedCount 快照幂等导入 MySQL（密码按实际环境填写）
+powershell -ExecutionPolicy Bypass -File .\sql\18_import_legacy_sign_used_count.ps1 -MySqlPassword 'root'
+
+# 3. Redis 快照导入后的切流前核验；最后一个差异查询必须返回空集
+Get-Content -Raw .\sql\18_verify_legacy_sign_used_count.sql | docker exec -i simlect-mysql mysql -uroot -proot
+
+# 4. 创建库存批量变更操作幂等表
+Get-Content -Raw .\sql\19_stock_change_operation.sql | docker exec -i simlect-mysql mysql -uroot -proot simlect_stock
+```
+
+确认核验差异为空后再启动新版 user 服务并恢复签到写入。全新环境的 `sql/01_user.sql`、`sql/03_stock.sql` 已包含对应表结构，无需重复执行 `17`～`19`。
 
 ### 3. 构建并启动 Java 服务
 
@@ -363,12 +385,13 @@ npm run dev
 | ---------------------------------- | ------------------------------------------------------------------------------ |
 | `NACOS_ADDR`                       | 服务注册发现，默认 `127.0.0.1:8848`                                                     |
 | `MYSQL_*` / 各库 URL                 | 一服务一库（`simlect_user` 等）                                                        |
-| `REDIS_*` / `RABBIT_*`             | 缓存、签到 Bitmap、会话、MQ                                                             |
+| `REDIS_*` / `RABBIT_*`             | 可重建缓存（含签到日历）、会话、MQ；签到权威位图保存在 MySQL                                      |
 | `ES_URIS`                          | 商品检索与向量索引                                                                      |
 | `VECTOR_INDEX` / `ES_INDEX`        | 向量索引名，默认 `simlect_vectorstore`；商品关键词索引固定为 `simlect-index`                      |
 | `SIMLECT_INTERNAL_TOKEN`           | 服务间与 Agent 经 Gateway 调用 `/internal/**` 的共享密钥（请求头 `X-Internal-Token`），**全服务一致** |
 | `ADMIN_ACCOUNT` / `ADMIN_PASSWORD` | 管理端账号                                                                          |
 | `ALIPAY_*`                         | 支付宝证书与网关（开放支付时必填）                                                              |
+| `SIMLECT_PAY_LOCAL_MOCK_ENABLED`   | 仅本地支付联调；默认 `false`，开启后不访问支付宝且不应在生产环境使用                                  |
 | `LLM_*` / `EMBEDDING_*`            | Agent 对话与 RAG 向量化                                                              |
 | `JAVA_WEB_URL` / `AGENT_HOST`      | Agent 只连 Gateway（含 `/internal/`**）；Gateway 反代 Agent                            |
 | `MCP_SERVER_URL`                   | Agent 连接 MCP Streamable HTTP，默认 `http://127.0.0.1:7060`                        |

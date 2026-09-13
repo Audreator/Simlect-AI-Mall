@@ -7,12 +7,10 @@
 ## 核心类 / 文件
 
 - `ImageModerationCleanupTask.java`
-- `SignDailyInitTask.java`
-- `SignReconcileTask.java`
 
 ## 调用链（自上而下）
 
-1. `Scheduler → `@Scheduled` 方法`
+1. `Scheduler → @Scheduled 方法`
 1. `Task → Service / Mapper 批处理`
 
 ## 调用链图

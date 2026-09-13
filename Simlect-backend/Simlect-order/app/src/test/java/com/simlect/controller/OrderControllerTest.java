@@ -14,6 +14,7 @@ import com.simlect.entity.po.OrderInfo;
 import com.simlect.entity.po.OrderItem;
 import com.simlect.entity.po.OrderLogisticsInfo;
 import com.simlect.entity.vo.PaginationResultVO;
+import com.simlect.exception.BusinessException;
 import com.simlect.utils.AuthCookieHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,8 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -184,25 +187,16 @@ class OrderControllerTest {
 
     @Test
     void deleteOrder_completed_success() throws Exception {
-        OrderInfo order = new OrderInfo();
-        order.setOrderId(ORDER_ID);
-        order.setUserId(USER_ID);
-        order.setOrderStatus(OrderStatusEnum.COMPLETED.getStatus());
-        when(orderInfoService.getOrderInfoByOrderId(ORDER_ID)).thenReturn(order);
-
         mockMvc.perform(post("/order/deleteOrder").param("orderId", ORDER_ID))
                 .andExpect(jsonPath("$.status").value("success"));
 
-        verify(orderInfoService).updateOrderInfoByOrderId(any(OrderInfo.class), eq(ORDER_ID));
+        verify(orderInfoService).deleteOrder(USER_ID, ORDER_ID);
     }
 
     @Test
     void deleteOrder_waitPayment_error() throws Exception {
-        OrderInfo order = new OrderInfo();
-        order.setOrderId(ORDER_ID);
-        order.setUserId(USER_ID);
-        order.setOrderStatus(OrderStatusEnum.WAIT_PAYMENT.getStatus());
-        when(orderInfoService.getOrderInfoByOrderId(ORDER_ID)).thenReturn(order);
+        doThrow(new BusinessException("当前订单状态无法删除！"))
+                .when(orderInfoService).deleteOrder(USER_ID, ORDER_ID);
 
         mockMvc.perform(post("/order/deleteOrder").param("orderId", ORDER_ID))
                 .andExpect(jsonPath("$.status").value("error"));
@@ -224,15 +218,12 @@ class OrderControllerTest {
     }
 
     @Test
-    void confirmOrder_shippedOnly() throws Exception {
-        OrderInfo order = new OrderInfo();
-        order.setOrderId(ORDER_ID);
-        order.setUserId(USER_ID);
-        order.setOrderStatus(OrderStatusEnum.PAID.getStatus());
-        when(orderInfoService.getOrderInfoByOrderId(ORDER_ID)).thenReturn(order);
-
+    void confirmOrder_noTransitionIsIdempotentSuccess() throws Exception {
         mockMvc.perform(post("/order/confirmOrder").param("orderId", ORDER_ID))
-                .andExpect(jsonPath("$.status").value("error"));
+                .andExpect(jsonPath("$.status").value("success"));
+
+        verify(orderInfoService).confirmOrderReceipt(USER_ID, ORDER_ID);
+        verify(orderInfoService, never()).onOrderConfirmed(anyString(), anyString());
     }
 
     @Test

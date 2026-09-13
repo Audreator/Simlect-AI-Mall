@@ -188,6 +188,14 @@ class RedisComponentTest {
     }
 
     @Test
+    void clearPayOrderCloseMark_deletesOnlyNonEmptyKey() {
+        redisComponent.clearPayOrderCloseMark(PAY_ORDER_ID);
+        redisComponent.clearPayOrderCloseMark("");
+
+        verify(stringRedisTemplate).delete(Constants.REDIS_KEY_PAY_ORDER_CLOSE_DONE + PAY_ORDER_ID);
+    }
+
+    @Test
     void tryMarkLatePaymentRefundOnce_usesSetIfAbsent() {
         when(stringRedisTemplate.opsForValue()).thenReturn(mock(org.springframework.data.redis.core.ValueOperations.class));
         when(stringRedisTemplate.opsForValue().setIfAbsent(

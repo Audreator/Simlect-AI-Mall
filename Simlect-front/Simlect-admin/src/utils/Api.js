@@ -91,10 +91,6 @@ const Api = {
 
     signRewardGetConfig: "/signRewardConfig/getConfig",
     signRewardSaveConfig: "/signRewardConfig/saveConfig",
-    signRecordSyncAllFromDb: "/signRecord/syncAllFromDb",
-    signRecordSyncUserFromDb: "/signRecord/syncUserFromDb",
-    signRecordSyncSignDatesFromDb: "/signRecord/syncSignDatesFromDb",
-    signRecordForceRebuildToday: "/signRecord/forceRebuildToday",
     memberLevelRewardGetConfig: "/memberLevelRewardConfig/getConfig",
     memberLevelRewardSaveConfig: "/memberLevelRewardConfig/saveConfig",
 

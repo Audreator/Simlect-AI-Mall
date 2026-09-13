@@ -79,6 +79,10 @@ management:
       exposure:
         include: health,info
 simlect:
+  pay:
+    # 仅供本地联调：不请求第三方支付宝，也不标记渠道交易已发起。
+    # 生产环境保持默认 false，必须显式设置 SIMLECT_PAY_LOCAL_MOCK_ENABLED=true 才启用。
+    local-mock-enabled: ${SIMLECT_PAY_LOCAL_MOCK_ENABLED:false}
   internal:
     token: ${SIMLECT_INTERNAL_TOKEN:}
     auth-enabled: true

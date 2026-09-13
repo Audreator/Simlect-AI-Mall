@@ -46,11 +46,11 @@ $jelly-glass-duration: 0.24s;
     transition: none;
     animation: tab-glass-pop $jelly-glass-duration $jelly-ease-glass both;
 
-    :deep(.liquid-glass-surface__tint) {
+    .liquid-glass-surface__tint {
       background: rgba(255, 255, 255, 0.22);
     }
 
-    :deep(.liquid-glass-surface__shine) {
+    .liquid-glass-surface__shine {
       opacity: 0.72;
     }
   }
@@ -59,7 +59,7 @@ $jelly-glass-duration: 0.24s;
 @mixin tab-bar-jelly-shell {
   overflow: visible !important;
 
-  :deep(.liquid-glass-surface__content) {
+  .liquid-glass-surface__content {
     overflow: visible;
   }
 }

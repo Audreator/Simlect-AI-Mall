@@ -151,23 +151,8 @@ public class OrderController extends ABaseController{
     @PostMapping("/deleteOrder")
     @GlobalInterceptor(checkLogin = true)
     public ResponseVO deleteOrder(@NotEmpty String orderId){
-        // 获得当前用户的userId
         String userId = getTokenUserInfo().getUserId();
-        // 根据orderId查询订单
-        OrderInfo orderInfo = orderInfoService.getOrderInfoByOrderId(orderId);
-        if (orderInfo == null || !orderInfo.getUserId().equals(userId)){
-            throw new BusinessException("订单不存在");
-        }
-        // 只能删除3.已完成，4.已取消，5.已关闭，6.已退款的订单
-        if (orderInfo.getOrderStatus() != OrderStatusEnum.COMPLETED.getStatus() &&
-                orderInfo.getOrderStatus() != OrderStatusEnum.CANCELLED.getStatus() &&
-                orderInfo.getOrderStatus() != OrderStatusEnum.CLOSED.getStatus() &&
-                orderInfo.getOrderStatus() != OrderStatusEnum.REFUNDED.getStatus() ){
-            throw new BusinessException("当前订单状态无法删除！");
-        }
-        // 删除订单
-        orderInfo.setOrderStatus(OrderStatusEnum.DELETE.getStatus());
-        orderInfoService.updateOrderInfoByOrderId(orderInfo,orderId);
+        orderInfoService.deleteOrder(userId, orderId);
         return getSuccessResponseVO(null);
     }
 
@@ -175,18 +160,7 @@ public class OrderController extends ABaseController{
     @PostMapping("/confirmOrder")
     @GlobalInterceptor(checkLogin = true)
     public ResponseVO confirmOrder(@NotEmpty String orderId){
-        // 获得当前用户的userId
         String userId = getTokenUserInfo().getUserId();
-        // 根据orderId查询订单
-        OrderInfo orderInfo = orderInfoService.getOrderInfoByOrderId(orderId);
-        if (orderInfo == null || !orderInfo.getUserId().equals(userId)){
-            throw new BusinessException("订单不存在");
-        }
-        // 只能确认已发货或部分退款的订单
-        if (orderInfo.getOrderStatus() != OrderStatusEnum.SHIPPED.getStatus() &&
-            orderInfo.getOrderStatus() != OrderStatusEnum.PARTIALLY_REFUNDED.getStatus() ){
-            throw new BusinessException("当前订单状态无法确认！");
-        }
         if (!orderInfoService.confirmOrderReceipt(userId, orderId)) {
             return getSuccessResponseVO(null);
         }

@@ -27,6 +27,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 import java.util.List;
@@ -70,6 +72,7 @@ public class MqCompensationLogServiceImpl implements MqCompensationLogService {
     }
 
     @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public void saveFromFailure(MqCompensationRecord record) {
         if (record == null || StringTools.isEmpty(record.getIdempotencyKey())) {
             return;
@@ -202,12 +205,27 @@ public class MqCompensationLogServiceImpl implements MqCompensationLogService {
         try {
             String routingKey = existing.getRoutingKey();
             if (InternalApiHeaders.REMOTE_STOCK_CHANGE_BATCH.equals(routingKey)) {
-                List<ProductItem> items = JsonUtils.parseArray(existing.getPayloadJson(), ProductItem.class);
+                JsonNode payload = JsonUtils.parseTree(existing.getPayloadJson());
+                String operationId;
+                String requiredOperationId = null;
+                List<ProductItem> items;
+                if (payload.isArray()) {
+                    operationId = "legacy-compensate:" + sha256(existing.getIdempotencyKey());
+                    items = JsonUtils.parseArray(existing.getPayloadJson(), ProductItem.class);
+                } else {
+                    operationId = textOrNull(payload, "operationId");
+                    requiredOperationId = textOrNull(payload, "requiredOperationId");
+                    JsonNode itemNode = payload.get("items");
+                    if (StringTools.isEmpty(operationId) || itemNode == null || !itemNode.isArray()) {
+                        throw new BusinessException("库存补偿参数不完整");
+                    }
+                    items = JsonUtils.parseArray(itemNode.toString(), ProductItem.class);
+                }
                 StockBatchCompensatePort stockPort = stockBatchCompensatePort.getIfAvailable();
                 if (stockPort == null) {
                     throw new BusinessException("库存补偿能力不可用（缺少 stock-api）");
                 }
-                stockPort.changeStockBatch(items);
+                stockPort.changeStockBatchIdempotent(items, operationId, requiredOperationId);
             } else if (InternalApiHeaders.REMOTE_COUPON_UNLOCK.equals(routingKey)) {
                 JsonNode payload = JsonUtils.parseTree(existing.getPayloadJson());
                 UserCouponStatusCompensatePort couponPort = userCouponStatusCompensatePort.getIfAvailable();
@@ -229,6 +247,15 @@ public class MqCompensationLogServiceImpl implements MqCompensationLogService {
             log.error("远程补偿重放失败 logId={}", existing.getLogId(), e);
             markReplayFailedOrPending(existing, e.getMessage(), maxRetryCount);
             throw new BusinessException("远程补偿重放失败：" + e.getMessage());
+        }
+    }
+
+    private String sha256(String value) {
+        try {
+            return java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(value.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 unavailable", e);
         }
     }
 

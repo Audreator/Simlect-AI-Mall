@@ -56,6 +56,44 @@ create table if not exists user_sign_record_detail
 create index idx_create_time on user_sign_record_detail (create_time);
 create index idx_sign_date on user_sign_record_detail (sign_date);
 
+create table if not exists sign_bitmap
+(
+    user_id     varchar(32)  not null comment '用户ID',
+    `year_month` char(6)    not null comment '月份 yyyyMM',
+    bits        int unsigned default 0 not null comment 'bit0 对应 1 日，最多使用低 31 位',
+    update_time datetime     not null comment '更新时间',
+    primary key (user_id, `year_month`)
+) comment 'MySQL 权威签到位图' charset = utf8mb4;
+
+create table if not exists sign_growth_record
+(
+    id          bigint auto_increment primary key,
+    user_id     varchar(32) not null comment '用户ID',
+    sign_date   char(8)     not null comment '签到日期 yyyyMMdd',
+    amount      int         not null comment '本次成长值',
+    create_time datetime    not null comment '创建时间',
+    constraint uk_sign_growth_user_date unique (user_id, sign_date)
+) comment '签到成长值幂等记录' charset = utf8mb4;
+
+create table if not exists sign_supplement_used
+(
+    user_id     varchar(32) not null comment '用户ID',
+    sign_date   char(8)     not null comment '补签日期 yyyyMMdd',
+    create_time datetime    not null comment '创建时间',
+    primary key (user_id, sign_date),
+    key idx_supplement_user_time (user_id, create_time)
+) comment '补签次数消耗记录' charset = utf8mb4;
+
+create table if not exists sign_supplement_legacy_used
+(
+    user_id     varchar(32) not null comment '用户ID',
+    used_count  int         not null comment '切换前已消耗补签总次数',
+    detail_count_at_cutover int not null comment '切流时已有按日明细数',
+    source      varchar(32) not null comment '迁移来源',
+    update_time datetime    not null comment '迁移更新时间',
+    primary key (user_id)
+) comment '旧签到补签额度迁移审计' charset = utf8mb4;
+
 create table if not exists user_notification
 (
     notification_id varchar(32)          not null primary key,

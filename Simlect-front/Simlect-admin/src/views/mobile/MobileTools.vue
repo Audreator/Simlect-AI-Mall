@@ -41,26 +41,6 @@
       <p class="tool-hint">延时队列用于支付超时关单；秒杀操作请先在优惠券中配置秒杀券。</p>
     <!-- [zh] 闭合标签 `</section>` -->
     </section>
-    <!-- [zh] 开始标签 `<section>` -->
-    <section class="glass-card m-tool-group">
-      <!-- [zh] 开始标签 `<h3>` -->
-      <h3 class="m-group-title">签到数据</h3>
-      <!-- [zh] 开始标签 `<button>` -->
-      <button type="button" class="tool-btn warn" @click="runTool('signRecordSyncAllFromDb', '签到 DB→Redis 全量同步', { force: true })">
-        <!-- [zh] 模板内容：`签到数据 DB → Redis 同步` -->
-        签到数据 DB → Redis 同步
-      <!-- [zh] 闭合标签 `</button>` -->
-      </button>
-      <!-- [zh] 开始标签 `<p>` -->
-      <p class="tool-hint">
-        <!-- [zh] 模板内容：`仅恢复连续/总天数与补签次数（Hash），不含签到日历。` -->
-        仅恢复连续/总天数与补签次数（Hash），不含签到日历。
-        <!-- [zh] 模板内容：`历史签到日期请在「签到发券」页操作，默认截止昨天、不含今天。` -->
-        历史签到日期请在「签到发券」页操作，默认截止昨天、不含今天。
-      <!-- [zh] 闭合标签 `</p>` -->
-      </p>
-    <!-- [zh] 闭合标签 `</section>` -->
-    </section>
   <!-- [zh] 闭合标签 `</div>` -->
   </div>
 </template>

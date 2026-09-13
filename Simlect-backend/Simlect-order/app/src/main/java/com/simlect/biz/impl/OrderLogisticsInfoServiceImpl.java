@@ -12,13 +12,14 @@ import com.simlect.api.enums.LogisticsStatusEnum;
 import com.simlect.api.enums.OrderStatusEnum;
 import com.simlect.entity.po.OrderInfo;
 import com.simlect.entity.po.OrderLogisticsInfoRecord;
-import com.simlect.entity.query.OrderInfoQuery;
 import com.simlect.entity.query.OrderLogisticsInfoRecordQuery;
 import com.simlect.exception.BusinessException;
 import com.simlect.api.support.UserFeignSupport;
 import com.simlect.biz.OrderInfoService;
 import com.simlect.biz.OrderLogisticsInfoRecordService;
 import com.simlect.support.MqIdempotencyKeys;
+import com.simlect.state.OrderStateEvent;
+import com.simlect.state.OrderStateMachine;
 import jakarta.annotation.Resource;
 
 import org.springframework.stereotype.Service;
@@ -44,6 +45,9 @@ public class OrderLogisticsInfoServiceImpl implements OrderLogisticsInfoService 
 
 	@Resource
 	private OrderInfoService orderInfoService;
+
+	@Resource
+	private OrderStateMachine orderStateMachine;
 
 	@Resource
 	private UserFeignSupport userFeignSupport;
@@ -152,13 +156,10 @@ public class OrderLogisticsInfoServiceImpl implements OrderLogisticsInfoService 
 		if (count != 1) {
 			throw new BusinessException("该订单已经发货过了");
 		}
-		// 修改订单状态为已发货
-		OrderInfoQuery orderInfoQuery = new OrderInfoQuery();
-		orderInfoQuery.setOrderId(orderLogisticsInfo.getOrderId());
-		orderInfoQuery.setOrderStatus(OrderStatusEnum.PAID.getStatus());
-		OrderInfo orderInfo = new OrderInfo();
-		orderInfo.setOrderStatus(OrderStatusEnum.SHIPPED.getStatus());
-		count = orderInfoService.updateByParam(orderInfo, orderInfoQuery);
+		count = orderStateMachine.transition(
+				orderLogisticsInfo.getOrderId(),
+				OrderStatusEnum.PAID,
+				OrderStateEvent.SHIP);
 		if (count != 1) {
 			throw new BusinessException("该订单已经发货过了");
 		}

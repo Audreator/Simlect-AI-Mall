@@ -98,11 +98,11 @@
         background: #fff;
       }
 
-      .feed-section :deep(.product-grid) {
+      .feed-section .product-grid {
         gap: 6px;
       }
 
-      .feed-section :deep(.product-card:not(.ignore)) {
+      .feed-section .product-card:not(.ignore) {
         border-radius: $radius-sm;
         box-shadow: none;
         border: none;
@@ -343,7 +343,7 @@
       .cart-list {
         gap: 0;
 
-        :deep(.swipe-delete-row) {
+        .swipe-delete-row {
           border-radius: 0;
           margin-bottom: 0;
           border-bottom: 1px solid $color-border-light;

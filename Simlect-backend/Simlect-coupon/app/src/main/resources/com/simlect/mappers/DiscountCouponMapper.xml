@@ -672,7 +672,7 @@
 	<!-- 扣减库存 -->
 	<update id="deductStock">
 		UPDATE discount_coupon
-		SET remain_count = remain_count - 1
+		SET remain_count = CASE WHEN total_count = 0 THEN remain_count ELSE remain_count - 1 END
 		WHERE coupon_id = #{couponId}
 		  AND (total_count = 0 OR remain_count > 0)
 	</update>

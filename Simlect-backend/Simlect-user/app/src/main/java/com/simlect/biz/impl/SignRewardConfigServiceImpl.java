@@ -9,9 +9,11 @@ import com.simlect.exception.BusinessException;
 import com.simlect.biz.SignRewardConfigService;
 import com.simlect.utils.StringTools;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 @Service("signRewardConfigService")
+@Slf4j
 public class SignRewardConfigServiceImpl implements SignRewardConfigService {
 
     private static final int DEFAULT_STREAK_DAYS = 7;
@@ -66,10 +68,16 @@ public class SignRewardConfigServiceImpl implements SignRewardConfigService {
 
     @Override
     public SignRewardConfigDTO resolveActiveConfig() {
-        SignRewardConfigDTO dto = redisComponent.getSignRewardConfig();
-        if (dto != null && Boolean.TRUE.equals(dto.getEnabled()) && !StringTools.isEmpty(dto.getCouponId())) {
+        SignRewardConfigDTO dto;
+        try {
+            dto = redisComponent.getSignRewardConfig();
+        } catch (Exception e) {
+            log.warn("读取连续签到奖励配置失败，将使用本地默认配置", e);
+            dto = null;
+        }
+        if (dto != null) {
             normalize(dto);
-            return dto;
+            return Boolean.TRUE.equals(dto.getEnabled()) && !StringTools.isEmpty(dto.getCouponId()) ? dto : null;
         }
         String ymlCouponId = appConfig.getSignStreakCouponId();
         if (StringTools.isEmpty(ymlCouponId)) {

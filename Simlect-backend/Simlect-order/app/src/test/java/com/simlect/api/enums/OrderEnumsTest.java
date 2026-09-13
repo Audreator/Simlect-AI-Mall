@@ -33,7 +33,7 @@ class OrderEnumsTest {
     void orderStatus_getByStatus() {
         assertEquals(OrderStatusEnum.PAID, OrderStatusEnum.getByStatus(1));
         assertEquals("已付款,待发货", OrderStatusEnum.PAID.getDesc());
-        assertThrows(NoSuchElementException.class, () -> OrderStatusEnum.getByStatus(999));
+        assertNull(OrderStatusEnum.getByStatus(999));
     }
 
     // ==================== OrderFromTypeEnum ====================

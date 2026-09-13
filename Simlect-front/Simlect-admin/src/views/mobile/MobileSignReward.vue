@@ -64,39 +64,8 @@
       </div>
 
       <p class="m-note" style="margin-top: 12px">
-        配置保存在 Redis，保存后立即对用户签到生效。请确保所选优惠券库存充足且处于进行中状态。
-      </p>
-    </div>
-
-    <div class="glass-card m-form" style="margin-top: 12px" @click="onSyncCardClick">
-      <h3 class="m-form-title">签到数据恢复</h3>
-      <p class="m-tip">汇总表 → Redis Hash（连续/总天数/补签次数）</p>
-      <div class="m-form-ops">
-        <button type="button" class="op-btn warn" :disabled="syncingHash" @click.stop="syncSignHashFromDb">
-          同步汇总
-        </button>
-      </div>
-
-      <p class="m-tip" style="margin-top: 12px">
-        明细表 → Redis 日历（最近365天）。手动同步禁止包含今天，默认截止昨天。
-      </p>
-      <div class="m-field">
-        <label class="m-label">同步截止日期</label>
-        <input v-model="syncEndDateInput" class="m-input" type="date" :max="yesterdayInputValue" />
-      </div>
-      <div class="m-field">
-        <label class="m-label">用户ID（可选）</label>
-        <input v-model="syncUserId" class="m-input" type="text" placeholder="留空=全部用户" />
-      </div>
-      <div class="m-form-ops">
-        <button type="button" class="op-btn primary" :disabled="syncingDates" @click.stop="syncSignDatesFromDb">
-          同步历史签到日期
-        </button>
-      </div>
-      <p v-if="showForceRebuild" class="m-tip">
-        <button type="button" class="op-btn danger" :disabled="forcingToday" @click.stop="forceRebuildToday">
-          强制重建含今日
-        </button>
+        奖励配置保存在 Redis；签到数据以 MySQL 位图为唯一权威，Redis 日历缓存会在读取时自动回源。
+        请确保所选优惠券库存充足且处于进行中状态。
       </p>
     </div>
   </div>
@@ -107,108 +76,7 @@ import { computed, getCurrentInstance, onMounted, reactive, ref } from 'vue'
 
 const { proxy } = getCurrentInstance()
 const saving = ref(false)
-const syncingHash = ref(false)
-const syncingDates = ref(false)
-const forcingToday = ref(false)
-const syncUserId = ref('')
-const showForceRebuild = ref(false)
-const forceClickCount = ref(0)
 const couponOptions = ref([])
-
-const yesterdayYmd = () => {
-  const d = new Date()
-  d.setDate(d.getDate() - 1)
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}${m}${day}`
-}
-
-const yesterdayInputValue = computed(() => {
-  const ymd = yesterdayYmd()
-  return `${ymd.slice(0, 4)}-${ymd.slice(4, 6)}-${ymd.slice(6, 8)}`
-})
-
-const syncEndDateInput = ref(yesterdayInputValue.value)
-
-const syncEndDateYmd = () => syncEndDateInput.value.replace(/-/g, '')
-
-const onSyncCardClick = () => {
-  forceClickCount.value += 1
-  if (forceClickCount.value >= 5) showForceRebuild.value = true
-}
-
-const syncSignHashFromDb = () => {
-  proxy.Confirm({
-    message: '将 DB 签到汇总覆盖同步到 Redis Hash，确定？',
-    okfun: async () => {
-      syncingHash.value = true
-      try {
-        const result = await proxy.Request({
-          url: proxy.Api.signRecordSyncAllFromDb,
-          params: { force: true },
-          showLoading: true,
-        })
-        if (!result) return
-        const d = result.data || {}
-        proxy.Message.success(`汇总同步 ${d.synced ?? 0} 条，跳过 ${d.skipped ?? 0} 条`)
-      } finally {
-        syncingHash.value = false
-      }
-    },
-  })
-}
-
-const syncSignDatesFromDb = () => {
-  const endDate = syncEndDateYmd()
-  if (!endDate || endDate.length !== 8) {
-    proxy.Message.warning('请选择同步截止日期')
-    return
-  }
-  proxy.Confirm({
-    message: `同步截至 ${endDate} 的签到日期到 Redis（不含今天），确定？`,
-    okfun: async () => {
-      syncingDates.value = true
-      try {
-        const params = { syncEndDate: endDate }
-        if (syncUserId.value) params.userId = syncUserId.value.trim()
-        const result = await proxy.Request({
-          url: proxy.Api.signRecordSyncSignDatesFromDb,
-          params,
-          showLoading: true,
-        })
-        if (!result) return
-        const d = result.data || {}
-        proxy.Message.success(`日期同步 ${d.syncedUsers ?? 0} 用户，${d.syncedDates ?? 0} 条`)
-      } finally {
-        syncingDates.value = false
-      }
-    },
-  })
-}
-
-const forceRebuildToday = () => {
-  proxy.Confirm({
-    message: '强制重建含今日的签到日历，确定？',
-    okfun: async () => {
-      forcingToday.value = true
-      try {
-        const params = {}
-        if (syncUserId.value) params.userId = syncUserId.value.trim()
-        const result = await proxy.Request({
-          url: proxy.Api.signRecordForceRebuildToday,
-          params,
-          showLoading: true,
-        })
-        if (!result) return
-        const d = result.data || {}
-        proxy.Message.success(`强制重建 ${d.syncedUsers ?? 0} 用户，${d.syncedDates ?? 0} 条`)
-      } finally {
-        forcingToday.value = false
-      }
-    },
-  })
-}
 
 const form = reactive({
   enabled: false,

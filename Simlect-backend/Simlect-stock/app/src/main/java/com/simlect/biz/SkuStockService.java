@@ -10,6 +10,7 @@ import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import java.util.Comparator;
 import java.util.HashMap;
@@ -77,6 +78,46 @@ public class SkuStockService {
         if (batch == null || CollectionUtils.isEmpty(batch.getItems())) {
             throw new BusinessException("库存变更列表为空");
         }
+        String operationId = batch.getOperationId();
+        String requiredOperationId = batch.getRequiredOperationId();
+        if (StringUtils.hasText(operationId)) {
+            if (operationId.length() > 128) {
+                throw new BusinessException("库存变更幂等键过长");
+            }
+            if (StringUtils.hasText(requiredOperationId)) {
+                if (requiredOperationId.length() > 128) {
+                    throw new BusinessException("库存前置操作键过长");
+                }
+                String committedOperation = skuStockMapper.selectChangeOperationIdForUpdate(requiredOperationId);
+                if (committedOperation == null) {
+                    // The compensation may beat a timed-out deduction to this service. Persist a
+                    // tombstone for the prerequisite so that the delayed deduction cannot run later.
+                    if (skuStockMapper.insertCancelledChangeOperation(requiredOperationId) == 1) {
+                        return 0;
+                    }
+                    // A concurrent prerequisite won the unique-key race. Lock and inspect it before
+                    // deciding whether the inverse operation is allowed to proceed.
+                    committedOperation = skuStockMapper.selectChangeOperationIdForUpdate(requiredOperationId);
+                    if (committedOperation == null) {
+                        throw new BusinessException("库存前置操作状态异常，请稍后重试");
+                    }
+                }
+                Integer requiredResult = skuStockMapper.selectChangeOperationResult(requiredOperationId);
+                if (requiredResult == null) {
+                    throw new BusinessException("库存前置操作正在处理中，请稍后重试");
+                }
+                if (requiredResult < 0) {
+                    return 0;
+                }
+            }
+            if (skuStockMapper.insertChangeOperation(operationId) == 0) {
+                Integer completed = skuStockMapper.selectChangeOperationResult(operationId);
+                if (completed == null) {
+                    throw new BusinessException("库存变更正在处理中，请稍后重试");
+                }
+                return Math.max(completed, 0);
+            }
+        }
         Map<String, Integer> merged = mergeBySku(batch.getItems());
         int total = 0;
         for (Map.Entry<String, Integer> entry : new TreeMap<>(merged).entrySet()) {
@@ -86,6 +127,10 @@ public class SkuStockService {
                 throw new BusinessException("库存不足");
             }
             total += affected;
+        }
+        if (StringUtils.hasText(operationId)
+                && skuStockMapper.completeChangeOperation(operationId, total) != 1) {
+            throw new BusinessException("库存变更幂等记录更新失败");
         }
         return total;
     }

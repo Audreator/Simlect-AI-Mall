@@ -124,7 +124,7 @@
         color: rgba(255, 255, 255, 0.55);
       }
 
-      :deep(.member-summary-card) {
+      .member-summary-card {
         margin: 12px $app-page-gutter 0;
         border-radius: 12px;
       }
@@ -307,7 +307,7 @@
       .keyword-input {
         flex: 1;
 
-        :deep(.el-input__wrapper) {
+        .el-input__wrapper {
           border-radius: 17px !important;
           background: $color-bg-subtle !important;
           box-shadow: none !important;
@@ -380,11 +380,11 @@
         border-bottom: 1px solid #f0f0f0;
       }
 
-      :deep(.el-tabs__active-bar) {
+      .el-tabs__active-bar {
         background: $color-primary;
       }
 
-      :deep(.el-tabs__item.is-active) {
+      .el-tabs__item.is-active {
         color: $color-primary;
         font-weight: 600;
       }
@@ -475,8 +475,8 @@
       }
     }
 
-    .coupons-page :deep(.coupon-card),
-    .my-coupons-page :deep(.coupon-card) {
+    .coupons-page .coupon-card,
+    .my-coupons-page .coupon-card {
       border-radius: 12px;
     }
 

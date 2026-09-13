@@ -10,9 +10,10 @@ import com.simlect.exception.BusinessException;
 import com.simlect.biz.PayChannel;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
-import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,7 +22,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-@Slf4j
 @RestController
 @RequestMapping("/notify")
 /**
@@ -34,6 +34,8 @@ import java.util.concurrent.TimeUnit;
  * 必须尽快返回 success/failure，业务幂等靠锁 + 订单状态机。
  */
 public class PayNotifyController {
+
+    private static final Logger log = LoggerFactory.getLogger(PayNotifyController.class);
 
     @Resource
     private OrderFeignSupport orderFeignSupport;

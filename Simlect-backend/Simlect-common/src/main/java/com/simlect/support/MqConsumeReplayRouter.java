@@ -22,8 +22,9 @@ public final class MqConsumeReplayRouter {
                     new Target(RabbitMQConfig.RAG_EXCHANGE, RabbitMQConfig.RAG_QUEUE_KEY);
             case RabbitMQConfig.BROWSE_RECORD_QUEUE ->
                     new Target(RabbitMQConfig.BROWSE_EXCHANGE, RabbitMQConfig.BROWSE_RECORD_KEY);
-            case RabbitMQConfig.SIGN_RECORD_QUEUE ->
-                    new Target(RabbitMQConfig.SIGN_RECORD_EXCHANGE, RabbitMQConfig.SIGN_RECORD_KEY);
+            case RabbitMQConfig.SIGN_STREAK_COUPON_QUEUE ->
+                    new Target(RabbitMQConfig.SIGN_STREAK_COUPON_EXCHANGE,
+                            RabbitMQConfig.SIGN_STREAK_COUPON_KEY);
             case RabbitMQConfig.NOTIFY_QUEUE ->
                     new Target(RabbitMQConfig.NOTIFY_EXCHANGE, RabbitMQConfig.NOTIFY_KEY);
             // 支付/物流/确认：死信队列本身即业务消费队列，重放回同一路由

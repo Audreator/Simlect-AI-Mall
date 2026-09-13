@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.simlect.mappers.SignBitmapMapper">
+
+    <resultMap id="base_result_map" type="com.simlect.entity.po.SignBitmap">
+        <id column="user_id" property="userId"/>
+        <id column="year_month" property="yearMonth"/>
+        <result column="bits" property="bits"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <insert id="insertBitIfAbsent">
+        INSERT IGNORE INTO sign_bitmap (user_id, `year_month`, bits, update_time)
+        VALUES (#{userId}, #{yearMonth}, #{mask}, NOW())
+    </insert>
+
+    <update id="setBitIfMissing">
+        UPDATE sign_bitmap
+        SET bits = bits | #{mask}, update_time = NOW()
+        WHERE user_id = #{userId}
+          AND `year_month` = #{yearMonth}
+          AND (bits &amp; #{mask}) = 0
+    </update>
+
+    <select id="selectByUserAndMonth" resultMap="base_result_map">
+        SELECT user_id, `year_month`, bits, update_time
+        FROM sign_bitmap
+        WHERE user_id = #{userId} AND `year_month` = #{yearMonth}
+    </select>
+
+    <select id="selectRecentMonths" resultMap="base_result_map">
+        SELECT user_id, `year_month`, bits, update_time
+        FROM sign_bitmap
+        WHERE user_id = #{userId}
+          AND `year_month` IN (#{currentMonth}, #{previousMonth})
+        ORDER BY `year_month` DESC
+    </select>
+
+    <select id="countTotalSignDays" resultType="java.lang.Integer">
+        SELECT COALESCE(SUM(BIT_COUNT(bits)), 0)
+        FROM sign_bitmap
+        WHERE user_id = #{userId}
+    </select>
+</mapper>

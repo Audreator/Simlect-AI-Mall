@@ -1,236 +1,316 @@
 package com.simlect.biz.impl;
 
+import com.simlect.api.dto.NotificationMessageDTO;
+import com.simlect.api.dto.SignStreakCouponMessageDTO;
+import com.simlect.api.vo.SignDataVO;
+import com.simlect.biz.SignRewardConfigService;
+import com.simlect.biz.SignService;
+import com.simlect.biz.SignStreakService;
+import com.simlect.biz.UserMemberProfileService;
 import com.simlect.component.RedisComponent;
-import com.simlect.constants.Constants;
 import com.simlect.constants.RabbitMQConfig;
-import com.simlect.constants.ReliableMessageSender;
-import com.simlect.support.MqIdempotencyKeys;
+import com.simlect.constants.TransactionalMqSender;
 import com.simlect.entity.dto.SignRewardConfigDTO;
-import com.simlect.api.dto.SignRecordMessageDTO;
 import com.simlect.entity.enums.MessageReliabilityLevelEnum;
 import com.simlect.entity.enums.ResponseCodeEnum;
-import com.simlect.api.dto.UserCouponCreateDTO;
-import com.simlect.api.support.CouponFeignSupport;
-import com.simlect.api.vo.DiscountCouponVO;
-import com.simlect.api.enums.UserCouponStatusEnum;
-import com.simlect.utils.StringTools;
-import com.simlect.api.vo.SignDataVO;
+import com.simlect.entity.po.SignBitmap;
+import com.simlect.entity.po.UserMemberProfile;
+import com.simlect.entity.po.UserSignRecordDetail;
+import com.simlect.entity.query.UserMemberProfileQuery;
+import com.simlect.entity.query.UserSignRecordDetailQuery;
 import com.simlect.exception.BusinessException;
-import com.simlect.biz.SignCalendarCacheService;
-import com.simlect.biz.SignRewardConfigService;
-import com.simlect.biz.SignRecordSyncService;
-import com.simlect.biz.SignService;
-import com.simlect.biz.UserMemberProfileService;
-import com.simlect.biz.UserNotificationService;
-import com.simlect.utils.DateUtil;
+import com.simlect.mappers.SignBitmapMapper;
+import com.simlect.mappers.SignGrowthRecordMapper;
+import com.simlect.mappers.SignSupplementUsedMapper;
+import com.simlect.mappers.UserMemberProfileMapper;
+import com.simlect.mappers.UserSignRecordDetailMapper;
+import com.simlect.support.MqIdempotencyKeys;
+import com.simlect.utils.StringTools;
 import jakarta.annotation.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 @Service
 public class SignServiceImpl implements SignService {
 
     private static final Logger log = LoggerFactory.getLogger(SignServiceImpl.class);
+    private static final DateTimeFormatter DATE_FORMATTER =
+            DateTimeFormatter.ofPattern("uuuuMMdd").withResolverStyle(ResolverStyle.STRICT);
+    private static final DateTimeFormatter MONTH_FORMATTER = DateTimeFormatter.ofPattern("uuuuMM");
+    private static final int SIGN_GROWTH = 5;
+    private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Shanghai");
 
+    @Resource
+    private Clock businessClock;
     @Resource
     private RedisComponent redisComponent;
     @Resource
     private UserMemberProfileService userMemberProfileService;
     @Resource
-    private UserNotificationService userNotificationService;
-    @Resource
     private SignRewardConfigService signRewardConfigService;
     @Resource
-    private CouponFeignSupport couponFeignSupport;
+    private SignStreakService signStreakService;
     @Resource
-    private ReliableMessageSender reliableMessageSender;
+    private TransactionalMqSender transactionalMqSender;
     @Resource
-    private SignRecordSyncService signRecordSyncService;
+    private SignBitmapMapper signBitmapMapper;
     @Resource
-    private SignCalendarCacheService signCalendarCacheService;
-
-    private static final int SIGN_GROWTH = 5;
-    private static final String SIGN_COUPON_DEDUP = "sign:streak:coupon:";
+    private SignGrowthRecordMapper signGrowthRecordMapper;
+    @Resource
+    private SignSupplementUsedMapper signSupplementUsedMapper;
+    @Resource
+    private UserMemberProfileMapper<UserMemberProfile, UserMemberProfileQuery> userMemberProfileMapper;
+    @Resource
+    private UserSignRecordDetailMapper<UserSignRecordDetail, UserSignRecordDetailQuery> signRecordDetailMapper;
 
     @Override
+    @Transactional(readOnly = true)
     public SignDataVO getSignCalendar(String userId, String yyyyMM) {
-        signRecordSyncService.ensureHashHydrated(userId);
-        signCalendarCacheService.ensureCalendarHydrated(userId);
-        SignDataVO signDataVO = new SignDataVO();
-        if (yyyyMM == null || yyyyMM.length() != 6) {
-            throw new BusinessException(ResponseCodeEnum.CODE_600);
-        }
-        Integer continuousDays = redisComponent.getContinuousDays(userId);
-        Integer remainSignCount = redisComponent.getRemainSignCount(userId);
-        List<String> signDateList = new ArrayList<>();
-        int days = getDayofMonth(yyyyMM);
-        for (int day = 1; day <= days; day++) {
-            if (redisComponent.isSign(userId, yyyyMM, day)) {
-                String date = yyyyMM + String.format("%02d", day);
-                signDateList.add(date);
+        LocalDate today = businessDate(businessClock.instant());
+        YearMonth requestedMonth = parseMonth(yyyyMM);
+        long bits = loadCalendarBits(userId, requestedMonth, YearMonth.from(today));
+        int continuousDays = signStreakService.computeContinuousDays(userId, today);
+        int totalSignDays = nullToZero(signBitmapMapper.countTotalSignDays(userId));
+        int usedCount = nullToZero(signSupplementUsedMapper.countByUserId(userId));
+
+        List<String> signDates = new ArrayList<>();
+        for (int day = 1; day <= requestedMonth.lengthOfMonth(); day++) {
+            if ((bits & (1L << (day - 1))) != 0) {
+                signDates.add(yyyyMM + String.format("%02d", day));
             }
         }
-        signDataVO.setContinuousDays(continuousDays);
-        signDataVO.setSupplementCount(remainSignCount);
-        signDataVO.setTotalSignDays(redisComponent.totalSignDays(userId));
-        signDataVO.setSignDays(signDateList);
-        return signDataVO;
+
+        SignDataVO result = new SignDataVO();
+        result.setContinuousDays(continuousDays);
+        result.setSupplementCount(Math.max(0, totalSignDays / 30 - usedCount));
+        result.setTotalSignDays(totalSignDays);
+        result.setSignDays(signDates);
+        return result;
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void sign(String userId) {
-        signRecordSyncService.ensureHashHydrated(userId);
-        String yyyyMM = DateUtil.getTimeOnParttern(0, "yyyyMM");
-        LocalDateTime now = LocalDateTime.now();
-        int dayOfMonth = now.getDayOfMonth();
-        if (redisComponent.isSign(userId, yyyyMM, dayOfMonth)) {
+        Instant operationTime = businessClock.instant();
+        LocalDate today = businessDate(operationTime);
+        lockUserSignMutation(userId);
+        if (!setSignBit(userId, today)) {
             throw new BusinessException("今天已经签到过了哦~");
         }
-        // Lua 原子置位（互斥：并发双请求只有一个成功），成功后加成长值（幂等键防重复加）
-        redisComponent.sign(userId);
-        grantSignGrowthOnce(userId, DateUtil.getTimeOnParttern(0, "yyyyMMdd"));
-        int continuousDays = redisComponent.getContinuousDays(userId);
-        int totalSignDays = redisComponent.totalSignDays(userId);
-        int usedCount = redisComponent.getUsedCount(userId);
-        sendSignRecordToMQ(userId, continuousDays, totalSignDays, usedCount,
-                DateUtil.getTimeOnParttern(0, "yyyyMMdd"), 0);
-        tryGrantStreakCoupon(userId, continuousDays);
+        Date now = Date.from(operationTime);
+        recordGrowthOnce(userId, today, now);
+        recordSignDetail(userId, today, 0, now);
+
+        SignSnapshot snapshot = loadSnapshot(userId, today);
+        enqueueStreakReward(userId, snapshot.continuousDays());
+        enqueueCacheRefresh(userId, today, snapshot);
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void msign(String userId, String yyyyMMdd) {
-        signRecordSyncService.ensureHashHydrated(userId);
-        if (redisComponent.getRemainSignCount(userId) <= 0) {
+        Instant operationTime = businessClock.instant();
+        LocalDate today = businessDate(operationTime);
+        LocalDate signDate = parseSupplementDate(yyyyMMdd, today);
+        lockUserSignMutation(userId);
+
+        int totalBefore = nullToZero(signBitmapMapper.countTotalSignDays(userId));
+        int usedBefore = nullToZero(signSupplementUsedMapper.countByUserId(userId));
+        if (totalBefore / 30 - usedBefore <= 0) {
             throw new BusinessException("补签次数不足");
         }
-        // 日期合法性校验：必须为 yyyyMMdd、是合法日期、不早于本月 1 日、不晚于今天
-        if (yyyyMMdd == null || yyyyMMdd.length() != 8) {
-            throw new BusinessException("日期格式错误");
-        }
-        LocalDate signDate;
-        try {
-            signDate = LocalDate.parse(yyyyMMdd, DateTimeFormatter.ofPattern("yyyyMMdd"));
-        } catch (Exception e) {
-            throw new BusinessException("日期格式错误");
-        }
-        LocalDate today = LocalDate.now();
-        LocalDate monthStart = today.withDayOfMonth(1);
-        if (signDate.isBefore(monthStart)) {
-            throw new BusinessException("只能补签本月内的日期");
-        }
-        if (signDate.isAfter(today)) {
-            throw new BusinessException("不能补签未来日期");
-        }
-        String yyyyMM = yyyyMMdd.substring(0, 6);
-        int dayOfMonth = Integer.parseInt(yyyyMMdd.substring(6, 8));
-        if (redisComponent.isSign(userId, yyyyMM, dayOfMonth)) {
+        if (!setSignBit(userId, signDate)) {
             throw new BusinessException("该日期已经签到过了哦~");
         }
-        // Lua 原子补签位（互斥），成功后加成长值（幂等键防重复加）
-        redisComponent.supplementSign(userId, yyyyMM, dayOfMonth);
-        grantSignGrowthOnce(userId, yyyyMMdd);
-        int continuousDays = redisComponent.getContinuousDays(userId);
-        int totalSignDays = redisComponent.totalSignDays(userId);
-        int usedCount = redisComponent.getUsedCount(userId);
-        sendSignRecordToMQ(userId, continuousDays, totalSignDays, usedCount, yyyyMMdd, 1);
-        tryGrantStreakCoupon(userId, continuousDays);
-        userNotificationService.sendAsync(userId, "补签成功",
-                "补签已获得 " + SIGN_GROWTH + " 成长值", "sign", yyyyMMdd);
+
+        Date now = Date.from(operationTime);
+        int consumed = nullToZero(signSupplementUsedMapper.insert(userId, yyyyMMdd, now));
+        if (consumed != 1) {
+            throw new BusinessException("补签次数扣减失败，请稍后重试");
+        }
+        recordGrowthOnce(userId, signDate, now);
+        recordSignDetail(userId, signDate, 1, now);
+
+        SignSnapshot snapshot = loadSnapshot(userId, today);
+        enqueueStreakReward(userId, snapshot.continuousDays());
+        enqueueSupplementNotification(userId, yyyyMMdd);
+        enqueueCacheRefresh(userId, signDate, snapshot);
     }
 
-    /** 签到/补签成长值发放：按 用户+日期 幂等（防并发/重试重复 +5） */
-    private void grantSignGrowthOnce(String userId, String yyyyMMdd) {
-        String growthKey = "sign:growth:" + userId + ":" + yyyyMMdd;
-        if (redisComponent.setIfAbsent(growthKey, "1", 7, java.util.concurrent.TimeUnit.DAYS)) {
+    private long loadCalendarBits(String userId, YearMonth requestedMonth, YearMonth currentMonth) {
+        String yearMonth = requestedMonth.format(MONTH_FORMATTER);
+        boolean mutableMonth = requestedMonth.equals(currentMonth);
+        if (!mutableMonth) {
+            try {
+                Long cached = redisComponent.getSignMonthBits(userId, yearMonth);
+                if (cached != null) {
+                    return cached;
+                }
+            } catch (Exception e) {
+                log.warn("读取签到 Redis 缓存失败，回源 MySQL userId={}, month={}", userId, yearMonth, e);
+            }
+        }
+        SignBitmap row = signBitmapMapper.selectByUserAndMonth(userId, yearMonth);
+        long bits = row == null || row.getBits() == null ? 0L : row.getBits();
+        try {
+            redisComponent.writeSignMonthBitmap(userId, yearMonth, bits);
+        } catch (Exception e) {
+            log.warn("回填签到 Redis 缓存失败 userId={}, month={}", userId, yearMonth, e);
+        }
+        return bits;
+    }
+
+    private boolean setSignBit(String userId, LocalDate date) {
+        String yearMonth = date.format(MONTH_FORMATTER);
+        long mask = 1L << (date.getDayOfMonth() - 1);
+        int inserted = nullToZero(signBitmapMapper.insertBitIfAbsent(userId, yearMonth, mask));
+        if (inserted == 1) {
+            return true;
+        }
+        return nullToZero(signBitmapMapper.setBitIfMissing(userId, yearMonth, mask)) == 1;
+    }
+
+    private void recordGrowthOnce(String userId, LocalDate signDate, Date now) {
+        int inserted = nullToZero(signGrowthRecordMapper.insertIgnore(
+                userId, signDate.format(DATE_FORMATTER), SIGN_GROWTH, now));
+        if (inserted == 1) {
             userMemberProfileService.addGrowth(userId, SIGN_GROWTH);
         }
     }
 
-    private void sendSignRecordToMQ(String userId, int continuousDays, int totalSignDays, int usedCount,
-                                    String signDate, int signType) {
-        try {
-            SignRecordMessageDTO message = new SignRecordMessageDTO(
-                    userId, continuousDays, totalSignDays, usedCount, signDate, signType);
-            reliableMessageSender.sendMessage(
-                    RabbitMQConfig.SIGN_RECORD_EXCHANGE,
-                    RabbitMQConfig.SIGN_RECORD_KEY,
-                    message,
-                    MqIdempotencyKeys.signRecord(userId, signDate),
-                    MessageReliabilityLevelEnum.HIGH);
-            log.info("签到记录已发送到MQ, userId: {}, continuousDays: {}, totalSignDays: {}, usedCount: {}",
-                    userId, continuousDays, totalSignDays, usedCount);
-        } catch (Exception e) {
-            log.error("发送签到记录到MQ失败, userId: {}", userId, e);
-            throw e;
+    private void recordSignDetail(String userId, LocalDate signDate, int signType, Date now) {
+        UserSignRecordDetail detail = new UserSignRecordDetail();
+        detail.setUserId(userId);
+        detail.setSignDate(signDate.format(DATE_FORMATTER));
+        detail.setSignType(signType);
+        detail.setCreateTime(now);
+        int inserted = nullToZero(signRecordDetailMapper.insertIgnore(detail));
+        if (inserted != 1) {
+            throw new BusinessException("签到明细写入失败，请稍后重试");
         }
     }
 
-    private void tryGrantStreakCoupon(String userId, int continuousDays) {
+    private void lockUserSignMutation(String userId) {
+        if (StringTools.isEmpty(userId)) {
+            throw new BusinessException(ResponseCodeEnum.CODE_600);
+        }
+        userMemberProfileMapper.insertDefaultIgnore(userId);
+        if (StringTools.isEmpty(userMemberProfileMapper.selectUserIdForUpdate(userId))) {
+            throw new BusinessException("会员档案锁定失败，请稍后重试");
+        }
+    }
+
+    private SignSnapshot loadSnapshot(String userId, LocalDate today) {
+        int continuousDays = signStreakService.computeContinuousDays(userId, today);
+        int totalSignDays = nullToZero(signBitmapMapper.countTotalSignDays(userId));
+        int usedCount = nullToZero(signSupplementUsedMapper.countByUserId(userId));
+        return new SignSnapshot(continuousDays, totalSignDays, usedCount);
+    }
+
+    private void enqueueStreakReward(String userId, int continuousDays) {
         SignRewardConfigDTO config = signRewardConfigService.resolveActiveConfig();
         if (config == null || !Boolean.TRUE.equals(config.getEnabled())) {
             return;
         }
         int streakDays = config.getStreakDays() == null ? 7 : config.getStreakDays();
-        if (streakDays < 1 || continuousDays < streakDays || continuousDays % streakDays != 0) {
-            return;
-        }
         String couponId = config.getCouponId();
-        if (StringTools.isEmpty(couponId)) {
+        if (streakDays < 1 || continuousDays < streakDays || continuousDays % streakDays != 0
+                || StringTools.isEmpty(couponId)) {
             return;
         }
-        String dedupKey = SIGN_COUPON_DEDUP + userId + ":" + continuousDays;
-        if (!redisComponent.setIfAbsent(dedupKey, "1", 60, TimeUnit.DAYS)) {
-            return;
-        }
-        DiscountCouponVO coupon;
-        try {
-            coupon = couponFeignSupport.getCoupon(couponId);
-        } catch (Exception e) {
-            log.warn("签到发券查询失败 couponId={}", couponId, e);
-            return;
-        }
-        if (coupon == null) {
-            return;
-        }
-        boolean unlimited = coupon.getTotalCount() != null && coupon.getTotalCount() == 0;
-        if (!unlimited && (coupon.getRemainCount() == null || coupon.getRemainCount() <= 0)) {
-            return;
-        }
-        int affected = couponFeignSupport.deductStock(couponId);
-        if (affected == 0) {
-            return;
-        }
-        String userCouponId = StringTools.createUserCouponId();
-        UserCouponCreateDTO createDTO = new UserCouponCreateDTO();
-        createDTO.setUserCouponId(userCouponId);
-        createDTO.setUserId(userId);
-        createDTO.setCouponId(couponId);
-        createDTO.setStatus(UserCouponStatusEnum.NOUSE.getStatus());
-        couponFeignSupport.createUserCoupon(createDTO);
-        userNotificationService.sendAsync(userId, "签到奖励",
-                "连续签到 " + continuousDays + " 天，已发放优惠券「" + coupon.getCouponName() + "」",
-                "sign_reward", userCouponId);
+        SignStreakCouponMessageDTO message = new SignStreakCouponMessageDTO(userId, couponId, continuousDays);
+        transactionalMqSender.sendAfterCommit(
+                RabbitMQConfig.SIGN_STREAK_COUPON_EXCHANGE,
+                RabbitMQConfig.SIGN_STREAK_COUPON_KEY,
+                message,
+                MqIdempotencyKeys.signStreakCoupon(userId, couponId, continuousDays),
+                MessageReliabilityLevelEnum.HIGH);
     }
 
-    private int getDayofMonth(String yyyyMM){
+    private void enqueueSupplementNotification(String userId, String signDate) {
+        NotificationMessageDTO message = new NotificationMessageDTO(
+                userId,
+                "补签成功",
+                "补签已获得 " + SIGN_GROWTH + " 成长值",
+                "sign",
+                signDate);
+        transactionalMqSender.sendAfterCommit(
+                RabbitMQConfig.NOTIFY_EXCHANGE,
+                RabbitMQConfig.NOTIFY_KEY,
+                message,
+                MqIdempotencyKeys.notification(userId, "sign", signDate),
+                MessageReliabilityLevelEnum.HIGH);
+    }
+
+    private void enqueueCacheRefresh(String userId, LocalDate changedDate, SignSnapshot snapshot) {
+        String yearMonth = changedDate.format(MONTH_FORMATTER);
+        SignBitmap row = signBitmapMapper.selectByUserAndMonth(userId, yearMonth);
+        long bits = row == null || row.getBits() == null ? 0L : row.getBits();
+        transactionalMqSender.sendAfterCommit(() -> {
+            try {
+                redisComponent.writeSignMonthBitmap(userId, yearMonth, bits);
+                redisComponent.writeSignHash(userId, snapshot.continuousDays(),
+                        snapshot.totalSignDays(), snapshot.usedCount());
+            } catch (Exception e) {
+                log.warn("签到事务已提交，但 Redis 缓存刷新失败 userId={}, month={}", userId, yearMonth, e);
+            }
+        });
+    }
+
+    private LocalDate parseSupplementDate(String yyyyMMdd, LocalDate today) {
+        if (yyyyMMdd == null || !yyyyMMdd.matches("\\d{8}")) {
+            throw new BusinessException("日期格式错误");
+        }
+        LocalDate signDate;
+        try {
+            signDate = LocalDate.parse(yyyyMMdd, DATE_FORMATTER);
+        } catch (DateTimeParseException e) {
+            throw new BusinessException("日期格式错误");
+        }
+        if (signDate.isBefore(today.withDayOfMonth(1))) {
+            throw new BusinessException("只能补签本月内的日期");
+        }
+        if (signDate.isAfter(today)) {
+            throw new BusinessException("不能补签未来日期");
+        }
+        return signDate;
+    }
+
+    private LocalDate businessDate(Instant instant) {
+        return instant.atZone(BUSINESS_ZONE).toLocalDate();
+    }
+
+    private YearMonth parseMonth(String yyyyMM) {
         if (yyyyMM == null || !yyyyMM.matches("\\d{6}")) {
             throw new BusinessException(ResponseCodeEnum.CODE_600);
         }
-        int year = Integer.parseInt(yyyyMM.substring(0, 4));
-        int month = Integer.parseInt(yyyyMM.substring(4, 6));
-        if (month < 1 || month > 12) {
+        try {
+            int year = Integer.parseInt(yyyyMM.substring(0, 4));
+            int month = Integer.parseInt(yyyyMM.substring(4, 6));
+            return YearMonth.of(year, month);
+        } catch (RuntimeException e) {
             throw new BusinessException(ResponseCodeEnum.CODE_600);
         }
-        YearMonth yearMonth = YearMonth.of(year, month);
-        return yearMonth.lengthOfMonth();
+    }
+
+    private int nullToZero(Integer value) {
+        return value == null ? 0 : value;
+    }
+
+    private record SignSnapshot(int continuousDays, int totalSignDays, int usedCount) {
     }
 }

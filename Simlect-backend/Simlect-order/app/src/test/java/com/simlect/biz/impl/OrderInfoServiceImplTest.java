@@ -51,6 +51,10 @@ import com.simlect.mappers.OrderCouponRelMapper;
 import com.simlect.mappers.OrderInfoMapper;
 import com.simlect.mappers.OrderItemMapper;
 import com.simlect.mappers.OrderLogisticsInfoMapper;
+import com.simlect.state.OrderStateMachine;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -61,6 +65,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -119,6 +124,9 @@ class OrderInfoServiceImplTest {
 
     @BeforeEach
     void setUp() {
+        OrderStateMachine orderStateMachine = new OrderStateMachine();
+        ReflectionTestUtils.setField(orderStateMachine, "orderInfoMapper", orderInfoMapper);
+        ReflectionTestUtils.setField(service, "orderStateMachine", orderStateMachine);
         when(appConfig.getOrderExpireMinute()).thenReturn(15);
         when(appConfig.getLogisticsSimulateMaxStations()).thenReturn(5);
 
@@ -477,7 +485,7 @@ verify(payFeignSupport, never()).markSuccess(anyString(), anyString());
         verify(orderInfoMapper).updateByParam(updateCaptor.capture(), any(OrderInfoQuery.class));
         assertEquals(OrderStatusEnum.CANCELLED.getStatus(), updateCaptor.getValue().getOrderStatus());
         verify(payFeignSupport).markClosed(PAY_ORDER_ID);
-        verify(stockFeignSupport).changeStockBatch(anyList());
+        verify(stockFeignSupport).changeStockBatchIdempotent(anyList(), eq("order-close-restock:" + PAY_ORDER_ID));
         verify(redisComponent).tryMarkPayOrderCloseOnce(PAY_ORDER_ID);
     }
 
@@ -539,12 +547,14 @@ verify(payFeignSupport, never()).markSuccess(anyString(), anyString());
         when(redisComponent.tryMarkPayOrderCloseOnce(PAY_ORDER_ID)).thenReturn(true);
         when(orderInfoMapper.selectList(any(OrderInfoQuery.class))).thenReturn(List.of(waitPayOrder));
         when(orderItemMapper.selectList(any(OrderItemQuery.class))).thenReturn(List.of(orderItem()));
-        doThrow(new RuntimeException("stock service down")).when(stockFeignSupport).changeStockBatch(anyList());
+        doThrow(new RuntimeException("stock service down")).when(stockFeignSupport)
+                .changeStockBatchIdempotent(anyList(), eq("order-close-restock:" + PAY_ORDER_ID));
 
         BusinessException ex = assertThrows(BusinessException.class,
                 () -> service.cancelOrder(USER_ID, ORDER_ID, OrderStatusEnum.WAIT_PAYMENT));
         assertTrue(ex.getMessage().contains("库存回补失败"));
-        verify(remoteCompensateRecorder).recordStockChangeBatch(eq(PAY_ORDER_ID), anyList(), any(Exception.class));
+        verify(remoteCompensateRecorder).recordStockChangeBatch(
+                eq(PAY_ORDER_ID), eq("order-close-restock:" + PAY_ORDER_ID), anyList(), any(Exception.class));
     }
 
     @Test
@@ -586,7 +596,7 @@ verify(payFeignSupport, never()).markSuccess(anyString(), anyString());
         verify(orderInfoMapper).updateByParam(updateCaptor.capture(), any(OrderInfoQuery.class));
         assertEquals(OrderStatusEnum.CLOSED.getStatus(), updateCaptor.getValue().getOrderStatus());
         verify(payFeignSupport).markClosed(PAY_ORDER_ID);
-        verify(stockFeignSupport).changeStockBatch(anyList());
+        verify(stockFeignSupport).changeStockBatchIdempotent(anyList(), eq("order-close-restock:" + PAY_ORDER_ID));
     }
 
     @Test
@@ -599,6 +609,28 @@ verify(payFeignSupport, never()).markSuccess(anyString(), anyString());
 
         verify(orderInfoMapper, never()).updateByParam(any(), any());
         verify(payFeignSupport, never()).markClosed(anyString());
+    }
+
+    @Test
+    void cancelOrder_timeout_transactionRollback_clearsRedisCloseMark() {
+        when(orderInfoMapper.selectByOrderId(ORDER_ID)).thenReturn(waitPayOrder);
+        when(orderInfoMapper.selectList(any(OrderInfoQuery.class))).thenReturn(List.of(waitPayOrder));
+        when(redisComponent.tryMarkPayOrderCloseOnce(PAY_ORDER_ID)).thenReturn(true);
+        when(orderInfoMapper.updateByParam(any(OrderInfo.class), any(OrderInfoQuery.class))).thenReturn(1);
+        when(orderItemMapper.selectList(any(OrderItemQuery.class))).thenReturn(List.of(orderItem()));
+
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            service.cancelOrder(null, ORDER_ID, OrderStatusEnum.CLOSED);
+            for (TransactionSynchronization synchronization
+                    : TransactionSynchronizationManager.getSynchronizations()) {
+                synchronization.afterCompletion(TransactionSynchronization.STATUS_ROLLED_BACK);
+            }
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+
+        verify(redisComponent).clearPayOrderCloseMark(PAY_ORDER_ID);
     }
 
     @Test
@@ -666,6 +698,16 @@ verify(payFeignSupport, never()).markSuccess(anyString(), anyString());
     }
 
     // ==================== cancelUnpaidOrderForPayTimeout (MQ 入口) ====================
+
+    @Test
+    void cancelEntryPointsAreTransactional() throws Exception {
+        assertNotNull(OrderInfoServiceImpl.class
+                .getMethod("cancelOrder", String.class, String.class, OrderStatusEnum.class)
+                .getAnnotation(Transactional.class));
+        assertNotNull(OrderInfoServiceImpl.class
+                .getMethod("cancelUnpaidOrderForPayTimeout", String.class)
+                .getAnnotation(Transactional.class));
+    }
 
     @Test
     void cancelUnpaidOrderForPayTimeout_notFound_returnsTrue() {
@@ -1097,7 +1139,8 @@ verify(payFeignSupport, never()).markSuccess(anyString(), anyString());
         // 退款成功后才回补库存
         InOrder inOrder = inOrder(payFeignSupport, stockFeignSupport);
         inOrder.verify(payFeignSupport).refund(anyString(), anyString(), any(BigDecimal.class), anyString());
-        inOrder.verify(stockFeignSupport).changeStockBatch(anyList());
+        inOrder.verify(stockFeignSupport).changeStockBatchIdempotent(
+                anyList(), startsWith("order-refund-restock:"));
         ArgumentCaptor<OrderInfo> orderCaptor = ArgumentCaptor.forClass(OrderInfo.class);
         verify(orderInfoMapper).updateByParam(orderCaptor.capture(), any(OrderInfoQuery.class));
         assertEquals(OrderStatusEnum.REFUNDED.getStatus(), orderCaptor.getValue().getOrderStatus());
@@ -1152,7 +1195,7 @@ verify(payFeignSupport, never()).markSuccess(anyString(), anyString());
 
         assertTrue(ex.getMessage().contains("重复"));
         verify(payFeignSupport, never()).refund(anyString(), anyString(), any(BigDecimal.class), anyString());
-        verify(stockFeignSupport, never()).changeStockBatch(anyList());
+        verify(stockFeignSupport, never()).changeStockBatchIdempotent(anyList(), anyString());
     }
 
 
@@ -1212,7 +1255,7 @@ verify(payFeignSupport, never()).markSuccess(anyString(), anyString());
                 () -> service.refund(refundableItem(), USER_ID));
 
         assertTrue(ex.getMessage().contains("远程退款失败"));
-        verify(stockFeignSupport, never()).changeStockBatch(anyList());
+        verify(stockFeignSupport, never()).changeStockBatchIdempotent(anyList(), anyString());
     }
 
     @Test
@@ -1221,7 +1264,8 @@ verify(payFeignSupport, never()).markSuccess(anyString(), anyString());
         when(redisComponent.tryMarkOrderRefundOnce(anyString())).thenReturn(true);
         when(orderItemMapper.updateByParam(any(OrderItem.class), any(OrderItemQuery.class))).thenReturn(1);
         when(orderInfoMapper.updateByParam(any(OrderInfo.class), any(OrderInfoQuery.class))).thenReturn(1);
-        doThrow(new BusinessException("stock service down")).when(stockFeignSupport).changeStockBatch(anyList());
+        doThrow(new BusinessException("stock service down")).when(stockFeignSupport)
+                .changeStockBatchIdempotent(anyList(), startsWith("order-refund-restock:"));
         OrderItem item = refundableItem();
 
         // 不抛异常：退款已成功，库存回补失败仅记补偿（不撤销已成功的退款）
@@ -1229,7 +1273,8 @@ verify(payFeignSupport, never()).markSuccess(anyString(), anyString());
 
         verify(payFeignSupport).refund(eq(PAY_ORDER_ID), anyString(), any(BigDecimal.class),
                 eq(PayChannelEnum.ALIPAY_PC.getPayScene()));
-        verify(remoteCompensateRecorder).recordStockChangeBatch(anyString(), anyList(), any(Exception.class));
+        verify(remoteCompensateRecorder).recordStockChangeBatch(
+                anyString(), startsWith("order-refund-restock:"), anyList(), any(Exception.class));
     }
 
     // ==================== 查询/列表/物流/评价关联 ====================
@@ -1274,30 +1319,43 @@ verify(payFeignSupport, never()).markSuccess(anyString(), anyString());
     }
 
     @Test
-    void crud_delegatesToMapper() {
+    void crudHonorsStateMachineBoundaries() {
         when(orderInfoMapper.insert(any(OrderInfo.class))).thenReturn(1);
-        when(orderInfoMapper.insertBatch(anyList())).thenReturn(2);
-        when(orderInfoMapper.insertOrUpdateBatch(anyList())).thenReturn(3);
+        when(orderInfoMapper.insertBatch(anyList())).thenReturn(2, 1);
         when(orderInfoMapper.updateByParam(any(), any())).thenReturn(1);
-        when(orderInfoMapper.deleteByParam(any())).thenReturn(1);
-        when(orderInfoMapper.selectByOrderId(ORDER_ID)).thenReturn(waitPayOrder);
         when(orderInfoMapper.updateByOrderId(any(), anyString())).thenReturn(1);
-        when(orderInfoMapper.deleteByOrderId(anyString())).thenReturn(1);
+        OrderInfo completed = order(OrderStatusEnum.COMPLETED);
+        when(orderInfoMapper.selectByOrderId(ORDER_ID)).thenReturn(completed);
+        when(orderInfoMapper.selectByOrderId("NEW_ORDER")).thenReturn(null);
 
-        assertEquals(1, service.add(new OrderInfo()));
-        assertEquals(2, service.addBatch(List.of(new OrderInfo(), new OrderInfo())));
+        OrderInfo single = new OrderInfo();
+        assertEquals(1, service.add(single));
+        assertEquals(OrderStatusEnum.WAIT_PAYMENT.getStatus(), single.getOrderStatus());
+        OrderInfo first = new OrderInfo();
+        OrderInfo second = new OrderInfo();
+        assertEquals(2, service.addBatch(List.of(first, second)));
+        assertEquals(OrderStatusEnum.WAIT_PAYMENT.getStatus(), first.getOrderStatus());
+        assertEquals(OrderStatusEnum.WAIT_PAYMENT.getStatus(), second.getOrderStatus());
         assertEquals(0, service.addBatch(List.of()));
-        assertEquals(3, service.addOrUpdateBatch(List.of(new OrderInfo())));
+        OrderInfo newOrder = new OrderInfo();
+        newOrder.setOrderId("NEW_ORDER");
+        assertEquals(1, service.addOrUpdateBatch(List.of(newOrder)));
+        assertEquals(OrderStatusEnum.WAIT_PAYMENT.getStatus(), newOrder.getOrderStatus());
+        assertThrows(BusinessException.class,
+                () -> service.addOrUpdateBatch(List.of(order(OrderStatusEnum.PAID))));
         assertEquals(0, service.addOrUpdateBatch(null));
         OrderInfoQuery updateQuery = new OrderInfoQuery();
         updateQuery.setOrderId(ORDER_ID);
         assertEquals(1, service.updateByParam(new OrderInfo(), updateQuery));
         OrderInfoQuery deleteQuery = new OrderInfoQuery();
         deleteQuery.setOrderId(ORDER_ID);
-        assertEquals(1, service.deleteByParam(deleteQuery));
-        assertEquals(waitPayOrder, service.getOrderInfoByOrderId(ORDER_ID));
+        assertThrows(BusinessException.class, () -> service.deleteByParam(deleteQuery));
+        assertEquals(completed, service.getOrderInfoByOrderId(ORDER_ID));
         assertEquals(1, service.updateOrderInfoByOrderId(new OrderInfo(), ORDER_ID));
         assertEquals(1, service.deleteOrderInfoByOrderId(ORDER_ID));
+        verify(orderInfoMapper, never()).deleteByParam(any());
+        verify(orderInfoMapper, never()).deleteByOrderId(anyString());
+        verify(orderInfoMapper, never()).insertOrUpdateBatch(anyList());
     }
 
     @Test
@@ -1566,7 +1624,8 @@ verify(payFeignSupport, never()).markSuccess(anyString(), anyString());
         when(orderInfoMapper.insertBatch(anyList())).thenReturn(1);
         when(orderItemMapper.insertBatch(anyList())).thenReturn(1);
         when(orderLogisticsInfoMapper.insert(any(OrderLogisticsInfo.class))).thenReturn(1);
-        when(stockFeignSupport.changeStockBatch(anyList())).thenReturn(1);
+        when(stockFeignSupport.changeStockBatchIdempotent(
+                anyList(), startsWith("order-create-deduct:"))).thenReturn(1);
         PayInfoDTO payInfo = new PayInfoDTO();
         payInfo.setPayOrderId("PO-NEW");
         when(payFeignSupport.getPayUrl(anyString(), anyString(), anyString(), any(BigDecimal.class)))
@@ -1600,7 +1659,8 @@ verify(payFeignSupport, never()).markSuccess(anyString(), anyString());
         when(orderInfoMapper.insertBatch(anyList())).thenReturn(1);
         when(orderItemMapper.insertBatch(anyList())).thenReturn(1);
         when(orderLogisticsInfoMapper.insert(any(OrderLogisticsInfo.class))).thenReturn(1);
-        when(stockFeignSupport.changeStockBatch(anyList())).thenReturn(1);
+        when(stockFeignSupport.changeStockBatchIdempotent(
+                anyList(), startsWith("order-create-deduct:"))).thenReturn(1);
         PayInfoDTO payInfo = new PayInfoDTO();
         payInfo.setPayOrderId("PO-NEW");
         when(payFeignSupport.getPayUrl(anyString(), anyString(), anyString(), any(BigDecimal.class)))
@@ -1695,13 +1755,17 @@ verify(payFeignSupport, never()).markSuccess(anyString(), anyString());
         when(orderInfoMapper.insertBatch(anyList())).thenReturn(1);
         when(orderItemMapper.insertBatch(anyList())).thenReturn(1);
         when(orderLogisticsInfoMapper.insert(any(OrderLogisticsInfo.class))).thenReturn(1);
-        when(stockFeignSupport.changeStockBatch(anyList())).thenReturn(1);
+        when(stockFeignSupport.changeStockBatchIdempotent(
+                anyList(), startsWith("order-create-deduct:"))).thenReturn(1);
         doThrow(new RuntimeException("create pending fail")).when(payFeignSupport).createPending(anyString(), anyString(), anyString(), any(), anyString());
 
         assertThrows(RuntimeException.class, () -> service.postOrder(USER_ID, dto));
 
         // 库存扣减（正数）后失败 → 回补（负数）
-        verify(stockFeignSupport, times(2)).changeStockBatch(anyList());
+        verify(stockFeignSupport).changeStockBatchIdempotent(
+                anyList(), startsWith("order-create-deduct:"));
+        verify(stockFeignSupport).changeStockBatchIdempotent(
+                anyList(), startsWith("order-create-compensate:"), startsWith("order-create-deduct:"));
         verify(couponFeignSupport).changeUserCouponStatus(eq("UC1"), eq(USER_ID),
                 eq(UserCouponStatusEnum.CANT.getStatus()), eq(UserCouponStatusEnum.NOUSE.getStatus()), isNull());
     }
@@ -1720,8 +1784,10 @@ verify(payFeignSupport, never()).markSuccess(anyString(), anyString());
         when(orderInfoMapper.insertBatch(anyList())).thenReturn(1);
         when(orderItemMapper.insertBatch(anyList())).thenReturn(1);
         when(orderLogisticsInfoMapper.insert(any(OrderLogisticsInfo.class))).thenReturn(1);
-        when(stockFeignSupport.changeStockBatch(anyList()))
-                .thenReturn(1)
+        when(stockFeignSupport.changeStockBatchIdempotent(
+                anyList(), startsWith("order-create-deduct:"))).thenReturn(1);
+        when(stockFeignSupport.changeStockBatchIdempotent(
+                anyList(), startsWith("order-create-compensate:"), startsWith("order-create-deduct:")))
                 .thenThrow(new RuntimeException("compensate also fail"));
         doThrow(new RuntimeException("create pending fail")).when(payFeignSupport).createPending(anyString(), anyString(), anyString(), any(), anyString());
         doThrow(new RuntimeException("coupon unlock fail")).when(couponFeignSupport).changeUserCouponStatus(anyString(), anyString(),
@@ -1729,7 +1795,9 @@ verify(payFeignSupport, never()).markSuccess(anyString(), anyString());
 
         assertThrows(RuntimeException.class, () -> service.postOrder(USER_ID, dto));
 
-        verify(remoteCompensateRecorder).recordStockChangeBatch(anyString(), anyList(), any(Exception.class));
+        verify(remoteCompensateRecorder).recordStockChangeBatch(
+                anyString(), startsWith("order-create-compensate:"), startsWith("order-create-deduct:"),
+                anyList(), any(Exception.class));
         verify(remoteCompensateRecorder).recordCouponUnlock(anyString(), eq("UC1"), eq(USER_ID),
                 eq(UserCouponStatusEnum.CANT.getStatus()), eq(UserCouponStatusEnum.NOUSE.getStatus()), any(Exception.class));
     }

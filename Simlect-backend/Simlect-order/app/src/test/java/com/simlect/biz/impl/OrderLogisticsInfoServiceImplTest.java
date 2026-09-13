@@ -15,6 +15,8 @@ import com.simlect.entity.po.OrderLogisticsInfoRecord;
 import com.simlect.entity.query.OrderLogisticsInfoQuery;
 import com.simlect.exception.BusinessException;
 import com.simlect.mappers.OrderLogisticsInfoMapper;
+import com.simlect.state.OrderStateEvent;
+import com.simlect.state.OrderStateMachine;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -49,6 +51,8 @@ class OrderLogisticsInfoServiceImplTest {
     private UserFeignSupport userFeignSupport;
     @Mock
     private ReliableMessageSender reliableMessageSender;
+    @Mock
+    private OrderStateMachine orderStateMachine;
 
     @InjectMocks
     private OrderLogisticsInfoServiceImpl service;
@@ -90,7 +94,7 @@ class OrderLogisticsInfoServiceImplTest {
         logistics.setSenderAddress("上海市浦东新区");
         logistics.setLogisticsNo("SF123");
         when(orderLogisticsInfoMapper.updateByParam(any(), any())).thenReturn(1);
-        when(orderInfoService.updateByParam(any(), any())).thenReturn(1);
+        when(orderStateMachine.transition(ORDER_ID, OrderStatusEnum.PAID, OrderStateEvent.SHIP)).thenReturn(1);
         when(orderLogisticsInfoRecordService.add(any())).thenReturn(1);
         OrderInfo shipped = new OrderInfo();
         shipped.setUserId(USER_ID);
@@ -114,7 +118,7 @@ class OrderLogisticsInfoServiceImplTest {
 
         BusinessException ex = assertThrows(BusinessException.class, () -> service.delivery(logistics));
         assertEquals("该订单已经发货过了", ex.getMessage());
-        verify(orderInfoService, never()).updateByParam(any(), any());
+        verify(orderStateMachine, never()).transition(anyString(), any(), any());
     }
 
     @Test
@@ -122,7 +126,7 @@ class OrderLogisticsInfoServiceImplTest {
         OrderLogisticsInfo logistics = new OrderLogisticsInfo();
         logistics.setOrderId(ORDER_ID);
         when(orderLogisticsInfoMapper.updateByParam(any(), any())).thenReturn(1);
-        when(orderInfoService.updateByParam(any(), any())).thenReturn(0);
+        when(orderStateMachine.transition(ORDER_ID, OrderStatusEnum.PAID, OrderStateEvent.SHIP)).thenReturn(0);
 
         assertThrows(BusinessException.class, () -> service.delivery(logistics));
 

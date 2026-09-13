@@ -33,10 +33,11 @@ class MqConsumeReplayRouterTest {
     }
 
     @Test
-    void resolve_signQueue_mapsToSignExchange() {
-        MqConsumeReplayRouter.Target target = MqConsumeReplayRouter.resolve(RabbitMQConfig.SIGN_RECORD_QUEUE);
-        assertEquals(RabbitMQConfig.SIGN_RECORD_EXCHANGE, target.exchange());
-        assertEquals(RabbitMQConfig.SIGN_RECORD_KEY, target.routingKey());
+    void resolve_signStreakCouponQueue_mapsToRewardExchange() {
+        MqConsumeReplayRouter.Target target =
+                MqConsumeReplayRouter.resolve(RabbitMQConfig.SIGN_STREAK_COUPON_QUEUE);
+        assertEquals(RabbitMQConfig.SIGN_STREAK_COUPON_EXCHANGE, target.exchange());
+        assertEquals(RabbitMQConfig.SIGN_STREAK_COUPON_KEY, target.routingKey());
     }
 
     @Test

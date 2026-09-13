@@ -48,53 +48,9 @@
         :closable="false"
         show-icon
         title="说明"
-        description="配置保存在 Redis（mall:sign:reward:config），保存后立即对用户签到生效。签到明细异步落库 user_sign_record_detail，Redis 丢失时可从 DB 重建最近 365 天日历。"
+        description="奖励配置保存在 Redis，签到数据以 MySQL sign_bitmap 为唯一权威；成长值、明细和奖励事件与位图在同一事务提交，Redis 日历仅作可自动回源的读缓存。"
         style="margin-bottom: 16px"
       />
-      <el-card class="sync-card" @click="onSyncCardHeaderClick">
-        <!-- [zh] SFC 区块开始（单文件组件 template/script/style 三段） -->
-        <template #header>
-          <!-- [zh] 开始标签 `<span>` -->
-          <span>签到数据恢复（DB → Redis）</span>
-        </template>
-        <p class="sync-tip">
-          汇总表 user_sign_record：连续天数、总签到天数、已用补签次数 → Redis Hash。
-        </p>
-        <el-button type="warning" :loading="syncingHash" @click="syncSignHashFromDb">
-          同步汇总到 Redis
-        </el-button>
-
-        <el-divider />
-
-        <p class="sync-tip">
-          明细表 user_sign_record_detail：最近 365 天签到日期 → Redis Bitmap 日历。
-          手动同步<strong>不含今天</strong>，默认截止<strong>昨天</strong>，仅同步所选日期及更早的历史记录。
-        </p>
-        <el-form inline @submit.prevent>
-          <el-form-item label="同步截止日期">
-            <el-date-picker
-              v-model="syncEndDate"
-              type="date"
-              value-format="YYYYMMDD"
-              placeholder="选择日期"
-              :disabled-date="disableSyncDate"
-            />
-          </el-form-item>
-          <el-form-item label="用户ID（可选）">
-            <el-input v-model="syncUserId" clearable placeholder="留空=全部用户" style="width: 180px" />
-          </el-form-item>
-          <el-form-item>
-            <el-button type="primary" :loading="syncingDates" @click="syncSignDatesFromDb">
-              同步历史签到日期
-            </el-button>
-          </el-form-item>
-        </el-form>
-        <p v-if="showForceRebuild" class="force-tip">
-          <el-button link type="danger" :loading="forcingToday" @click="forceRebuildToday">
-            强制重建含今日数据
-          </el-button>
-        </p>
-      </el-card>
     </el-card>
   </div>
 </template>
@@ -105,113 +61,7 @@ import { computed, getCurrentInstance, onMounted, reactive, ref } from 'vue'
 const { proxy } = getCurrentInstance()
 const formRef = ref()
 const saving = ref(false)
-const syncingHash = ref(false)
-const syncingDates = ref(false)
-const forcingToday = ref(false)
-const syncUserId = ref('')
-const showForceRebuild = ref(false)
-const forceClickCount = ref(0)
 const couponOptions = ref([])
-
-const yesterdayYmd = () => {
-  const d = new Date()
-  d.setDate(d.getDate() - 1)
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}${m}${day}`
-}
-
-const syncEndDate = ref(yesterdayYmd())
-
-const disableSyncDate = (date) => {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  return date.getTime() >= today.getTime()
-}
-
-const onSyncCardHeaderClick = () => {
-  forceClickCount.value += 1
-  if (forceClickCount.value >= 5) {
-    showForceRebuild.value = true
-  }
-}
-
-const syncSignHashFromDb = () => {
-  proxy.Confirm({
-    message:
-      '将 user_sign_record 汇总数据（连续天数、总签到天数、已用补签次数）覆盖写入 Redis Hash，确定继续？',
-    okfun: async () => {
-      syncingHash.value = true
-      try {
-        const result = await proxy.Request({
-          url: proxy.Api.signRecordSyncAllFromDb,
-          params: { force: true },
-          showLoading: true,
-        })
-        if (!result) return
-        const d = result.data || {}
-        proxy.Message.success(`汇总同步完成：写入 ${d.synced ?? 0} 条，跳过 ${d.skipped ?? 0} 条`)
-      } finally {
-        syncingHash.value = false
-      }
-    },
-  })
-}
-
-const syncSignDatesFromDb = () => {
-  if (!syncEndDate.value) {
-    proxy.Message.warning('请选择同步截止日期')
-    return
-  }
-  proxy.Confirm({
-    message: `将 ${syncUserId.value || '全部用户'} 截至 ${syncEndDate.value} 的签到明细同步到 Redis 日历（不含今天），确定？`,
-    okfun: async () => {
-      syncingDates.value = true
-      try {
-        const params = { syncEndDate: syncEndDate.value }
-        if (syncUserId.value) params.userId = syncUserId.value.trim()
-        const result = await proxy.Request({
-          url: proxy.Api.signRecordSyncSignDatesFromDb,
-          params,
-          showLoading: true,
-        })
-        if (!result) return
-        const d = result.data || {}
-        proxy.Message.success(
-          `日期同步完成：${d.syncedUsers ?? 0} 用户，${d.syncedDates ?? 0} 条日期`
-        )
-      } finally {
-        syncingDates.value = false
-      }
-    },
-  })
-}
-
-const forceRebuildToday = () => {
-  proxy.Confirm({
-    message: '隐藏运维：强制从 DB 重建含今日在内的签到日历，仅极端恢复时使用，确定？',
-    okfun: async () => {
-      forcingToday.value = true
-      try {
-        const params = {}
-        if (syncUserId.value) params.userId = syncUserId.value.trim()
-        const result = await proxy.Request({
-          url: proxy.Api.signRecordForceRebuildToday,
-          params,
-          showLoading: true,
-        })
-        if (!result) return
-        const d = result.data || {}
-        proxy.Message.success(
-          `强制重建完成：${d.syncedUsers ?? 0} 用户，${d.syncedDates ?? 0} 条日期`
-        )
-      } finally {
-        forcingToday.value = false
-      }
-    },
-  })
-}
 
 const form = reactive({
   enabled: false,

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.simlect.mappers.SignStreakCouponGrantMapper">
+
+    <resultMap id="base_result_map" type="com.simlect.entity.po.SignStreakCouponGrant">
+        <id column="id" property="id"/>
+        <result column="idempotency_key" property="idempotencyKey"/>
+        <result column="user_id" property="userId"/>
+        <result column="coupon_id" property="couponId"/>
+        <result column="streak_days" property="streakDays"/>
+        <result column="user_coupon_id" property="userCouponId"/>
+        <result column="status" property="status"/>
+        <result column="reject_reason" property="rejectReason"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <insert id="insertPending">
+        INSERT IGNORE INTO sign_streak_coupon_grant
+        (idempotency_key, user_id, coupon_id, streak_days, status, create_time)
+        VALUES (#{bean.idempotencyKey}, #{bean.userId}, #{bean.couponId},
+                #{bean.streakDays}, 0, #{bean.createTime})
+    </insert>
+
+    <select id="selectByIdempotencyKey" resultMap="base_result_map">
+        SELECT id, idempotency_key, user_id, coupon_id, streak_days, user_coupon_id,
+               status, reject_reason, create_time, update_time
+        FROM sign_streak_coupon_grant
+        WHERE idempotency_key = #{idempotencyKey}
+    </select>
+
+    <update id="markGranted">
+        UPDATE sign_streak_coupon_grant
+        SET status = 1, user_coupon_id = #{userCouponId}, reject_reason = NULL,
+            update_time = #{updateTime}
+        WHERE idempotency_key = #{idempotencyKey} AND status = 0
+    </update>
+
+    <update id="markRejected">
+        UPDATE sign_streak_coupon_grant
+        SET status = 2, reject_reason = #{reason}, update_time = #{updateTime}
+        WHERE idempotency_key = #{idempotencyKey} AND status = 0
+    </update>
+</mapper>

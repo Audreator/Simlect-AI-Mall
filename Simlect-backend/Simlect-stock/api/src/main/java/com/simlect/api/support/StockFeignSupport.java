@@ -65,6 +65,22 @@ public class StockFeignSupport implements StockBatchCompensatePort {
         return result == null || result.getAffectedRows() == null ? 0 : result.getAffectedRows();
     }
 
+    @Override
+    public int changeStockBatchIdempotent(List<ProductItem> items, String operationId) {
+        return changeStockBatchIdempotent(items, operationId, null);
+    }
+
+    @Override
+    public int changeStockBatchIdempotent(List<ProductItem> items, String operationId,
+                                           String requiredOperationId) {
+        SkuStockBatchChangeDTO batch = toBatch(items, false);
+        batch.setOperationId(operationId);
+        batch.setRequiredOperationId(requiredOperationId);
+        StockChangeResultVO result = feignResponseSupport.call(
+                () -> stockFeignClient.changeStockBatch(batch), "库存变更失败");
+        return result == null || result.getAffectedRows() == null ? 0 : result.getAffectedRows();
+    }
+
     public void changeStock(String productId, String propertyValueIdHash, int changeAmount) {
         SkuStockChangeDTO dto = new SkuStockChangeDTO();
         dto.setProductId(productId);

@@ -57,4 +57,34 @@
         ORDER BY stock ASC, product_id ASC, property_value_id_hash ASC
         LIMIT #{offset}, #{limit}
     </select>
+
+    <insert id="insertChangeOperation">
+        INSERT IGNORE INTO stock_change_operation (operation_id, affected_rows, create_time, update_time)
+        VALUES (#{operationId}, NULL, NOW(), NOW())
+    </insert>
+
+    <insert id="insertCancelledChangeOperation">
+        INSERT IGNORE INTO stock_change_operation (operation_id, affected_rows, create_time, update_time)
+        VALUES (#{operationId}, -1, NOW(), NOW())
+    </insert>
+
+    <select id="selectChangeOperationResult" resultType="java.lang.Integer">
+        SELECT affected_rows
+        FROM stock_change_operation
+        WHERE operation_id = #{operationId}
+    </select>
+
+    <select id="selectChangeOperationIdForUpdate" resultType="java.lang.String">
+        SELECT operation_id
+        FROM stock_change_operation
+        WHERE operation_id = #{operationId}
+        FOR UPDATE
+    </select>
+
+    <update id="completeChangeOperation">
+        UPDATE stock_change_operation
+        SET affected_rows = #{affectedRows}, update_time = NOW()
+        WHERE operation_id = #{operationId}
+          AND affected_rows IS NULL
+    </update>
 </mapper>

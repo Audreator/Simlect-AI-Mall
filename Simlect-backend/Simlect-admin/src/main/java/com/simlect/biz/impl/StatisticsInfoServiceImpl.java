@@ -1,6 +1,9 @@
 package com.simlect.biz.impl;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,6 +35,17 @@ import org.springframework.transaction.annotation.Transactional;
 public class StatisticsInfoServiceImpl implements StatisticsInfoService {
 
 	private static final Logger log = LoggerFactory.getLogger(StatisticsInfoServiceImpl.class);
+	private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Shanghai");
+	private static final int DEFAULT_LOOKBACK_DAYS = 14;
+	private final Clock businessClock;
+
+	public StatisticsInfoServiceImpl() {
+		this(Clock.system(BUSINESS_ZONE));
+	}
+
+	StatisticsInfoServiceImpl(Clock businessClock) {
+		this.businessClock = businessClock;
+	}
 
 	@Resource
 	private StatisticsInfoMapper<StatisticsInfo, StatisticsInfoQuery> statisticsInfoMapper;
@@ -141,11 +155,16 @@ public class StatisticsInfoServiceImpl implements StatisticsInfoService {
 	@Override
 	@Transactional(rollbackFor = Exception.class)
 	public void statistics(String startTime, String endTime) {
+		LocalDate businessToday = null;
 		if (startTime == null) {
-			startTime = DateUtil.getTimeOnParttern(14, DateTimePatternEnum.YYYY_MM_DD.getPattern()) + " 01:00:00";
+			businessToday = LocalDate.now(businessClock);
+			startTime = businessToday.minusDays(DEFAULT_LOOKBACK_DAYS) + " 01:00:00";
 		}
 		if (endTime == null) {
-			endTime = DateUtil.getTimeOnParttern(0, DateTimePatternEnum.YYYY_MM_DD.getPattern()) + " 01:00:00";
+			if (businessToday == null) {
+				businessToday = LocalDate.now(businessClock);
+			}
+			endTime = businessToday + " 00:59:59";
 		}
 		List<OrderDailyStatsVO> dailyList = orderFeignSupport.aggregateDaily(startTime, endTime);
 		if (dailyList == null || dailyList.isEmpty()) {

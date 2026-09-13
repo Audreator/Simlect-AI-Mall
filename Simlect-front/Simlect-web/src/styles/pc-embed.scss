@@ -6,15 +6,15 @@
     line-height: 1.5;
     color: $color-text-body;
 
-    :deep(.el-tabs__item) {
+    .el-tabs__item {
       font-size: 14px !important;
       height: 40px !important;
       line-height: 40px !important;
       padding: 0 16px !important;
     }
 
-    :deep(.toolbar-chip),
-    :deep(.tab-btn) {
+    .toolbar-chip,
+    .tab-btn {
       font-size: 13px !important;
       padding: 6px 14px !important;
       line-height: 1.3 !important;
@@ -22,38 +22,38 @@
       max-height: none;
     }
 
-    :deep(.el-input__inner),
-    :deep(.el-textarea__inner),
-    :deep(.el-button) {
+    .el-input__inner,
+    .el-textarea__inner,
+    .el-button {
       font-size: 14px !important;
     }
 
-    :deep(.el-empty__description) {
+    .el-empty__description {
       font-size: 14px !important;
     }
 
-    :deep(.orders-page),
-    :deep(.my-coupons-page),
-    :deep(.sign-page),
-    :deep(.address-page) {
+    .orders-page,
+    .my-coupons-page,
+    .sign-page,
+    .address-page {
       min-height: auto !important;
       max-height: none !important;
     }
 
-    :deep(.coupons-page) {
+    .coupons-page {
       min-height: calc(100vh - 260px) !important;
       max-height: none !important;
       display: flex !important;
       flex-direction: column !important;
     }
 
-    :deep(.orders-body),
-    :deep(.coupon-scroll) {
+    .orders-body,
+    .coupon-scroll {
       max-height: none !important;
       overflow: visible !important;
     }
 
-    :deep(.coupon-list-scroll) {
+    .coupon-list-scroll {
       flex: 1 1 0 !important;
       min-height: 420px !important;
       max-height: none !important;
@@ -61,26 +61,26 @@
       -webkit-overflow-scrolling: touch;
     }
 
-    :deep(.user-coupon-card .main-value) {
+    .user-coupon-card .main-value {
       font-size: 18px !important;
     }
 
-    :deep(.coupon-card .value),
-    :deep(.coupon-card .amount) {
+    .coupon-card .value,
+    .coupon-card .amount {
       font-size: 20px !important;
     }
 
-    :deep(.stat-card .stat-value) {
+    .stat-card .stat-value {
       font-size: 22px !important;
     }
 
-    :deep(.stat-card .stat-label) {
+    .stat-card .stat-label {
       font-size: 12px !important;
       writing-mode: horizontal-tb !important;
       white-space: nowrap;
     }
 
-    :deep(.address-page .page-toolbar) {
+    .address-page .page-toolbar {
       flex-direction: row;
       align-items: center;
 
@@ -91,46 +91,46 @@
       }
     }
 
-    :deep(.profile-page .hero .nick) {
+    .profile-page .hero .nick {
       font-size: 18px !important;
     }
 
-    :deep(.manage-page .menu-item) {
+    .manage-page .menu-item {
       font-size: 14px !important;
       padding: 12px 0 !important;
     }
 
-    :deep(.wishlist-head .title),
-    :deep(.footprint-head .title) {
+    .wishlist-head .title,
+    .footprint-head .title {
       display: none;
     }
 
-    :deep(.coupons-page .page-title) {
+    .coupons-page .page-title {
       font-size: 16px !important;
       text-align: left !important;
     }
 
-    :deep(.coupons-page .notice-text) {
+    .coupons-page .notice-text {
       font-size: 13px !important;
     }
 
     &.pc-cart-embed {
-      :deep(.cart-page) {
+      .cart-page {
         min-height: auto !important;
         padding-bottom: 16px !important;
       }
 
-      :deep(.cart-empty .el-empty__description) {
+      .cart-empty .el-empty__description {
         font-size: 14px !important;
       }
 
-      :deep(.cart-empty .el-button) {
+      .cart-empty .el-button {
         font-size: 14px !important;
         height: 40px;
         padding: 0 24px;
       }
 
-      :deep(.cart-bar) {
+      .cart-bar {
         position: sticky;
         margin-top: 16px;
       }

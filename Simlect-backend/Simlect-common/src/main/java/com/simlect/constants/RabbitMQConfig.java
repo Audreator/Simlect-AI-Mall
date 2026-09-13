@@ -90,12 +90,10 @@ public class RabbitMQConfig {
     // 通知死信路由键（仅死信投递使用，正常路由永不匹配）
     public static final String NOTIFY_DEAD_KEY = "notify.dead";
 
-    // 签到记录交换机
-    public static final String SIGN_RECORD_EXCHANGE = "sign_record.exchange";
-    // 签到记录队列
-    public static final String SIGN_RECORD_QUEUE = "sign_record.queue";
-    // 签到记录路由键
-    public static final String SIGN_RECORD_KEY = "sign_record";
+    // MySQL 权威签到事务提交后投递的连续签到奖励事件
+    public static final String SIGN_STREAK_COUPON_EXCHANGE = "sign.streak.coupon.exchange";
+    public static final String SIGN_STREAK_COUPON_QUEUE = "sign.streak.coupon.queue";
+    public static final String SIGN_STREAK_COUPON_KEY = "sign.streak.coupon";
 
     // 用户临时封禁（延时解封）
     public static final String USER_TEMP_BAN_EXCHANGE = "user.tempban.exchange";
@@ -335,22 +333,21 @@ public Binding notifyDeadBinding() {
                 .with(NOTIFY_KEY);
     }
 
-    // ========== 签到记录队列 ==========
     @Bean
-    public DirectExchange signRecordExchange() {
-        return new DirectExchange(SIGN_RECORD_EXCHANGE, true, false);
+    public DirectExchange signStreakCouponExchange() {
+        return new DirectExchange(SIGN_STREAK_COUPON_EXCHANGE, true, false);
     }
 
     @Bean
-    public Queue signRecordQueue() {
-        return QueueBuilder.durable(SIGN_RECORD_QUEUE).build();
+    public Queue signStreakCouponQueue() {
+        return QueueBuilder.durable(SIGN_STREAK_COUPON_QUEUE).build();
     }
 
     @Bean
-    public Binding signRecordBinding() {
-        return BindingBuilder.bind(signRecordQueue())
-                .to(signRecordExchange())
-                .with(SIGN_RECORD_KEY);
+    public Binding signStreakCouponBinding() {
+        return BindingBuilder.bind(signStreakCouponQueue())
+                .to(signStreakCouponExchange())
+                .with(SIGN_STREAK_COUPON_KEY);
     }
 
     // ========== 用户临时封禁（延时解封）==========

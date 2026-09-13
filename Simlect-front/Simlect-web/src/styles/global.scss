@@ -428,11 +428,11 @@ select {
   overflow: hidden;
   margin-bottom: 16px;
 
-  :deep(.el-carousel__indicators--horizontal) {
+  .el-carousel__indicators--horizontal {
     bottom: 14px;
   }
 
-  :deep(.el-carousel__button) {
+  .el-carousel__button {
     width: 6px;
     height: 6px;
     border-radius: 50%;
@@ -441,7 +441,7 @@ select {
     transition: width $transition-fast, background $transition-fast;
   }
 
-  :deep(.el-carousel__indicator.is-active .el-carousel__button) {
+  .el-carousel__indicator.is-active .el-carousel__button {
     width: 20px;
     border-radius: $radius-pill;
     background: #fff;
