@@ -194,8 +194,7 @@ const calendarDays = computed(() => {
         d < today.getDate());
 
     const signed = signData.signDays.includes(dateStr);
-    const canSupplement =
-      isViewingCurrentMonth.value && !signed && !isToday && isPast && signData.supplementCount > 0;
+    const canSupplement = !signed && !isToday && isPast && signData.supplementCount > 0;
 
     let className = '';
     if (isToday) className += ' is-today';

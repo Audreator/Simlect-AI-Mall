@@ -31,7 +31,7 @@ Java 侧按领域拆成商品、订单、支付、营销（优惠券）、库存
 | ------------- | ----------------------------------------------------------------------------------------------- |
 | **AI + 传统电商** | LangGraph 编排 LLM + 10 个业务工具（6 读 / 4 写提案）；**自主规划**优先，少强制调工具；流式 WebSocket（复用站内通知）；商品/订单卡片由前端结构化渲染 |
 | **交易与库存**     | SKU：MySQL 行锁预检 + 条件更新防超卖；批量扣减/回补以操作号幂等，超时未支付经 RabbitMQ TTL/DLX 关单并回补。秒杀券：Redis Lua 原子预扣 + DB 兜底 |
-| **签到与异步**     | MySQL 月位图为签到权威数据源，Redis 只做可重建缓存；签到/补签、跨月连续天数、成长值与连续签到发券均具备事务与幂等保障；通知死信队列**有限退避重投 + 超限丢弃审计**，消息不静默丢失 |
+| **签到与异步**     | MySQL 月位图为签到权威数据源，连续/累计/补签汇总落 user_sign_summary 并由 Redis Hash 缓存（签到/补签时写入、首次访问自动回填），缓存均可重建；签到/补签、跨月连续天数、成长值与连续签到发券均具备事务与幂等保障；通知死信队列**有限退避重投 + 超限丢弃审计**，消息不静默丢失 |
 | **搜索与 RAG**   | ES 关键词 + 向量 RRF；**标题相关性过滤**；未命中时热销/足迹兜底并明确告知「未搜到 + 另荐」；FAQ 向量检索；商品变更 MQ 异步向量化                   |
 | **支付与订单**     | 支付宝异步回调；延时关单 / 自动收货；订单状态机集中约束合法流转，并以条件更新处理支付、取消、关单等并发；支持显式开启的本地支付联调模式 |
 | **微服务边界**     | 一域一库；跨库禁止直连 Mapper，统一 OpenFeign `/internal/`** + MQ；Gateway 鉴权与限流                               |
@@ -289,9 +289,12 @@ Get-Content -Raw .\sql\18_verify_legacy_sign_used_count.sql | docker exec -i sim
 
 # 4. 创建库存批量变更操作幂等表
 Get-Content -Raw .\sql\19_stock_change_operation.sql | docker exec -i simlect-mysql mysql -uroot -proot simlect_stock
+
+# 5. 创建签到汇总表并回填累计/补签数据（连续天数由首次访问自动重建）
+Get-Content -Raw .\sql\20_sign_summary.sql | docker exec -i simlect-mysql mysql -uroot -proot simlect_user
 ```
 
-确认核验差异为空后再启动新版 user 服务并恢复签到写入。全新环境的 `sql/01_user.sql`、`sql/03_stock.sql` 已包含对应表结构，无需重复执行 `17`～`19`。
+确认核验差异为空后再启动新版 user 服务并恢复签到写入。全新环境的 `sql/01_user.sql`、`sql/03_stock.sql` 已包含对应表结构，无需重复执行 `17`～`20`。
 
 ### 3. 构建并启动 Java 服务
 

@@ -30,6 +30,8 @@ public class Constants {
 
     public static final String TOTAL_SIGN_DAYS = "totalSignDays";
 
+    public static final String LAST_SIGN_DATE = "lastSignDate";
+
     public static final Long REDIS_KEY_EXPIRES_ONE_MIN = 60L;
 
     public static final Long REDIS_KEY_EXPIRES_DAY = REDIS_KEY_EXPIRES_ONE_MIN * 60 * 24;

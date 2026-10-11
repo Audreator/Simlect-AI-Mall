@@ -94,6 +94,17 @@ create table if not exists sign_supplement_legacy_used
     primary key (user_id)
 ) comment '旧签到补签额度迁移审计' charset = utf8mb4;
 
+create table if not exists user_sign_summary
+(
+    user_id         varchar(32) not null comment '用户ID',
+    continuous_days int         not null default 0 comment '连续签到天数（截至 last_sign_date）',
+    total_sign_days int         not null default 0 comment '累计签到天数',
+    used_count      int         not null default 0 comment '已使用补签次数',
+    last_sign_date  char(8)     null comment '最近一次签到/补签日期 yyyyMMdd，用于连续天数衰减判断',
+    update_time     datetime    not null comment '更新时间',
+    primary key (user_id)
+) comment '签到汇总（派生缓存，可由位图重建）' charset = utf8mb4;
+
 create table if not exists user_notification
 (
     notification_id varchar(32)          not null primary key,

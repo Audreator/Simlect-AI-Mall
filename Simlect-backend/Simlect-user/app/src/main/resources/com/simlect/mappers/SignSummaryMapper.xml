@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.simlect.mappers.SignSummaryMapper">
+
+    <resultMap id="base_result_map" type="com.simlect.entity.po.UserSignSummary">
+        <id column="user_id" property="userId"/>
+        <result column="continuous_days" property="continuousDays"/>
+        <result column="total_sign_days" property="totalSignDays"/>
+        <result column="used_count" property="usedCount"/>
+        <result column="last_sign_date" property="lastSignDate"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <select id="selectByUserId" resultMap="base_result_map">
+        SELECT user_id, continuous_days, total_sign_days, used_count, last_sign_date, update_time
+        FROM user_sign_summary
+        WHERE user_id = #{userId}
+    </select>
+
+    <select id="selectLatestSignDate" resultType="java.lang.String">
+        SELECT MAX(sign_date)
+        FROM user_sign_record_detail
+        WHERE user_id = #{userId}
+    </select>
+
+    <!-- 首次回填：锚点缺失的存量行补写连续值与锚点；锚点已存在则保持不动（防止覆盖并发写入）。
+         last_sign_date 必须最后赋值：MySQL 的 ON DUPLICATE KEY UPDATE 按顺序求值，
+         前面的 continuous_days 条件需读取该列的更新前值。 -->
+    <insert id="upsertRebuild">
+        INSERT INTO user_sign_summary
+            (user_id, continuous_days, total_sign_days, used_count, last_sign_date, update_time)
+        VALUES (#{userId}, #{continuousDays}, #{totalSignDays}, #{usedCount}, #{lastSignDate}, #{updateTime})
+        ON DUPLICATE KEY UPDATE
+            continuous_days = IF(last_sign_date IS NULL, VALUES(continuous_days), continuous_days),
+            total_sign_days = GREATEST(total_sign_days, VALUES(total_sign_days)),
+            used_count = GREATEST(used_count, VALUES(used_count)),
+            update_time = GREATEST(update_time, VALUES(update_time)),
+            last_sign_date = IF(last_sign_date IS NULL, VALUES(last_sign_date), last_sign_date)
+    </insert>
+
+    <insert id="upsert">
+        INSERT INTO user_sign_summary
+            (user_id, continuous_days, total_sign_days, used_count, last_sign_date, update_time)
+        VALUES (#{userId}, #{continuousDays}, #{totalSignDays}, #{usedCount}, #{lastSignDate}, #{updateTime})
+        ON DUPLICATE KEY UPDATE
+            continuous_days = VALUES(continuous_days),
+            total_sign_days = VALUES(total_sign_days),
+            used_count = VALUES(used_count),
+            last_sign_date = GREATEST(COALESCE(last_sign_date, VALUES(last_sign_date)), VALUES(last_sign_date)),
+            update_time = VALUES(update_time)
+    </insert>
+
+</mapper>

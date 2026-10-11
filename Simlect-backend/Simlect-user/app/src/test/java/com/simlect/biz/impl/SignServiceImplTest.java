@@ -5,14 +5,17 @@ import com.simlect.api.dto.SignStreakCouponMessageDTO;
 import com.simlect.api.vo.SignDataVO;
 import com.simlect.biz.SignRewardConfigService;
 import com.simlect.biz.SignStreakService;
+import com.simlect.biz.SignSummaryService;
 import com.simlect.biz.UserMemberProfileService;
 import com.simlect.component.RedisComponent;
 import com.simlect.constants.RabbitMQConfig;
 import com.simlect.constants.TransactionalMqSender;
 import com.simlect.entity.dto.SignRewardConfigDTO;
+import com.simlect.entity.dto.SignSummarySnapshot;
 import com.simlect.entity.enums.MessageReliabilityLevelEnum;
 import com.simlect.entity.po.SignBitmap;
 import com.simlect.entity.po.UserMemberProfile;
+import com.simlect.entity.po.UserSignSummary;
 import com.simlect.entity.po.UserSignRecordDetail;
 import com.simlect.entity.query.UserMemberProfileQuery;
 import com.simlect.entity.query.UserSignRecordDetailQuery;
@@ -20,6 +23,7 @@ import com.simlect.exception.BusinessException;
 import com.simlect.mappers.SignBitmapMapper;
 import com.simlect.mappers.SignGrowthRecordMapper;
 import com.simlect.mappers.SignSupplementUsedMapper;
+import com.simlect.mappers.SignSummaryMapper;
 import com.simlect.mappers.UserMemberProfileMapper;
 import com.simlect.mappers.UserSignRecordDetailMapper;
 import com.simlect.support.MqIdempotencyKeys;
@@ -71,6 +75,10 @@ class SignServiceImplTest {
     @Mock
     private SignStreakService signStreakService;
     @Mock
+    private SignSummaryService signSummaryService;
+    @Mock
+    private SignSummaryMapper signSummaryMapper;
+    @Mock
     private TransactionalMqSender transactionalMqSender;
     @Mock
     private SignBitmapMapper signBitmapMapper;
@@ -103,9 +111,8 @@ class SignServiceImplTest {
         String currentMonth = YearMonth.from(TEST_TODAY).format(MONTH_FORMATTER);
         when(signBitmapMapper.selectByUserAndMonth(USER_ID, currentMonth))
                 .thenReturn(bitmap(currentMonth, bit(1) | bit(3)));
-        when(signStreakService.computeContinuousDays(eq(USER_ID), any(LocalDate.class))).thenReturn(4);
-        when(signBitmapMapper.countTotalSignDays(USER_ID)).thenReturn(65);
-        when(signSupplementUsedMapper.countByUserId(USER_ID)).thenReturn(1);
+        when(signSummaryService.load(eq(USER_ID), any(LocalDate.class)))
+                .thenReturn(new SignSummarySnapshot(4, 65, 1, null));
 
         SignDataVO result = signService.getSignCalendar(USER_ID, currentMonth);
 
@@ -123,6 +130,8 @@ class SignServiceImplTest {
         String yearMonth = historical.format(MONTH_FORMATTER);
         int lastDay = historical.lengthOfMonth();
         when(redisComponent.getSignMonthBits(USER_ID, yearMonth)).thenReturn(bit(lastDay));
+        when(signSummaryService.load(eq(USER_ID), any(LocalDate.class)))
+                .thenReturn(new SignSummarySnapshot(0, 0, 0, null));
 
         SignDataVO result = signService.getSignCalendar(USER_ID, yearMonth);
 
@@ -135,6 +144,8 @@ class SignServiceImplTest {
     void getSignCalendar_historicalCacheMissFallsBackToMysqlAndBackfills() {
         String yearMonth = YearMonth.from(TEST_TODAY).minusMonths(2).format(MONTH_FORMATTER);
         when(redisComponent.getSignMonthBits(USER_ID, yearMonth)).thenReturn(null);
+        when(signSummaryService.load(eq(USER_ID), any(LocalDate.class)))
+                .thenReturn(new SignSummarySnapshot(0, 0, 0, null));
         when(signBitmapMapper.selectByUserAndMonth(USER_ID, yearMonth))
                 .thenReturn(bitmap(yearMonth, bit(2)));
 
@@ -172,6 +183,7 @@ class SignServiceImplTest {
         when(signSupplementUsedMapper.countByUserId(USER_ID)).thenReturn(1);
         when(signBitmapMapper.selectByUserAndMonth(USER_ID, yearMonth))
                 .thenReturn(bitmap(yearMonth, mask));
+        when(signSummaryMapper.selectByUserId(USER_ID)).thenReturn(summary(7, 31, 1, todayText));
         SignRewardConfigDTO config = new SignRewardConfigDTO();
         config.setEnabled(true);
         config.setStreakDays(7);
@@ -180,6 +192,7 @@ class SignServiceImplTest {
 
         signService.sign(USER_ID);
 
+        verify(signSummaryService).persist(eq(USER_ID), eq(new SignSummarySnapshot(7, 31, 1, null)), eq(today), any());
         verify(userMemberProfileMapper).insertDefaultIgnore(USER_ID);
         verify(userMemberProfileMapper).selectUserIdForUpdate(USER_ID);
         verify(userMemberProfileService).addGrowth(USER_ID, 5);
@@ -198,7 +211,7 @@ class SignServiceImplTest {
         verify(transactionalMqSender).sendAfterCommit(refreshCaptor.capture());
         refreshCaptor.getValue().run();
         verify(redisComponent).writeSignMonthBitmap(USER_ID, yearMonth, mask);
-        verify(redisComponent).writeSignHash(USER_ID, 7, 31, 1);
+        verify(redisComponent).writeSignHash(USER_ID, 7, 31, 1, todayText);
     }
 
     @Test
@@ -214,17 +227,57 @@ class SignServiceImplTest {
     }
 
     @Test
-    void msign_rejectsMalformedFutureAndPreviousMonthDatesBeforeLocking() {
+    void msign_rejectsMalformedAndFutureDatesBeforeLocking() {
         String future = TEST_TODAY.plusDays(1).format(DATE_FORMATTER);
-        String previousMonth = TEST_TODAY.minusMonths(1).format(DATE_FORMATTER);
 
         assertThrows(BusinessException.class, () -> signService.msign(USER_ID, "2026-01-05"));
         BusinessException invalidCalendarDate = assertThrows(BusinessException.class,
                 () -> signService.msign(USER_ID, "20260230"));
         assertEquals("日期格式错误", invalidCalendarDate.getMessage());
         assertThrows(BusinessException.class, () -> signService.msign(USER_ID, future));
-        assertThrows(BusinessException.class, () -> signService.msign(USER_ID, previousMonth));
         verify(userMemberProfileMapper, never()).selectUserIdForUpdate(anyString());
+    }
+
+    @Test
+    void msign_historicalMonthDateSucceedsAndWritesThatMonth() {
+        LocalDate signDate = TEST_TODAY.minusMonths(1);
+        String signDateText = signDate.format(DATE_FORMATTER);
+        String yearMonth = signDate.format(MONTH_FORMATTER);
+        long mask = bit(signDate.getDayOfMonth());
+        stubUserLock();
+        when(signBitmapMapper.countTotalSignDays(USER_ID)).thenReturn(30, 31);
+        when(signSupplementUsedMapper.countByUserId(USER_ID)).thenReturn(0, 1);
+        when(signBitmapMapper.insertBitIfAbsent(USER_ID, yearMonth, mask)).thenReturn(1);
+        when(signSupplementUsedMapper.insert(eq(USER_ID), eq(signDateText), any())).thenReturn(1);
+        when(signGrowthRecordMapper.insertIgnore(eq(USER_ID), eq(signDateText), eq(5), any())).thenReturn(1);
+        when(signRecordDetailMapper.insertIgnore(any())).thenReturn(1);
+        when(signStreakService.computeContinuousDays(USER_ID, TEST_TODAY)).thenReturn(3);
+        when(signBitmapMapper.selectByUserAndMonth(USER_ID, yearMonth))
+                .thenReturn(bitmap(yearMonth, mask));
+        when(signSummaryMapper.selectByUserId(USER_ID)).thenReturn(summary(3, 31, 1, signDateText));
+
+        signService.msign(USER_ID, signDateText);
+
+        verify(signSummaryService).persist(eq(USER_ID), eq(new SignSummarySnapshot(3, 31, 1, null)), eq(signDate), any());
+
+        verify(signSupplementUsedMapper).insert(eq(USER_ID), eq(signDateText), any());
+        verify(userMemberProfileService).addGrowth(USER_ID, 5);
+        ArgumentCaptor<UserSignRecordDetail> detailCaptor = ArgumentCaptor.forClass(UserSignRecordDetail.class);
+        verify(signRecordDetailMapper).insertIgnore(detailCaptor.capture());
+        assertEquals(1, detailCaptor.getValue().getSignType());
+        assertEquals(signDateText, detailCaptor.getValue().getSignDate());
+        verify(transactionalMqSender).sendAfterCommit(
+                eq(RabbitMQConfig.NOTIFY_EXCHANGE),
+                eq(RabbitMQConfig.NOTIFY_KEY),
+                any(NotificationMessageDTO.class),
+                eq(MqIdempotencyKeys.notification(USER_ID, "sign", signDateText)),
+                eq(MessageReliabilityLevelEnum.HIGH));
+
+        ArgumentCaptor<Runnable> refreshCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(transactionalMqSender).sendAfterCommit(refreshCaptor.capture());
+        refreshCaptor.getValue().run();
+        verify(redisComponent).writeSignMonthBitmap(USER_ID, yearMonth, mask);
+        verify(redisComponent).writeSignHash(USER_ID, 3, 31, 1, signDateText);
     }
 
     @Test
@@ -270,9 +323,11 @@ class SignServiceImplTest {
         when(signStreakService.computeContinuousDays(USER_ID, today)).thenReturn(2);
         when(signBitmapMapper.selectByUserAndMonth(USER_ID, yearMonth))
                 .thenReturn(bitmap(yearMonth, mask));
+        when(signSummaryMapper.selectByUserId(USER_ID)).thenReturn(summary(2, 31, 1, signDate));
 
         signService.msign(USER_ID, signDate);
 
+        verify(signSummaryService).persist(eq(USER_ID), eq(new SignSummarySnapshot(2, 31, 1, null)), eq(today), any());
         verify(signSupplementUsedMapper).insert(eq(USER_ID), eq(signDate), any());
         verify(userMemberProfileService).addGrowth(USER_ID, 5);
         ArgumentCaptor<UserSignRecordDetail> detailCaptor = ArgumentCaptor.forClass(UserSignRecordDetail.class);
@@ -290,7 +345,7 @@ class SignServiceImplTest {
         verify(transactionalMqSender).sendAfterCommit(refreshCaptor.capture());
         refreshCaptor.getValue().run();
         verify(redisComponent).writeSignMonthBitmap(USER_ID, yearMonth, mask);
-        verify(redisComponent).writeSignHash(USER_ID, 2, 31, 1);
+        verify(redisComponent).writeSignHash(USER_ID, 2, 31, 1, signDate);
     }
 
     @Test
@@ -319,8 +374,16 @@ class SignServiceImplTest {
         long mask = bit(today.getDayOfMonth());
         stubUserLock();
         when(signBitmapMapper.insertBitIfAbsent(USER_ID, yearMonth, mask)).thenReturn(1);
-        when(signBitmapMapper.selectByUserAndMonth(USER_ID, yearMonth))
-                .thenReturn(bitmap(yearMonth, mask));
+    }
+
+    private UserSignSummary summary(int continuousDays, int totalSignDays, int usedCount, String lastSignDate) {
+        UserSignSummary summary = new UserSignSummary();
+        summary.setUserId(USER_ID);
+        summary.setContinuousDays(continuousDays);
+        summary.setTotalSignDays(totalSignDays);
+        summary.setUsedCount(usedCount);
+        summary.setLastSignDate(lastSignDate);
+        return summary;
     }
 
     private SignBitmap bitmap(String yearMonth, long bits) {

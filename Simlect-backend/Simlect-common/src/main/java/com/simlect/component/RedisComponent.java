@@ -335,6 +335,11 @@ public class RedisComponent {
     }
 
     public void writeSignHash(String userId, Integer continuousDays, Integer totalSignDays, Integer usedCount) {
+        writeSignHash(userId, continuousDays, totalSignDays, usedCount, null);
+    }
+
+    public void writeSignHash(String userId, Integer continuousDays, Integer totalSignDays, Integer usedCount,
+                              String lastSignDate) {
         if (StringTools.isEmpty(userId)) {
             return;
         }
@@ -345,7 +350,24 @@ public class RedisComponent {
                 String.valueOf(totalSignDays == null ? 0 : totalSignDays));
         stringRedisTemplate.opsForHash().put(hashKey, Constants.USED_COUNT,
                 String.valueOf(usedCount == null ? 0 : usedCount));
-        stringRedisTemplate.expire(hashKey, 30, TimeUnit.DAYS);
+        stringRedisTemplate.opsForHash().put(hashKey, Constants.LAST_SIGN_DATE,
+                lastSignDate == null ? "" : lastSignDate);
+        stringRedisTemplate.expire(hashKey, 12, TimeUnit.HOURS);
+    }
+
+    /**
+     * 读取签到汇总快照（连续天数/累计天数/补签已用/最近签到日期）；无快照时返回 null。
+     */
+    public Map<String, String> getSignHashSnapshot(String userId) {
+        if (StringTools.isEmpty(userId)) {
+            return null;
+        }
+        Map<String, String> entries = stringRedisTemplate.<String, String>opsForHash()
+                .entries(Constants.REDIS_KEY_SIGN + userId);
+        if (entries == null || entries.isEmpty()) {
+            return null;
+        }
+        return new HashMap<>(entries);
     }
 
     public String signNullCacheKey(String userId) {

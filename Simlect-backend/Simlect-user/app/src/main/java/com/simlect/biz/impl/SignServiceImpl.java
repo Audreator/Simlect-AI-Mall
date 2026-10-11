@@ -6,22 +6,26 @@ import com.simlect.api.vo.SignDataVO;
 import com.simlect.biz.SignRewardConfigService;
 import com.simlect.biz.SignService;
 import com.simlect.biz.SignStreakService;
+import com.simlect.biz.SignSummaryService;
 import com.simlect.biz.UserMemberProfileService;
 import com.simlect.component.RedisComponent;
 import com.simlect.constants.RabbitMQConfig;
 import com.simlect.constants.TransactionalMqSender;
 import com.simlect.entity.dto.SignRewardConfigDTO;
+import com.simlect.entity.dto.SignSummarySnapshot;
 import com.simlect.entity.enums.MessageReliabilityLevelEnum;
 import com.simlect.entity.enums.ResponseCodeEnum;
 import com.simlect.entity.po.SignBitmap;
 import com.simlect.entity.po.UserMemberProfile;
 import com.simlect.entity.po.UserSignRecordDetail;
+import com.simlect.entity.po.UserSignSummary;
 import com.simlect.entity.query.UserMemberProfileQuery;
 import com.simlect.entity.query.UserSignRecordDetailQuery;
 import com.simlect.exception.BusinessException;
 import com.simlect.mappers.SignBitmapMapper;
 import com.simlect.mappers.SignGrowthRecordMapper;
 import com.simlect.mappers.SignSupplementUsedMapper;
+import com.simlect.mappers.SignSummaryMapper;
 import com.simlect.mappers.UserMemberProfileMapper;
 import com.simlect.mappers.UserSignRecordDetailMapper;
 import com.simlect.support.MqIdempotencyKeys;
@@ -65,6 +69,8 @@ public class SignServiceImpl implements SignService {
     @Resource
     private SignStreakService signStreakService;
     @Resource
+    private SignSummaryService signSummaryService;
+    @Resource
     private TransactionalMqSender transactionalMqSender;
     @Resource
     private SignBitmapMapper signBitmapMapper;
@@ -72,6 +78,8 @@ public class SignServiceImpl implements SignService {
     private SignGrowthRecordMapper signGrowthRecordMapper;
     @Resource
     private SignSupplementUsedMapper signSupplementUsedMapper;
+    @Resource
+    private SignSummaryMapper signSummaryMapper;
     @Resource
     private UserMemberProfileMapper<UserMemberProfile, UserMemberProfileQuery> userMemberProfileMapper;
     @Resource
@@ -83,9 +91,10 @@ public class SignServiceImpl implements SignService {
         LocalDate today = businessDate(businessClock.instant());
         YearMonth requestedMonth = parseMonth(yyyyMM);
         long bits = loadCalendarBits(userId, requestedMonth, YearMonth.from(today));
-        int continuousDays = signStreakService.computeContinuousDays(userId, today);
-        int totalSignDays = nullToZero(signBitmapMapper.countTotalSignDays(userId));
-        int usedCount = nullToZero(signSupplementUsedMapper.countByUserId(userId));
+        SignSummarySnapshot summary = signSummaryService.load(userId, today);
+        int continuousDays = summary.continuousDays();
+        int totalSignDays = summary.totalSignDays();
+        int usedCount = summary.usedCount();
 
         List<String> signDates = new ArrayList<>();
         for (int day = 1; day <= requestedMonth.lengthOfMonth(); day++) {
@@ -115,9 +124,10 @@ public class SignServiceImpl implements SignService {
         recordGrowthOnce(userId, today, now);
         recordSignDetail(userId, today, 0, now);
 
-        SignSnapshot snapshot = loadSnapshot(userId, today);
+        SignSummarySnapshot snapshot = loadSnapshot(userId, today);
+        signSummaryService.persist(userId, snapshot, today, now);
         enqueueStreakReward(userId, snapshot.continuousDays());
-        enqueueCacheRefresh(userId, today, snapshot);
+        enqueueCacheRefresh(userId, today);
     }
 
     @Override
@@ -145,10 +155,11 @@ public class SignServiceImpl implements SignService {
         recordGrowthOnce(userId, signDate, now);
         recordSignDetail(userId, signDate, 1, now);
 
-        SignSnapshot snapshot = loadSnapshot(userId, today);
+        SignSummarySnapshot snapshot = loadSnapshot(userId, today);
+        signSummaryService.persist(userId, snapshot, signDate, now);
         enqueueStreakReward(userId, snapshot.continuousDays());
         enqueueSupplementNotification(userId, yyyyMMdd);
-        enqueueCacheRefresh(userId, signDate, snapshot);
+        enqueueCacheRefresh(userId, signDate);
     }
 
     private long loadCalendarBits(String userId, YearMonth requestedMonth, YearMonth currentMonth) {
@@ -214,11 +225,11 @@ public class SignServiceImpl implements SignService {
         }
     }
 
-    private SignSnapshot loadSnapshot(String userId, LocalDate today) {
+    private SignSummarySnapshot loadSnapshot(String userId, LocalDate today) {
         int continuousDays = signStreakService.computeContinuousDays(userId, today);
         int totalSignDays = nullToZero(signBitmapMapper.countTotalSignDays(userId));
         int usedCount = nullToZero(signSupplementUsedMapper.countByUserId(userId));
-        return new SignSnapshot(continuousDays, totalSignDays, usedCount);
+        return new SignSummarySnapshot(continuousDays, totalSignDays, usedCount, null);
     }
 
     private void enqueueStreakReward(String userId, int continuousDays) {
@@ -256,15 +267,18 @@ public class SignServiceImpl implements SignService {
                 MessageReliabilityLevelEnum.HIGH);
     }
 
-    private void enqueueCacheRefresh(String userId, LocalDate changedDate, SignSnapshot snapshot) {
+    private void enqueueCacheRefresh(String userId, LocalDate changedDate) {
         String yearMonth = changedDate.format(MONTH_FORMATTER);
-        SignBitmap row = signBitmapMapper.selectByUserAndMonth(userId, yearMonth);
-        long bits = row == null || row.getBits() == null ? 0L : row.getBits();
         transactionalMqSender.sendAfterCommit(() -> {
             try {
+                SignBitmap row = signBitmapMapper.selectByUserAndMonth(userId, yearMonth);
+                long bits = row == null || row.getBits() == null ? 0L : row.getBits();
                 redisComponent.writeSignMonthBitmap(userId, yearMonth, bits);
-                redisComponent.writeSignHash(userId, snapshot.continuousDays(),
-                        snapshot.totalSignDays(), snapshot.usedCount());
+                UserSignSummary summary = signSummaryMapper.selectByUserId(userId);
+                if (summary != null) {
+                    redisComponent.writeSignHash(userId, summary.getContinuousDays(), summary.getTotalSignDays(),
+                            summary.getUsedCount(), summary.getLastSignDate());
+                }
             } catch (Exception e) {
                 log.warn("签到事务已提交，但 Redis 缓存刷新失败 userId={}, month={}", userId, yearMonth, e);
             }
@@ -280,9 +294,6 @@ public class SignServiceImpl implements SignService {
             signDate = LocalDate.parse(yyyyMMdd, DATE_FORMATTER);
         } catch (DateTimeParseException e) {
             throw new BusinessException("日期格式错误");
-        }
-        if (signDate.isBefore(today.withDayOfMonth(1))) {
-            throw new BusinessException("只能补签本月内的日期");
         }
         if (signDate.isAfter(today)) {
             throw new BusinessException("不能补签未来日期");
@@ -309,8 +320,5 @@ public class SignServiceImpl implements SignService {
 
     private int nullToZero(Integer value) {
         return value == null ? 0 : value;
-    }
-
-    private record SignSnapshot(int continuousDays, int totalSignDays, int usedCount) {
     }
 }
