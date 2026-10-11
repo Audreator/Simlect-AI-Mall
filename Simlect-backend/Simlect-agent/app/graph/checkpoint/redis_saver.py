@@ -330,7 +330,8 @@ def get_checkpointer(redis_client=None) -> RedisCheckpointSaver:
         import redis.asyncio as aioredis  # 局部导入，避免顶层依赖
 
         # 独立 bytes 客户端（不与共享 str 客户端混用）
-        bytes_client = aioredis.from_url(settings.redis_url, decode_responses=False)
+        # protocol=2：兼容旧版 Redis（5.x 不支持 RESP3/HELLO，redis-py 默认会导致握手失败）
+        bytes_client = aioredis.from_url(settings.redis_url, decode_responses=False, protocol=2)
         _checkpointer = RedisCheckpointSaver(
             bytes_client,  # bytes 客户端：读写二进制 pickle 安全
             key_prefix=settings.graph_checkpoint_prefix,  # Redis key 前缀

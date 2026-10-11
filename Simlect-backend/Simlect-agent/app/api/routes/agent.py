@@ -30,7 +30,7 @@
 import hmac
 from fastapi import APIRouter, Depends, Form, Header, Request  # 路由注册、依赖注入、表单绑定、请求头、原始 Request
 from app.api.rate_limit import limiter  # 共享全局限流器单例（防双实例限流失效）  # 接口级限流装饰器（类比 @RateLimiter 注解）
-  # 默认限流 key：客户端 IP（无 token 时的兜底）
+from slowapi.util import get_remote_address  # 默认限流 key：客户端 IP（无 token 时的兜底）
 
 from app.api.deps import TokenUserInfo, get_request_token, require_login  # 登录校验与用户上下文 DTO
 from app.config.settings import get_settings  # 读取 internal_token 等配置

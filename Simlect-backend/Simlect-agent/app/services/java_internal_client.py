@@ -24,6 +24,8 @@ post_json(path, body)
 【如何使用】
 java_internal_client.list_orders(user_id, ...) 等；由 mcp_tools_service 调用。
 配置：settings.java_web_url、internal_token（须与 Gateway 一致）。
+【后端切换】INTERNAL_READ_BACKEND=http（默认，走 /internal HTTP）| db（单体版服务器直连业务库，
+见 java_internal_client_db.py；方法签名完全一致，上层无感）。
 
 【关联】
 Gateway InternalTokenGlobalFilter、*AgentInternalController、mcp_tools_service
@@ -213,4 +215,13 @@ class JavaInternalClient:  # Java 内部只读 API 客户端 — 类比 @FeignCl
         return str(data)  # Java 直接返回字符串 ID 的情况 — 如 "prod_123"
 
 
-java_internal_client = JavaInternalClient()  # 模块级单例 — mcp_tools_service 直接 import 使用，全局共享一个客户端
+def build_internal_client(backend: str):
+    """按 INTERNAL_READ_BACKEND 装配内部读客户端：http=HTTP /internal；db=单体直连库适配。"""
+    if (backend or "http").strip().lower() == "db":
+        from app.services.java_internal_client_db import JavaInternalClientDb  # 延迟导入：仅 db 部署加载
+
+        return JavaInternalClientDb()
+    return JavaInternalClient()
+
+
+java_internal_client = build_internal_client(get_settings().internal_read_backend)  # 模块级单例 — 全局共享一个客户端

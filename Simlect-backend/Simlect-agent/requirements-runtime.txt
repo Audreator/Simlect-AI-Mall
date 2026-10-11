@@ -16,5 +16,5 @@ elasticsearch[async]>=9.0.0
 prometheus-client>=0.21.0
 slowapi>=0.1.9
 websockets>=13.0
-# Real MCP (Streamable HTTP)
-mcp>=1.9.0
+# Real MCP (Streamable HTTP)；2.x 会拉 starlette 1.x 破坏现有 FastAPI 0.115，固定 1.x
+mcp>=1.9.0,<2.0.0

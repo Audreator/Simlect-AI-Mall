@@ -94,7 +94,7 @@ _FILLERS = re.compile(  # 口语填充词正则 — 如「我要」「帮我」
     r"看看|买点|来点|吃点|搜一下|搜索一下|搜索|"
     r"找找|找|买|要|吃)"
 )
-_PUNCT = re.compile(r"[的了吗呢啊哦呀呗嘛～~，。！？、；：""''\s]+")  # 标点与语气词
+_PUNCT = re.compile(r"[的了吗呢啊哦呀呗嘛～~，。！？、；：''\s]+")  # 标点与语气词
 
 def normalize_product_search_query(text: str | None) -> str:  # 规范化搜索词 — 「我要吃零食」→「零食」
     """Turn「我要吃零食」into「零食」; keep concrete keywords otherwise."""

@@ -1000,6 +1000,7 @@ async def finalize_node(state: AgentGraphState) -> dict:
     agent_msg = state["agent_msg"]
     user_id = state["user_id"]
     message_id = state["message_id"]
+    resolved_cards: str | None = None  # finalize 实际展示的商品卡片（回写 state 供 post_turn 记录）
 
     try:
         if state.get("cancelled"):  # 已取消则跳过 finalize 写库（避免脏数据）
@@ -1019,7 +1020,7 @@ async def finalize_node(state: AgentGraphState) -> dict:
             chunks = [filtered]
             full_text = filtered
 
-        await rt.finalize_agent_response(  # 核心：写 DB、推 WS done、附业务卡片
+        resolved_cards = await rt.finalize_agent_response(  # 核心：写 DB、推 WS done、附业务卡片
             agent_msg,
             chunks,
             messages,
@@ -1039,6 +1040,8 @@ async def finalize_node(state: AgentGraphState) -> dict:
     finally:
         await redis_service.clear_bound_message_id(user_id)  # 无论成败都解绑 messageId
 
+    if resolved_cards:  # 回写「实际展示的卡片」，供 post_turn 记录用户看到的清单
+        return {"finished": True, "route": "post_turn", "assistant_cards": resolved_cards}
     return {"finished": True, "route": "post_turn"}  # 下一跳：回合后记忆更新
 
 
@@ -1079,6 +1082,7 @@ async def post_turn_node(state: AgentGraphState) -> dict:
             tools_called=state.get("tools_called") or [],
             tool_biz=state.get("tool_biz"),
             card=card,
+            assistant_cards=state.get("assistant_cards"),
             working_turns=state.get("working_turns") or [],
             working_oldest_id=state.get("working_oldest_id"),
         )

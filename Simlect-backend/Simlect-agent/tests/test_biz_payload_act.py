@@ -133,3 +133,12 @@ def test_extract_real_act_token():
 def test_reject_fake_act_token():
     assert extract_act_token_id("【act_propose_product_review】") is None
     assert extract_act_tokens("【act_propose_product_review】") == []
+
+def test_format_price_text():
+    from app.utils.biz_payload import format_price_text
+
+    assert format_price_text(12.0) == "12"
+    assert format_price_text(12.5) == "12.5"
+    assert format_price_text("199") == "199"
+    assert format_price_text(None) == ""
+    assert format_price_text("不是价格") == ""

@@ -27,6 +27,7 @@ def empty_state() -> dict[str, Any]:
             "queriedOrders": [],
             "viewedProductIds": [],
         },
+        "lastSearchResults": [],
         "turnCount": 0,
         "summaryLastMessageId": 0,
         "estimatedTokens": 0,

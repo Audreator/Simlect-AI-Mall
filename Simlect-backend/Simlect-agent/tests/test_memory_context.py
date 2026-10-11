@@ -151,3 +151,16 @@ def test_products_match_consult_category():
     products = [{"category_id": "10"}, {"category_id": "20"}]
     assert _products_match_consult_category(products, consult)
     assert not _products_match_consult_category([{"category_id": "20"}], consult)
+
+def test_build_context_block_lists_displayed_cards_with_order():
+    mem = SessionMemory(user_id="u1")
+    mem.state["lastSearchResults"] = [
+        {"productId": "p1", "productName": "旺旺雪饼", "minPrice": 12.0},
+        {"productId": "p2", "productName": "乐事薯片", "minPrice": 6.5},
+    ]
+    block = build_context_block(mem)
+    assert "1. 旺旺雪饼（¥12，ID: p1）" in block
+    assert "2. 乐事薯片（¥6.5，ID: p2）" in block
+    assert "第一个" in block
+    # 旧行为（隐藏 lastToolResults 原始搜索名）不受影响
+    assert "需重新调用 SEARCH_PRODUCTS" not in block

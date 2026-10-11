@@ -419,9 +419,10 @@ async def finalize_agent_response(
     user_text: str | None = None,  # 用户输入原文
     consult_card: dict | None = None,  # 咨询商品卡 Map
     message_card: dict | None = None,  # 消息附带卡片 Map
-) -> None:
+) -> str | None:
     """
     流式 LLM 回合结束后的核心编排：解析 confirm token、选择 UI 类型、落库并 push_done。
+    返回实际展示的商品卡片 JSON（bare 数组）；无商品卡场景返回 None，供 finalize_node 回写 state。
 
     Java 类比：类似 ChatOrchestrator.finalizeTurn()，根据 toolsCalled 分支：
     - resolve_action_confirm → action_confirm 卡片（关联 Redis pending，后续 confirm 调 Java）
@@ -440,6 +441,7 @@ async def finalize_agent_response(
         from_product=bool(agent_msg.get("fromProduct")),  # 是否来自商品详情页入口
     )
 
+    state_cards: str | None = None  # 实际展示给用户的商品卡片（回写 state 供 post_turn 记录）
     resolved = await resolve_action_confirm(full_text, messages, user_id)  # await 解析操作确认 act_xxx token
     if resolved:  # 命中 action_confirm 分支：展示确认卡，等待用户点 confirm 后 Java 写库
         assistant, biz_data, biz_type = resolved  # 解构三元组 (assistantJson, bizData, bizType)
@@ -551,6 +553,7 @@ async def finalize_agent_response(
                         intro = "未找到相关商品，请换个关键词试试。"
                     assistant = build_product_search_message(intro, cards_json)  # 组装 {type, intro, cards} JSON
                     biz_type = biz_type or forced_biz
+                    state_cards = cards_json  # 记录实际展示的卡片（含回填/补卡）
                 elif assistant_cards and assistant_cards.strip().startswith("{"):  # assistant_cards 像 JSON 但非标准商品卡
                     if is_action_confirm_json(assistant_cards):  # 伪造操作确认 JSON
                         assistant = "操作确认卡片无效，请重新发起。"
@@ -593,6 +596,7 @@ async def finalize_agent_response(
                             intro = compact_product_search_intro(full_text, extra_hint or search_tool_hint)
                             assistant = build_product_search_message(intro, extra_cards)
                             biz_type = "product_search"
+                            state_cards = extra_cards  # 记录实际展示的补卡列表
                             if extra_biz:
                                 biz_data = extra_biz
 
@@ -602,6 +606,7 @@ async def finalize_agent_response(
         user_id, message_id, assistant, biz_type, agent_msg.get("userMessage")
     )
     await agent_message_service.complete_message(message_id, assistant, biz_type, biz_data)  # await 持久化完成消息到 DB
+    return state_cards  # 实际展示的商品卡片（无则 None），供 finalize_node 回写 state
 
 
 async def push_chat_error(agent_msg: dict, prompt_type: str, partial: str = "") -> None:

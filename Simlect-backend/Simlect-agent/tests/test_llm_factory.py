@@ -35,3 +35,8 @@ def test_chat_and_memory_llm_streaming_flag():
     memory = create_memory_llm()
     assert chat.streaming is True
     assert memory.streaming is False
+
+def test_default_chat_model_is_deepseek_flash():
+    # 默认值应与 DeepSeek 现行模型名一致（DeepSeek-V4.1-Flash 的 API 模型 ID 为 deepseek-flash）
+    assert Settings.model_fields["llm_model"].default == "deepseek-flash"
+    assert Settings.model_fields["llm_fallback_model"].default == "deepseek-flash"

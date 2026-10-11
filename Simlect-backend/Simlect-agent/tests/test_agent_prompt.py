@@ -8,7 +8,7 @@ def _load_prompt() -> str:
 def test_prompt_has_intent_routing_section():
     text = _load_prompt()
     assert "意图与工具选择" in text
-    assert "禁止**先 QUERY_ORDERS" in text or "禁止**先 QUERY_ORDERS" in text.replace(" ", "")
+    assert "**不先** QUERY_ORDERS" in text  # 示例5 实际文案：→ **不先** QUERY_ORDERS
 
 def test_prompt_few_shot_review_examples():
     text = _load_prompt()
@@ -26,10 +26,10 @@ def test_prompt_distinguish_read_write_tools():
 
 def test_prompt_has_forbidden_section():
     text = _load_prompt()
-    assert "=== 【禁止】===" in text
-    assert text.count("【禁止】") >= 15
-    assert "【禁止】句中出现「订单」二字就默认调用 QUERY_ORDERS" in text
-    assert "【禁止】用户要写评价" in text
+    assert "=== 【禁止】" in text  # 实际标题：=== 【禁止】（安全底线，不是流程教条）===
+    assert text.count("【禁止】") >= 9  # 当前文案共 10 条
+    assert "优先于句中出现的「订单」字样" in text  # 规则6 实际文案
+    assert "用 QUERY_COMMENT 代替写评价" in text  # 实际文案：用 QUERY_COMMENT 代替写评价
 
 def test_prompt_write_ops_no_query_orders_fallback():
     text = _load_prompt()

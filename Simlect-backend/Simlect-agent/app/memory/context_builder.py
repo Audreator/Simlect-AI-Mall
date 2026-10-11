@@ -20,6 +20,7 @@ from app.memory.token_estimator import estimate_text_tokens  # 估算文本 toke
 from app.services.message_service import agent_message_service  # 消息服务单例，类似 @Autowired MessageService
 from app.domain.intent.types import IntentKind  # 意图枚举，类似 enum IntentKind
 from app.services.prompt_service import build_agent_system_prompt  # 构建系统提示词
+from app.utils.biz_payload import format_price_text  # 价格展示文本（12.0→12）
 from app.utils.prompt_boundary import isolate_user_message  # 隔离用户消息，防 prompt 注入
 
 
@@ -191,11 +192,30 @@ def build_context_block(memory: SessionMemory) -> str:
     else:
         lines.append("待确认操作: 无")
 
-    last = state.get("lastToolResults") or {}  # 上轮工具调用结果摘要
-    if last.get("searchedProductNames") or last.get("searchedProducts"):
-        lines.append("上轮曾搜索过商品（需重新调用 SEARCH_PRODUCTS 获取最新结果）")
+    search_cards = state.get("lastSearchResults") or []  # 最近一次展示给用户的商品卡片（顺序与页面一致）
+    if search_cards:
+        lines.append("### 最近展示的商品卡片（编号与用户页面卡片顺序一致）")
+        for index, card in enumerate(search_cards[:12], start=1):
+            name = (card.get("productName") or "").strip() or "商品"
+            meta: list[str] = []  # 括号内元信息：价格 / 商品 ID
+            price_text = format_price_text(card.get("minPrice"))
+            if price_text:
+                meta.append(f"¥{price_text}")
+            pid = str(card.get("productId") or "").strip()
+            if pid:
+                meta.append(f"ID: {pid}")
+            suffix = f"（{'，'.join(meta)}）" if meta else ""
+            lines.append(f"{index}. {name}{suffix}")
+        lines.append(
+            "用户说「第一个商品／第N个商品」时按上述编号对应；"
+            "需要规格、库存等最新详情请调用 GET_PRODUCT_DETAIL（商品 ID 见上）。"
+        )
     else:
-        lines.append("上轮搜索结果: 无")
+        last = state.get("lastToolResults") or {}  # 上轮工具调用结果摘要（不展示具体商品名，防过期信息复用）
+        if last.get("searchedProductNames") or last.get("searchedProducts"):
+            lines.append("上轮曾搜索过商品（需重新调用 SEARCH_PRODUCTS 获取最新结果）")
+        else:
+            lines.append("上轮搜索结果: 无")
 
     return "\n".join(lines)  # 换行连接，类似 String.join("\n", lines)
 

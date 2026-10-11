@@ -33,10 +33,13 @@ class Settings(BaseSettings):
         ),
     )
 
+    # 内部读后端：http=经 Gateway /internal/**（微服务版）；db=直连 MySQL（单体版服务器适配）
+    internal_read_backend: str = "http"
+
     llm_api_key: str = ""
     llm_base_url: str = "https://api.deepseek.com"
-    llm_model: str = "deepseek-chat"
-    llm_fallback_model: str = "deepseek-chat"
+    llm_model: str = "deepseek-flash"
+    llm_fallback_model: str = "deepseek-flash"
     llm_timeout: int = 60
     llm_max_retries: int = 3
 

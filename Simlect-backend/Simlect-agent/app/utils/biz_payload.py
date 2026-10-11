@@ -37,6 +37,16 @@ def _to_number(value: Any) -> Any:
         return float(value)
     return value
 
+def format_price_text(value: Any) -> str:
+    """价格展示文本：12.0→"12"、12.5→"12.5"；None/非法值返回空串。"""
+    if value is None:
+        return ""
+    try:
+        price = float(value)
+    except (TypeError, ValueError):
+        return ""
+    return str(int(price)) if price.is_integer() else str(price)
+
 def trim_assistant(text: str | None) -> str | None:
 
     if text is None:

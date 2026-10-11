@@ -40,9 +40,9 @@ async def test_confirm_success_deletes_pending(service):
         assert p["token"] == "act_test"
         return "订单 o1 已确认收货"
 
+    redis = _redis_stub()
     with patch.object(service, "load_owned", AsyncMock(return_value=pending)):
-        with patch("app.services.pending_action_service.redis_service") as redis:
-            redis = _redis_stub()
+        with patch("app.services.pending_action_service.redis_service", redis):
             action_type, ok, msg = await service.confirm("u1", "act_test", executor)
 
     assert action_type == "CONFIRM_RECEIPT"
@@ -61,10 +61,10 @@ async def test_confirm_delete_failed_status_already_confirmed(service):
     async def executor(_):
         return "已提交退款"
 
+    redis = _redis_stub()
+    redis.delete_pending_action = AsyncMock(side_effect=RuntimeError("redis down"))
     with patch.object(service, "load_owned", AsyncMock(return_value=pending)):
-        with patch("app.services.pending_action_service.redis_service") as redis:
-            redis = _redis_stub()
-            redis.delete_pending_action = AsyncMock(side_effect=RuntimeError("redis down"))
+        with patch("app.services.pending_action_service.redis_service", redis):
             action_type, ok, msg = await service.confirm("u1", "act_del", executor)
 
     assert ok is False
@@ -86,9 +86,9 @@ async def test_confirm_failure_rolls_back_status(service):
     async def executor(_):
         raise ValueError("退款失败：订单状态不允许")
 
+    redis = _redis_stub()
     with patch.object(service, "load_owned", AsyncMock(return_value=pending)):
-        with patch("app.services.pending_action_service.redis_service") as redis:
-            redis = _redis_stub()
+        with patch("app.services.pending_action_service.redis_service", redis):
             action_type, ok, msg = await service.confirm("u1", "act_fail", executor)
 
     assert action_type == "REFUND"
@@ -106,9 +106,9 @@ async def test_confirm_system_error_keeps_confirmed(service):
     async def executor(_):
         raise RuntimeError("java 500")
 
+    redis = _redis_stub()
     with patch.object(service, "load_owned", AsyncMock(return_value=pending)):
-        with patch("app.services.pending_action_service.redis_service") as redis:
-            redis = _redis_stub()
+        with patch("app.services.pending_action_service.redis_service", redis):
             action_type, ok, msg = await service.confirm("u1", "act_sys", executor)
 
     assert ok is False
@@ -125,9 +125,9 @@ async def test_confirm_cas_rejected(service):
     async def executor(_):
         raise AssertionError("不应执行 executor")
 
+    redis = _redis_stub(success_cas=False)  # 并发其他请求已落定
     with patch.object(service, "load_owned", AsyncMock(return_value=pending)):
-        with patch("app.services.pending_action_service.redis_service") as redis:
-            redis = _redis_stub(success_cas=False)  # 并发其他请求已落定
+        with patch("app.services.pending_action_service.redis_service", redis):
             with pytest.raises(ValueError, match="已处理|已过期"):
                 await service.confirm("u1", "act_cas", executor)
 
@@ -136,9 +136,9 @@ async def test_confirm_cas_rejected(service):
 async def test_confirm_idempotent_on_processed(service):
     pending = {"token": "act_done", "userId": "u1", "status": 1}
 
+    redis = _redis_stub()
     with patch.object(service, "load_owned", AsyncMock(return_value=pending)):
-        with patch("app.services.pending_action_service.redis_service") as redis:
-            redis = _redis_stub()
+        with patch("app.services.pending_action_service.redis_service", redis):
             with pytest.raises(ValueError, match="已处理"):
                 await service.confirm("u1", "act_done", AsyncMock())
             redis.try_mark_pending_executing.assert_not_awaited()
