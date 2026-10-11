@@ -18,9 +18,7 @@ public interface SignBitmapMapper {
     SignBitmap selectByUserAndMonth(@Param("userId") String userId,
                                     @Param("yearMonth") String yearMonth);
 
-    List<SignBitmap> selectRecentMonths(@Param("userId") String userId,
-                                        @Param("currentMonth") String currentMonth,
-                                        @Param("previousMonth") String previousMonth);
+    List<SignBitmap> selectAllByUser(@Param("userId") String userId);
 
     Integer countTotalSignDays(@Param("userId") String userId);
 }

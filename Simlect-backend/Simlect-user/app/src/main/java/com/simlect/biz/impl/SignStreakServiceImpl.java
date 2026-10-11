@@ -7,7 +7,6 @@ import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
@@ -23,10 +22,7 @@ public class SignStreakServiceImpl implements SignStreakService {
 
     @Override
     public int computeContinuousDays(String userId, LocalDate today) {
-        YearMonth currentMonth = YearMonth.from(today);
-        YearMonth previousMonth = currentMonth.minusMonths(1);
-        List<SignBitmap> rows = signBitmapMapper.selectRecentMonths(
-                userId, currentMonth.format(MONTH_FORMATTER), previousMonth.format(MONTH_FORMATTER));
+        List<SignBitmap> rows = signBitmapMapper.selectAllByUser(userId);
         if (rows == null || rows.isEmpty()) {
             return 0;
         }
@@ -37,8 +33,7 @@ public class SignStreakServiceImpl implements SignStreakService {
 
         LocalDate cursor = isSigned(bitsByMonth, today) ? today : today.minusDays(1);
         int continuousDays = 0;
-        LocalDate lowerBound = previousMonth.atDay(1);
-        while (!cursor.isBefore(lowerBound) && isSigned(bitsByMonth, cursor)) {
+        while (isSigned(bitsByMonth, cursor)) {
             continuousDays++;
             cursor = cursor.minusDays(1);
         }

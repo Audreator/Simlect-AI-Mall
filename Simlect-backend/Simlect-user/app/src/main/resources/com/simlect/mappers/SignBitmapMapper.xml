@@ -29,11 +29,10 @@
         WHERE user_id = #{userId} AND `year_month` = #{yearMonth}
     </select>
 
-    <select id="selectRecentMonths" resultMap="base_result_map">
+    <select id="selectAllByUser" resultMap="base_result_map">
         SELECT user_id, `year_month`, bits, update_time
         FROM sign_bitmap
         WHERE user_id = #{userId}
-          AND `year_month` IN (#{currentMonth}, #{previousMonth})
         ORDER BY `year_month` DESC
     </select>
 
